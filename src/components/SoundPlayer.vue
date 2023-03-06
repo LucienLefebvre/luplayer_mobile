@@ -1,0 +1,84 @@
+<template>
+  <div>
+    <q-card
+      style="width: 100%"
+      :style="{
+        borderColor: getWaveformColor(),
+      }"
+      class="soundBackground"
+    >
+      <sound-waveform :sound="sound" />
+      <div class="soundName" :style="{ color: getWaveformColor() }">
+        {{ props.sound.name }}
+      </div>
+    </q-card>
+  </div>
+  <q-dialog v-model="editWindow">
+    <q-btn icon="close" color="white" flat round dense v-close-popup />
+    <sound-details :sound="sound" />
+  </q-dialog>
+</template>
+
+<script setup lang="ts">
+import { PropType, ref, onMounted, watch } from 'vue';
+import { SoundModel } from './models';
+import { useSoundsStore } from '../stores/example-store';
+import { TouchHold } from 'quasar';
+import SoundDetails from './SoundDetails.vue';
+import SoundWaveform from './SoundWaveform.vue';
+
+const soundsStore = useSoundsStore();
+
+const props = defineProps({
+  sound: { type: Object as PropType<SoundModel>, required: true },
+});
+
+const sound = ref(props.sound);
+
+const soundInterface = soundsStore.sounds.find((s) => s.id === sound.value.id);
+
+function getWaveformColor() {
+  if (soundInterface?.isPlaying) {
+    return 'green';
+  } else if (soundInterface?.isSelected) {
+    return 'orange';
+  } else {
+    return 'rgb(40, 134, 189)';
+  }
+}
+
+const editWindow = ref(false);
+
+function waveformClicked() {
+  console.log('waveform clicked');
+}
+
+function soundTapped(e: Event) {
+  console.log('taped');
+  soundsStore.setSelectedSound(sound.value);
+}
+
+function touchHold(e: TouchHold) {
+  console.log(e.duration);
+  editWindow.value = true;
+}
+</script>
+
+<style scoped>
+.soundBackground {
+  border: 1px solid;
+  border-radius: 10px;
+  border-color: 'orange';
+  background-color: var(--bkgColor);
+}
+.soundName {
+  text-align: center;
+  font-size: 1rem;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+</style>
