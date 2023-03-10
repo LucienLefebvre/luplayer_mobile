@@ -1,18 +1,19 @@
 <template>
-  <div>
-    <q-card
-      style="width: 100%"
-      :style="{
-        borderColor: getWaveformColor(),
-      }"
-      class="soundBackground"
-    >
-      <sound-waveform :sound="sound" />
+  <q-card
+    class="soundBackground"
+    style="width: 100%"
+    :style="{
+      borderColor: getWaveformColor(),
+    }"
+  >
+    <div class="column d-flex flex-center" style="width: 100%">
+      <sound-waveform :sound="sound" style="width: 100%" />
       <div class="soundName" :style="{ color: getWaveformColor() }">
         {{ props.sound.name }}
       </div>
-    </q-card>
-  </div>
+    </div>
+  </q-card>
+
   <q-dialog v-model="editWindow">
     <q-btn icon="close" color="white" flat round dense v-close-popup />
     <sound-details :sound="sound" />
@@ -20,10 +21,9 @@
 </template>
 
 <script setup lang="ts">
-import { PropType, ref, onMounted, watch } from 'vue';
+import { PropType, ref, watch } from 'vue';
 import { SoundModel } from './models';
-import { useSoundsStore } from '../stores/example-store';
-import { TouchHold } from 'quasar';
+import { useSoundsStore } from '../stores/sounds-store';
 import SoundDetails from './SoundDetails.vue';
 import SoundWaveform from './SoundWaveform.vue';
 
@@ -48,20 +48,6 @@ function getWaveformColor() {
 }
 
 const editWindow = ref(false);
-
-function waveformClicked() {
-  console.log('waveform clicked');
-}
-
-function soundTapped(e: Event) {
-  console.log('taped');
-  soundsStore.setSelectedSound(sound.value);
-}
-
-function touchHold(e: TouchHold) {
-  console.log(e.duration);
-  editWindow.value = true;
-}
 </script>
 
 <style scoped>
@@ -72,6 +58,7 @@ function touchHold(e: TouchHold) {
   background-color: var(--bkgColor);
 }
 .soundName {
+  max-width: 300px;
   text-align: center;
   font-size: 1rem;
   -webkit-touch-callout: none;
@@ -80,5 +67,8 @@ function touchHold(e: TouchHold) {
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

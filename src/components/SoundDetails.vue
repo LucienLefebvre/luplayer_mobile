@@ -5,42 +5,137 @@
         {{ sound.name }}
       </div>
       <div style="height: 10px"></div>
-      <div class="row justify-center">
-        <q-slider
-          vertical
-          reverse
-          label
-          :label-value="sound.trimGain + 'dB'"
-          label-always
-          switch-label-side
-          markers
-          :marker-labels="sliderLabelArray"
-          v-model="sound.trimGain"
-          :min="-24"
-          :max="24"
-          :step="0.1"
-          track-size="8px"
-          thumb-size="25px"
-          color="orange"
+      <div class="row">
+        <div class="column d-flex flex-center" style="width: 40%">
+          <q-slider
+            vertical
+            reverse
+            label
+            :label-value="sound.trimGain + 'dB'"
+            label-always
+            v-model="sound.trimGain"
+            @update:model-value="setTrimGain(sound, $event!)"
+            :min="-24"
+            :max="24"
+            :step="0.1"
+            track-size="8px"
+            thumb-size="25px"
+            color="orange"
+          />
+          <q-btn
+            class="justify-center"
+            style="
+              margin-top: 10px;
+              background-color: var(--blueColor);
+              width: 100%;
+            "
+            label="normalize"
+            @click="normalizeSound(sound)"
+          />
+        </div>
+        <div class="column d-flex flex-center" style="width: 60%">
+          <q-btn
+            label="HPF"
+            @click="toggleHpf(sound)"
+            style="width: 50%"
+            :color="getHpfButtonColor()"
+          />
+          <q-slider
+            v-model="sound.hpfFrequency"
+            :min="20"
+            :max="200"
+            style="width: 60%; margin-top: 10px"
+            :label-value="sound.hpfFrequency + 'Hz'"
+            label-always
+            switch-label-side
+            @update:model-value="setHpfFrequency(sound, $event!)"
+          />
+        </div>
+      </div>
+      <div style="height: 10px"></div>
+      <sound-waveform
+        ref="soundWaveforms"
+        :sound="sound"
+        :is-sound-details="true"
+        style="width: 100%"
+        @is-max-zoomed="setIsMaxZoomed($event)"
+        @is-min-zoomed="setIsMinZoomed($event)"
+      />
+      <div style="height: 10px"></div>
+      <div class="row">
+        <q-btn
+          class="bottomButtons"
+          label="-"
+          @click="soundWaveforms?.zoomOut()"
+          :disabled="isMinZoomed"
+        />
+        <q-btn
+          class="bottomButtons"
+          label="+"
+          @click="soundWaveforms?.zoomIn()"
+          :disabled="isMaxZoomed"
         />
       </div>
       <div style="height: 10px"></div>
-      <sound-waveform :sound="sound" style="width: 100%" />
-      <q-btn
-        label="delete"
-        color="red"
-        @click="soundsStore.deleteSound(sound)"
-      />
+      <div class="row">
+        <q-btn
+          class="bottomButtons"
+          label="Set in"
+          @click="setInTimeAtCurrentPosition(sound)"
+        />
+        <q-btn
+          class="bottomButtons"
+          label="Set out"
+          @click="setOutTimeAtCurrentPosition(sound)"
+        />
+        <q-btn
+          class="bottomButtons"
+          label="Delete in"
+          @click="deleteInTime(sound)"
+        />
+        <q-btn
+          class="bottomButtons"
+          label="Delete out"
+          @click="deleteOutTime(sound)"
+        />
+      </div>
+      <div style="height: 10px"></div>
+      <div class="row">
+        <q-btn
+          :label="getPlayButtonLabel()"
+          color="green"
+          @click="playButtonClicked()"
+        />
+        <div style="height: 10px"></div>
+        <q-btn
+          label="delete"
+          color="red"
+          @click="soundsStore.deleteSound(sound)"
+        />
+      </div>
     </div>
   </q-card>
 </template>
 
 <script setup lang="ts">
 import { PropType, ref, watch } from 'vue';
-import { useSoundsStore } from '../stores/example-store';
+import { useSoundsStore } from '../stores/sounds-store';
 import { SoundModel } from './models';
 import SoundWaveform from './SoundWaveform.vue';
 import { dbToGain } from '../composables/math-helpers';
+import {
+  deleteInTime,
+  deleteOutTime,
+  pauseSound,
+  playSound,
+  setInTimeAtCurrentPosition,
+  setOutTimeAtCurrentPosition,
+  setTrimGain,
+  normalizeSound,
+  toggleHpf,
+  setHpfFrequency,
+} from 'src/composables/sound-controller';
+
 const soundsStore = useSoundsStore();
 
 const props = defineProps({
@@ -48,14 +143,23 @@ const props = defineProps({
 });
 
 const sound = ref(props.sound);
+const soundWaveforms = ref<typeof SoundWaveform | null>(null);
 
-watch(
-  () => sound.value.trimGain,
-  (newValue) => {
-    sound.value.trimGainNode.gain.value = dbToGain(newValue);
+function playButtonClicked() {
+  if (sound.value.audioElement.paused) {
+    playSound(sound.value);
+  } else {
+    pauseSound(sound.value);
   }
-);
+}
 
+function getPlayButtonLabel() {
+  if (sound.value.audioElement.paused) {
+    return 'play';
+  } else {
+    return 'pause';
+  }
+}
 function getWaveformColor() {
   if (sound.value.isPlaying) {
     return 'green';
@@ -64,6 +168,24 @@ function getWaveformColor() {
   } else {
     return 'rgb(40, 134, 189)';
   }
+}
+
+function getHpfButtonColor() {
+  if (sound.value.hpfEnabled) {
+    return 'green';
+  } else {
+    return 'var(--blueColor)';
+  }
+}
+const isMaxZoomed = ref(false);
+const isMinZoomed = ref(false);
+
+function setIsMaxZoomed(e: boolean) {
+  isMaxZoomed.value = e;
+}
+
+function setIsMinZoomed(e: boolean) {
+  isMinZoomed.value = e;
 }
 
 interface SliderLabel {
@@ -89,5 +211,10 @@ const sliderLabelArray: SliderLabel[] = [
   border-radius: 10px;
   border-color: 'orange';
   background-color: var(--bkgColor);
+}
+.bottomButtons {
+  background-color: var(--blueColor);
+
+  margin: 0px 10px;
 }
 </style>

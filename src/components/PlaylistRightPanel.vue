@@ -38,7 +38,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { useSoundsStore } from '../stores/example-store';
+import { useSoundsStore } from '../stores/sounds-store';
 import { dbToGain } from '../composables/math-helpers';
 const soundsStore = useSoundsStore();
 
@@ -56,10 +56,7 @@ function onFileChange(event: Event) {
   if (!fileInput.files) return;
 
   for (let i = 0; i < fileInput.files.length; i++) {
-    soundsStore.loadSound(
-      fileInput.files[i].name,
-      URL.createObjectURL(fileInput.files[i])
-    );
+    soundsStore.loadSound(fileInput.files[i].name, fileInput.files[i]);
   }
 }
 

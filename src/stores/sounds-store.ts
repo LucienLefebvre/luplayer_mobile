@@ -1,16 +1,25 @@
 import { defineStore } from 'pinia';
+import { useSettingsStore } from './settings-store';
 import { v4 as uuidv4 } from 'uuid';
-import { SoundModel } from 'src/components/models';
-import { playSound } from 'src/composables/player-controller';
-import { calculateIntegratedLoudness } from 'src/composables/loudness-calculation';
+import { SoundModel, StereoAnalyserObject } from 'src/components/models';
+import {
+  playSound,
+  setTrimGain,
+  normalizeSound,
+} from 'src/composables/sound-controller';
+import {
+  calculateIntegratedLoudness,
+  calculateMomentaryLoudness,
+} from 'src/composables/loudness-calculation';
 
 export const useSoundsStore = defineStore('soundsStore', {
   state: () => ({
+    settingsStore: useSettingsStore(),
     sounds: [] as SoundModel[],
     audioContext: null as AudioContext | null,
     outputGainNode: null as GainNode | null,
     outputLimiterNode: null as DynamicsCompressorNode | null,
-    outputAnalyserNode: null as AnalyserNode | null,
+    outputAnalyserNodes: null as StereoAnalyserObject | null,
     isPlaying: false,
     selectedSound: null as SoundModel | null,
     editedSound: null as SoundModel | null,
@@ -18,11 +27,16 @@ export const useSoundsStore = defineStore('soundsStore', {
     isReordering: false,
     showEditWindow: false as boolean,
     selectedSoundVolume: 0.0 as number,
+    momentaryLoudness: { value: 0.0 as number },
   }),
 
   actions: {
     addSound(sound: SoundModel) {
+      if (this.settingsStore.autoNormalize) {
+        normalizeSound(sound);
+      }
       this.sounds.push(sound);
+
       if (this.sounds.length === 1) {
         this.sounds[0].isSelected = true;
       }
@@ -102,12 +116,16 @@ export const useSoundsStore = defineStore('soundsStore', {
         const source = this.audioContext.createMediaElementSource(audioElement);
         const trimGainNode = this.audioContext.createGain();
         const volumeGainNode = this.audioContext.createGain();
-        source.connect(trimGainNode);
+        const hpfNode = this.audioContext.createBiquadFilter();
+        source.connect(hpfNode);
+        hpfNode.connect(trimGainNode);
+        hpfNode.type = 'highpass';
         trimGainNode.connect(volumeGainNode);
         if (this.outputGainNode === null) return;
         volumeGainNode.connect(this.outputGainNode);
         const addedSound: SoundModel = {
           id: uuid,
+          file: file,
           name: name,
           audioElement: audioElement,
           duration: audioElement.duration,
@@ -123,12 +141,14 @@ export const useSoundsStore = defineStore('soundsStore', {
           volumeGainNode: volumeGainNode,
           inTime: null,
           outTime: null,
-          integratedLoudness: { value: -100 },
+          integratedLoudness: null,
+          hpfEnabled: true,
+          hpfFrequency: 80,
+          hpfNode: hpfNode,
         };
 
-        calculateIntegratedLoudness(file, addedSound.integratedLoudness);
-        addedSound.wa;
         this.addSound(addedSound);
+
         if (this.selectedSound === null) {
           this.setSelectedSound(addedSound);
         }
@@ -137,13 +157,38 @@ export const useSoundsStore = defineStore('soundsStore', {
 
     initAudioContext() {
       this.audioContext = new AudioContext();
+
       this.outputGainNode = this.audioContext.createGain();
       this.outputLimiterNode = this.audioContext.createDynamicsCompressor();
-      this.outputAnalyserNode = this.audioContext.createAnalyser();
+      this.outputAnalyserNodes = {
+        splitter: this.audioContext.createChannelSplitter(2),
+        stereoAnalyser: this.audioContext.createAnalyser(),
+        analysers: [
+          this.audioContext.createAnalyser(),
+          this.audioContext.createAnalyser(),
+        ],
+      };
+
       this.outputGainNode.connect(this.outputLimiterNode);
-      this.outputLimiterNode.connect(this.outputAnalyserNode);
-      this.outputAnalyserNode.connect(this.audioContext.destination);
-      this.outputAnalyserNode.smoothingTimeConstant = 1;
+      this.outputLimiterNode.connect(this.outputAnalyserNodes.stereoAnalyser);
+      this.outputLimiterNode.connect(this.outputAnalyserNodes.splitter);
+      this.outputAnalyserNodes.splitter.connect(
+        this.outputAnalyserNodes.analysers[0],
+        0
+      );
+      this.outputAnalyserNodes.splitter.connect(
+        this.outputAnalyserNodes.analysers[1],
+        1
+      );
+      this.outputLimiterNode.connect(this.audioContext.destination);
+
+      console.log('AudioContext initialized');
+      calculateMomentaryLoudness(
+        this.outputAnalyserNodes.stereoAnalyser,
+        this.momentaryLoudness
+      ).then((loudness) => {
+        console.log('Momentary loudness: ' + loudness);
+      });
     },
 
     playButtonClicked() {
@@ -177,6 +222,18 @@ export const useSoundsStore = defineStore('soundsStore', {
 
     resetSelectedSoundVolume() {
       this.selectedSoundVolume = 0.0;
+    },
+
+    //create a function to store the sound array in local storage
+    saveSounds() {
+      localStorage.setItem('sounds', JSON.stringify(this.sounds));
+    },
+
+    //create a function to load the sound array from local storage
+    loadSounds() {
+      if (localStorage.getItem('sounds')) {
+        this.sounds = JSON.parse(localStorage.getItem('sounds') || '[]');
+      }
     },
   },
 });

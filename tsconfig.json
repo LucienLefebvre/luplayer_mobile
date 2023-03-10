@@ -2,7 +2,10 @@
   "extends": "@quasar/app-vite/tsconfig-preset",
   "compilerOptions": {
     "baseUrl": ".",
+    "lib": ["es6"],
     "esModuleInterop": true,
-    "typeRoots": ["node_modules/@types"]
-  }
+    "typeRoots": ["node_modules/@types", "./@types"],
+    "module": "commonjs"
+  },
+  "include": ["src/**/*", "node_modules/peaks.js/peaks.js.d.ts"]
 }

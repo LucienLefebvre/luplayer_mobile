@@ -11,9 +11,21 @@
       </q-toolbar>
     </q-header>
     <q-page-container>
-      <q-page class="fit">
+      <q-page class="max-height">
+        <div style="height: 5px"></div>
+        <PeakMeter
+          :analyserObject="soundsStore.outputAnalyserNodes"
+          class="metersStyle"
+        />
+        <LuMeter
+          :analyserNode="soundsStore.outputAnalyserNodes?.stereoAnalyser"
+          class="metersStyle"
+        />
         <div class="row fit full-height">
-          <div class="full-height" style="min-width: 85%; max-width: 85%">
+          <div
+            class="d-flex flex-center"
+            style="min-width: 85%; max-width: 85%"
+          >
             <q-scroll-area @scroll="listScrolled" style="height: 600px">
               <draggable
                 :list="soundsStore.sounds"
@@ -32,7 +44,7 @@
                     @dblclick="soundDoubleClicked(element)"
                     @touchend="soundTapped(element, $event)"
                   >
-                    <SoundPlayer :sound="element" />
+                    <SoundPlayer :sound="element" style="width: 100%" />
                   </div>
                 </template>
               </draggable>
@@ -49,8 +61,8 @@
     </q-footer>
 
     <q-dialog v-model="soundsStore.showEditWindow">
-      <div class="column" style="align-items: center">
-        <sound-details :sound="editedSound!" />
+      <div class="column" style="align-items: center; width: 100%">
+        <sound-details :sound="editedSound!" style="width: 100%" />
         <q-btn
           icon="close"
           color="white"
@@ -66,8 +78,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import { useSoundsStore } from '../stores/example-store';
+import { ref } from 'vue';
+import { useSoundsStore } from '../stores/sounds-store';
 import { TouchHold } from 'quasar';
 import draggable from 'vuedraggable';
 
@@ -75,8 +87,10 @@ import SoundPlayer from '../components/SoundPlayer.vue';
 import PlaylistFooter from '../components/PlaylistFooter.vue';
 import SoundDetails from './SoundDetails.vue';
 import PlaylistRightPanel from './PlaylistRightPanel.vue';
-import { dbToGain } from '../composables/math-helpers';
+import PeakMeter from './PeakMeter.vue';
+
 import { SoundModel } from './models';
+import LuMeter from './LuMeter.vue';
 
 let drag = false;
 let scrolled = false;
@@ -113,15 +127,6 @@ function touchHold(e: TouchHold, sound: SoundModel) {
   editedSound.value = sound;
   soundsStore.showEditWindow = true;
 }
-
-watch(
-  () => soundsStore.selectedSoundVolume,
-  (newValue: number) => {
-    if (soundsStore.selectedSound !== null) {
-      soundsStore.selectedSound.volumeGainNode.gain.value = dbToGain(newValue);
-    }
-  }
-);
 </script>
 
 <style>
@@ -143,5 +148,11 @@ watch(
 }
 .drawerStyle {
   background-color: var(--bkgColor);
+}
+.metersStyle {
+  height: 30px;
+  width: 100%;
+  padding-left: 5px;
+  padding-right: 5px;
 }
 </style>

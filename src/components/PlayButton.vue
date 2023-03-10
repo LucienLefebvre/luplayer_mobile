@@ -10,7 +10,7 @@
 </template>
 
 <script setup lang="ts">
-import { useSoundsStore } from '../stores/example-store';
+import { useSoundsStore } from '../stores/sounds-store';
 
 const soundsStore = useSoundsStore();
 

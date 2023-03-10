@@ -1,18 +1,14 @@
 <template>
   <div class="container">
-    <q-linear-progress
-      rounded
-      size="15px"
-      :value="soundsStore.getSoundProgress()"
-      class="q-mt-md"
-    />
+    <SoundProgressBar :sound="soundsStore.selectedSound" />
     <PlayButton class="button" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { useSoundsStore } from '../stores/example-store';
+import { useSoundsStore } from '../stores/sounds-store';
 import PlayButton from '../components/PlayButton.vue';
+import SoundProgressBar from './SoundProgressBar.vue';
 
 const soundsStore = useSoundsStore();
 </script>

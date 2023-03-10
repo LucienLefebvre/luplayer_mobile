@@ -919,6 +919,11 @@
     "@babel/helper-validator-identifier" "^7.19.1"
     to-fast-properties "^2.0.0"
 
+"@domchristie/needles@^0.0.2-1":
+  version "0.0.2-1"
+  resolved "https://registry.yarnpkg.com/@domchristie/needles/-/needles-0.0.2-1.tgz#23cdfda244175846b27349be1974b8817a29c483"
+  integrity sha512-Ba7QEJ/FgcD6sVzT6d31gefF+TZYWO24egtGttsPi0AQtEpeTWuNv23CNqPH6BaJdacc/GvK3a4WM/vLiboJag==
+
 "@esbuild/linux-loong64@0.14.54":
   version "0.14.54"
   resolved "https://registry.yarnpkg.com/@esbuild/linux-loong64/-/linux-loong64-0.14.54.tgz#de2a4be678bd4d0d1ffbb86e6de779cde5999028"
@@ -4727,7 +4732,7 @@ vue-router@^4.0.0:
 
 vue3-touch-events@^4.1.2:
   version "4.1.2"
-  resolved "https://registry.yarnpkg.com/vue3-touch-events/-/vue3-touch-events-4.1.2.tgz#a3bf35214db15c8a214bda05f13f84647a14e811"
+  resolved "https://registry.npmjs.org/vue3-touch-events/-/vue3-touch-events-4.1.2.tgz"
   integrity sha512-9EijgPrktmM1chqCXVqHUTOqkhosfvJSA616q3vOm2aYd4VGkJMc8NVD992guyAr479lpb9jOESUfrTPC0YDrQ==
 
 vue@^3.0.0:

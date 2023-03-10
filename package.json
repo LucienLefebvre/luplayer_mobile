@@ -11,6 +11,7 @@
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
+    "@domchristie/needles": "^0.0.2-1",
     "@quasar/extras": "^1.0.0",
     "@vueuse/core": "^9.13.0",
     "konva": "^8.4.2",
