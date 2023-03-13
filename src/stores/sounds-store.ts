@@ -15,7 +15,8 @@ import {
 export const useSoundsStore = defineStore('soundsStore', {
   state: () => ({
     settingsStore: useSettingsStore(),
-    sounds: [] as SoundModel[],
+    sounds: [[], []] as [SoundModel[], SoundModel[]],
+    playerMode: 'playlist' as 'playlist' | 'cart',
     audioContext: null as AudioContext | null,
     outputGainNode: null as GainNode | null,
     outputLimiterNode: null as DynamicsCompressorNode | null,
@@ -26,6 +27,7 @@ export const useSoundsStore = defineStore('soundsStore', {
     stoppedByButtonClick: false,
     isReordering: false,
     showEditWindow: false as boolean,
+    selectedSoundVolumeSliderValue: 0.0 as number,
     selectedSoundVolume: 0.0 as number,
     momentaryLoudness: { value: 0.0 as number },
   }),
@@ -35,22 +37,22 @@ export const useSoundsStore = defineStore('soundsStore', {
       if (this.settingsStore.autoNormalize) {
         normalizeSound(sound);
       }
-      this.sounds.push(sound);
+      this.sounds[0].push(sound);
 
-      if (this.sounds.length === 1) {
-        this.sounds[0].isSelected = true;
+      if (this.sounds[0].length === 1) {
+        this.sounds[0][0].isSelected = true;
       }
     },
 
     deleteSound(sound: SoundModel) {
-      const index = this.sounds.indexOf(sound);
+      const index = this.sounds[0].indexOf(sound);
       if (!sound.isPlaying) {
         this.showEditWindow = false;
-        this.sounds.splice(index, 1);
+        this.sounds[0].splice(index, 1);
         if (sound.isSelected) {
           this.selectedSound = null;
-          if (this.sounds.length > 0) {
-            this.setSelectedSound(this.sounds[0]);
+          if (this.sounds[0].length > 0) {
+            this.setSelectedSound(this.sounds[0][0]);
           }
         }
       }
@@ -58,7 +60,7 @@ export const useSoundsStore = defineStore('soundsStore', {
 
     setSelectedSound(sound: SoundModel) {
       if (!this.isPlaying) {
-        this.sounds.forEach((sound) => (sound.isSelected = false));
+        this.sounds[0].forEach((sound) => (sound.isSelected = false));
         sound.isSelected = true;
         this.selectedSound = sound;
         this.resetSelectedSoundVolume();
@@ -209,9 +211,9 @@ export const useSoundsStore = defineStore('soundsStore', {
 
     incrementSelectedSound() {
       if (this.selectedSound === null) return;
-      const index = this.sounds.indexOf(this.selectedSound);
+      const index = this.sounds[0].indexOf(this.selectedSound);
       if (index < this.sounds.length - 1) {
-        this.setSelectedSound(this.sounds[index + 1]);
+        this.setSelectedSound(this.sounds[0][index + 1]);
       }
     },
 

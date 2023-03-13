@@ -14,6 +14,38 @@ export function scaleFrom0to1(value: number, min: number, max: number) {
   return value * (max - min) + min;
 }
 
+export function logScaleTo0to1(
+  value: number,
+  min: number,
+  max: number,
+  skew: number
+) {
+  const scaledValue = Math.pow(skew, (value - min) / (max - min));
+  return (scaledValue - 1) / (skew - 1);
+}
+
+export function logScaleFrom0to1(
+  value: number,
+  min: number,
+  max: number,
+  skew: number
+) {
+  const unscaledValue = Math.log(value * (skew - 1) + 1) / Math.log(skew);
+  return unscaledValue * (max - min) + min;
+}
+
+export function logScaleWithinSameRange(
+  value: number,
+  min: number,
+  max: number,
+  skew: number
+) {
+  const scaledValue = Math.pow(skew, (value - min) / (max - min));
+  const newScaledValue = (scaledValue - 1) / (skew - 1);
+  const range = max - min;
+  return newScaledValue * range + min;
+}
+
 export function getTrimValueFromLoudness(loudness: number) {
   return Math.round((-23 - loudness) * 10) / 10;
 }

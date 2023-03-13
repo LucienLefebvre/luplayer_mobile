@@ -37,6 +37,7 @@ import { SoundModel } from './models';
 import Peaks, { PeaksInstance, PeaksOptions } from 'peaks.js';
 import { dbToGain } from '../composables/math-helpers';
 import { setInTime, setOutTime } from 'src/composables/sound-controller';
+import { lerpRGBAColor } from 'src/composables/color-helpers';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -64,7 +65,9 @@ var peaksInstance = null as PeaksInstance | null;
 
 const zoomLevels = [16, 32, 64, 128, 256, 512, 1024, 2048];
 
-const soundInterface = soundsStore.sounds.find((s) => s.id === sound.value.id);
+const soundInterface =
+  soundsStore.sounds[0].find((s) => s.id === sound.value.id) ??
+  soundsStore.sounds[1].find((s) => s.id === sound.value.id);
 
 onMounted(() => {
   if (soundInterface !== undefined) {
@@ -185,11 +188,30 @@ function setWaveformScale(scale: number) {
 function getWaveformColor() {
   if (soundInterface?.isPlaying) {
     return 'green';
-  } else if (soundInterface?.isSelected) {
+  } else if (
+    soundInterface?.isSelected &&
+    soundsStore.playerMode === 'playlist'
+  ) {
     return 'orange';
   } else {
     return 'rgb(40, 134, 189)';
   }
+}
+
+function setWaveformColor(color: string) {
+  peaksInstance?.views.getView('overview')?.setWaveformColor(color);
+  peaksInstance?.views.getView('zoomview')?.setWaveformColor(color);
+}
+
+let redAmount = 0;
+function setRedAmount(amount: number) {
+  redAmount = amount;
+  const lerpedColor = lerpRGBAColor(
+    [40, 134, 189, 1],
+    [255, 0, 0, 1],
+    redAmount
+  );
+  peaksInstance?.views.getView('overview')?.setWaveformColor(lerpedColor);
 }
 
 function zoomIn() {
@@ -268,6 +290,8 @@ defineExpose({
   zoomOut,
   setInPoint,
   setOutPoint,
+  setRedAmount,
+  setWaveformColor,
 });
 </script>
 

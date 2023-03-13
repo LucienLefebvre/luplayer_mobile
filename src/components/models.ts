@@ -37,3 +37,8 @@ export interface StereoAnalyserObject {
   stereoAnalyser: AnalyserNode;
   analysers: AnalyserNode[];
 }
+
+export enum playerMode {
+  PLAYLIST = 'playlist',
+  CART = 'cart',
+}

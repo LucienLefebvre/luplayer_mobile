@@ -1,6 +1,15 @@
 <template>
   <q-card class="soundDetailsBackground">
     <div class="column q-pa-md justify-center">
+      <q-btn
+        @click="soundsStore.showEditWindow = false"
+        icon="close"
+        color="white"
+        flat
+        round
+        dense
+        size="20px"
+      />
       <div class="soundName" :style="{ color: getWaveformColor() }">
         {{ sound.name }}
       </div>
@@ -22,22 +31,18 @@
             thumb-size="25px"
             color="orange"
           />
+        </div>
+        <div class="column d-flex flex-center q-py-md" style="width: 60%">
           <q-btn
             class="justify-center"
-            style="
-              margin-top: 10px;
-              background-color: var(--blueColor);
-              width: 100%;
-            "
+            style="background-color: var(--blueColor); width: 60%"
             label="normalize"
             @click="normalizeSound(sound)"
           />
-        </div>
-        <div class="column d-flex flex-center" style="width: 60%">
           <q-btn
             label="HPF"
             @click="toggleHpf(sound)"
-            style="width: 50%"
+            style="width: 60%"
             :color="getHpfButtonColor()"
           />
           <q-slider
@@ -83,21 +88,14 @@
           label="Set in"
           @click="setInTimeAtCurrentPosition(sound)"
         />
+        <q-btn class="bottomButtons" label="-" @click="deleteInTime(sound)" />
         <q-btn
           class="bottomButtons"
           label="Set out"
           @click="setOutTimeAtCurrentPosition(sound)"
         />
-        <q-btn
-          class="bottomButtons"
-          label="Delete in"
-          @click="deleteInTime(sound)"
-        />
-        <q-btn
-          class="bottomButtons"
-          label="Delete out"
-          @click="deleteOutTime(sound)"
-        />
+
+        <q-btn class="bottomButtons" label="-" @click="deleteOutTime(sound)" />
       </div>
       <div style="height: 10px"></div>
       <div class="row">
@@ -135,35 +133,36 @@ import {
   toggleHpf,
   setHpfFrequency,
 } from 'src/composables/sound-controller';
+import { resolvePackageData } from 'vite';
 
 const soundsStore = useSoundsStore();
 
 const props = defineProps({
-  sound: { type: Object as PropType<SoundModel>, required: true },
+  sound: { type: Object as PropType<SoundModel>, required: false },
 });
 
-const sound = ref(props.sound);
+const sound = soundsStore.editedSound;
 const soundWaveforms = ref<typeof SoundWaveform | null>(null);
 
 function playButtonClicked() {
-  if (sound.value.audioElement.paused) {
-    playSound(sound.value);
+  if (sound?.audioElement.paused) {
+    playSound(sound);
   } else {
-    pauseSound(sound.value);
+    pauseSound(sound!);
   }
 }
 
 function getPlayButtonLabel() {
-  if (sound.value.audioElement.paused) {
+  if (sound?.audioElement.paused) {
     return 'play';
   } else {
     return 'pause';
   }
 }
 function getWaveformColor() {
-  if (sound.value.isPlaying) {
+  if (sound?.isPlaying) {
     return 'green';
-  } else if (sound.value.isSelected) {
+  } else if (sound?.isSelected) {
     return 'orange';
   } else {
     return 'rgb(40, 134, 189)';
@@ -171,7 +170,7 @@ function getWaveformColor() {
 }
 
 function getHpfButtonColor() {
-  if (sound.value.hpfEnabled) {
+  if (sound?.hpfEnabled) {
     return 'green';
   } else {
     return 'var(--blueColor)';
@@ -201,8 +200,11 @@ const sliderLabelArray: SliderLabel[] = [
 
 <style scoped>
 .soundName {
+  max-width: 300px;
   text-align: center;
   font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
   text-overflow: ellipsis;
   widows: 100%;
 }

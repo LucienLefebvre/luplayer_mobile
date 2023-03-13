@@ -34,7 +34,6 @@ function buttonLabel() {
 <style scoped>
 .button {
   width: 100%;
-  height: 70px;
   font-size: 30px;
   align-items: center;
 }

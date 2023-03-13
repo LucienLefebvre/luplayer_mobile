@@ -1,11 +1,9 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <SoundPlaylist />
-  </q-layout>
+  <PlayListScreen />
 </template>
 
 <script setup lang="ts">
-import SoundPlaylist from '../components/SoundPlaylist.vue';
+import PlayListScreen from '../components/PlayListScreen.vue';
 </script>
 
 <style>

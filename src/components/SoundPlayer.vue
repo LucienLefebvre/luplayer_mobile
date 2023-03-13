@@ -4,10 +4,17 @@
     style="width: 100%"
     :style="{
       borderColor: getWaveformColor(),
+      transform: 'translate(' + soundOffset + 'px, 0px)',
+      transition: isHorizontallyScrolled ? 'none' : 'transform 0.5s',
     }"
+    v-touch-pan.mouse="moveSound"
+    v-touch-hold="(e: TouchHold) => touchHold(e, sound)"
+    @click="(e: Event) => soundClicked(sound)"
+    @dblclick="soundDoubleClicked(sound)"
+    @touchend="soundTapped(sound, $event)"
   >
     <div class="column d-flex flex-center" style="width: 100%">
-      <sound-waveform :sound="sound" style="width: 100%" />
+      <sound-waveform ref="soundWaveforms" :sound="sound" style="width: 100%" />
       <div class="soundName" :style="{ color: getWaveformColor() }">
         {{ props.sound.name }}
       </div>
@@ -23,9 +30,12 @@
 <script setup lang="ts">
 import { PropType, ref, watch } from 'vue';
 import { SoundModel } from './models';
+import { TouchHold } from 'quasar';
 import { useSoundsStore } from '../stores/sounds-store';
 import SoundDetails from './SoundDetails.vue';
 import SoundWaveform from './SoundWaveform.vue';
+import { lerpRGBAColor } from 'src/composables/color-helpers';
+import { playPauseSound, playSound } from 'src/composables/sound-controller';
 
 const soundsStore = useSoundsStore();
 
@@ -35,16 +45,93 @@ const props = defineProps({
 
 const sound = ref(props.sound);
 
-const soundInterface = soundsStore.sounds.find((s) => s.id === sound.value.id);
+const soundInterface = soundsStore.sounds[0].find(
+  (s) => s.id === sound.value.id
+);
+
+const soundWaveforms = ref<typeof SoundWaveform | null>(null);
 
 function getWaveformColor() {
   if (soundInterface?.isPlaying) {
-    return 'green';
-  } else if (soundInterface?.isSelected) {
-    return 'orange';
+    if (redAmount === 0) {
+      soundWaveforms.value?.setWaveformColor('green');
+      return 'green';
+    } else {
+      let color = lerpRGBAColor([0, 255, 0, 1], [255, 0, 0, 1], redAmount);
+      soundWaveforms.value?.setWaveformColor(color);
+      return color;
+    }
+  } else if (
+    soundInterface?.isSelected &&
+    soundsStore.playerMode === 'playlist'
+  ) {
+    if (redAmount === 0) {
+      soundWaveforms.value?.setWaveformColor('orange');
+      return 'orange';
+    } else {
+      let color = lerpRGBAColor([255, 165, 0, 1], [255, 0, 0, 1], redAmount);
+      soundWaveforms.value?.setWaveformColor(color);
+      return color;
+    }
   } else {
-    return 'rgb(40, 134, 189)';
+    if (redAmount === 0) {
+      soundWaveforms.value?.setWaveformColor('rgb(40, 134, 189)');
+      return 'rgb(40, 134, 189)';
+    } else {
+      let color = lerpRGBAColor([40, 134, 189, 1], [255, 0, 0, 1], redAmount);
+      soundWaveforms.value?.setWaveformColor(color);
+      return color;
+    }
   }
+}
+
+const soundOffset = ref(0);
+let isHorizontallyScrolled = false;
+
+let redAmount = 0;
+function moveSound(e: any) {
+  if (sound.value.isPlaying) return;
+  if (soundsStore.isReordering) return;
+  soundOffset.value = Math.max(0, e.offset.x);
+  isHorizontallyScrolled = true;
+  redAmount = (soundOffset.value / window.innerWidth) * 3;
+  soundWaveforms.value?.setRedAmount(redAmount);
+}
+
+let scrolled = false;
+
+function soundTapped(soundModel: SoundModel, e: TouchEvent) {
+  if (!soundsStore.isReordering && !scrolled && !isHorizontallyScrolled) {
+    soundClicked(soundModel);
+  }
+  scrolled = false;
+
+  isHorizontallyScrolled = false;
+  if (soundOffset.value > window.innerWidth / 2) {
+    soundsStore.deleteSound(sound.value);
+  }
+  soundOffset.value = 0;
+  redAmount = 0;
+}
+
+function soundClicked(sound: SoundModel) {
+  if (!soundsStore.isReordering && soundsStore.playerMode === 'playlist') {
+    soundsStore.setSelectedSound(sound);
+  } else if (soundsStore.playerMode === 'cart') {
+    playPauseSound(sound);
+  }
+}
+function soundDoubleClicked(sound: SoundModel) {
+  showEditWindow(sound);
+}
+
+function touchHold(e: TouchHold, sound: SoundModel) {
+  showEditWindow(sound);
+}
+
+function showEditWindow(sound: SoundModel) {
+  soundsStore.editedSound = sound;
+  soundsStore.showEditWindow = true;
 }
 
 const editWindow = ref(false);
@@ -58,7 +145,7 @@ const editWindow = ref(false);
   background-color: var(--bkgColor);
 }
 .soundName {
-  max-width: 300px;
+  max-width: 150px;
   text-align: center;
   font-size: 1rem;
   -webkit-touch-callout: none;

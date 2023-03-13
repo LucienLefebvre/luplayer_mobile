@@ -1,110 +1,57 @@
 <template>
-  <q-layout view="hhh lpR fff">
-    <q-header elevated>
-      <q-toolbar>
-        <q-toolbar-title style="color: orange"> LuPlayer web </q-toolbar-title>
-        <q-btn
-          label="reorder"
-          @click="toggleReorder"
-          :style="{ color: soundsStore.isReordering ? 'red' : 'white' }"
-        />
-      </q-toolbar>
-    </q-header>
-    <q-page-container>
-      <q-page class="max-height">
-        <div style="height: 5px"></div>
-        <PeakMeter
-          :analyserObject="soundsStore.outputAnalyserNodes"
-          class="metersStyle"
-        />
-        <LuMeter
-          :analyserNode="soundsStore.outputAnalyserNodes?.stereoAnalyser"
-          class="metersStyle"
-        />
-        <div class="row fit full-height">
-          <div
-            class="d-flex flex-center"
-            style="min-width: 85%; max-width: 85%"
-          >
-            <q-scroll-area @scroll="listScrolled" style="height: 600px">
-              <draggable
-                :list="soundsStore.sounds"
-                :disabled="!soundsStore.isReordering"
-                class="list-group"
-                ghost-class="ghost"
-                item-key="name"
-                @start="drag = true"
-                @end="drag = false"
-              >
-                <template #item="{ element }">
-                  <div
-                    class="q-px-xs q-py-xs"
-                    v-touch-hold="(e: TouchHold) => touchHold(e, element)"
-                    @click="(e: Event) => soundClicked(element)"
-                    @dblclick="soundDoubleClicked(element)"
-                    @touchend="soundTapped(element, $event)"
-                  >
-                    <SoundPlayer :sound="element" style="width: 100%" />
-                  </div>
-                </template>
-              </draggable>
-            </q-scroll-area>
-          </div>
-          <div class="rightPanel max-height">
-            <PlaylistRightPanel style="height: 600px" />
-          </div>
+  <q-scroll-area @scroll="listScrolled" class="playlist-height">
+    <draggable
+      :list="soundsStore.sounds[0]"
+      :disabled="!soundsStore.isReordering"
+      item-key="id"
+      @start="drag = true"
+      @end="drag = false"
+      ghost-class="ghost"
+      drag-class="dragging"
+    >
+      <template #item="{ element }">
+        <div class="q-px-xs q-py-xs">
+          <SoundPlayer :sound="element" />
         </div>
-      </q-page>
-    </q-page-container>
-    <q-footer elevated class="footerStyle">
-      <PlaylistFooter />
-    </q-footer>
-
-    <q-dialog v-model="soundsStore.showEditWindow">
-      <div class="column" style="align-items: center; width: 100%">
-        <sound-details :sound="editedSound!" style="width: 100%" />
-        <q-btn
-          icon="close"
-          color="white"
-          size="100"
-          flat
-          round
-          dense
-          v-close-popup
-        />
-      </div>
-    </q-dialog>
-  </q-layout>
+      </template>
+    </draggable>
+  </q-scroll-area>
+  <q-dialog v-model="soundsStore.showEditWindow">
+    <div class="column fit" style="align-items: center; width: 100%">
+      <sound-details :sound="soundsStore.editedSound!" />
+    </div>
+  </q-dialog>
 </template>
 
 <script setup lang="ts">
+import { route } from 'quasar/wrappers';
 import { ref } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { TouchHold } from 'quasar';
 import draggable from 'vuedraggable';
 
-import SoundPlayer from '../components/SoundPlayer.vue';
-import PlaylistFooter from '../components/PlaylistFooter.vue';
+import SoundPlayer from './SoundPlayer.vue';
 import SoundDetails from './SoundDetails.vue';
-import PlaylistRightPanel from './PlaylistRightPanel.vue';
-import PeakMeter from './PeakMeter.vue';
-
 import { SoundModel } from './models';
-import LuMeter from './LuMeter.vue';
+import { useRoute, useRouter } from 'vue-router';
 
+const route = useRoute();
+const router = useRouter();
+
+const soundsStore = useSoundsStore();
 let drag = false;
 let scrolled = false;
-const soundsStore = useSoundsStore();
 
 function listScrolled() {
   scrolled = true;
 }
+
 function soundTapped(soundModel: SoundModel, e: TouchEvent) {
-  e.preventDefault();
   if (!soundsStore.isReordering && !scrolled) {
     soundsStore.setSelectedSound(soundModel);
   }
   scrolled = false;
+  soundOffset.value = 0;
 }
 
 function soundClicked(sound: SoundModel) {
@@ -113,46 +60,31 @@ function soundClicked(sound: SoundModel) {
   }
 }
 function soundDoubleClicked(sound: SoundModel) {
-  editedSound.value = sound;
-  soundsStore.showEditWindow = true;
+  showEditWindow(sound);
 }
-
-function toggleReorder() {
-  soundsStore.isReordering = !soundsStore.isReordering;
-}
-
-const editedSound = ref<SoundModel | null>(null);
 
 function touchHold(e: TouchHold, sound: SoundModel) {
-  editedSound.value = sound;
+  showEditWindow(sound);
+}
+
+function showEditWindow(sound: SoundModel) {
+  soundsStore.editedSound = sound;
   soundsStore.showEditWindow = true;
+}
+
+function handleSwipe(evt: Event) {
+  console.log('swipe', evt);
+}
+
+const soundOffset = ref(0);
+function moveSound(e: any, sound: SoundModel) {
+  soundOffset.value = e.offset.x;
+  console.log('moveSound', soundOffset);
 }
 </script>
 
-<style>
-.main {
-  height: 100%;
-  min-height: 100%;
-}
-.rightPanel {
-  width: 15%;
-  justify-content: center;
-  align-items: center;
-}
-.sound-item {
-  cursor: pointer;
-}
-
-.footerStyle {
-  background-color: var(--bkgColor);
-}
-.drawerStyle {
-  background-color: var(--bkgColor);
-}
-.metersStyle {
-  height: 30px;
-  width: 100%;
-  padding-left: 5px;
-  padding-right: 5px;
+<style scoped>
+.dragging {
+  transform: translate(0px, -120px);
 }
 </style>

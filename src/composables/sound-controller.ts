@@ -5,13 +5,21 @@ import {
 } from 'src/composables/math-helpers';
 import { calculateIntegratedLoudness } from './loudness-calculation';
 
+export function playPauseSound(sound: SoundModel) {
+  if (sound.isPlaying) {
+    pauseSound(sound);
+  } else {
+    playSound(sound);
+  }
+}
+
 export function playSound(sound: SoundModel) {
   if (sound.inTime !== null) {
     sound.audioElement.currentTime = sound.inTime ?? 0;
   }
 
   sound.audioElement.play();
-
+  sound.isPlaying = true;
   clearTimeout(sound.timeOutId);
 
   if (sound.outTime !== null) {
@@ -22,6 +30,10 @@ export function playSound(sound: SoundModel) {
       sound.audioElement.pause();
     }, timeOutDuration);
   }
+
+  sound.audioElement.addEventListener('ended', () => {
+    sound.isPlaying = false;
+  });
 }
 
 export function pauseSound(sound: SoundModel) {

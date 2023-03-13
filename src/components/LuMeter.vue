@@ -1,12 +1,19 @@
 <template>
-  <canvas class="bar" :width="canvasWidth()" ref="canvas"> </canvas>
+  <canvas
+    id="canvas"
+    class="bar"
+    :width="canvasWidth()"
+    :height="canvasHeight()"
+    ref="canvas"
+  >
+  </canvas>
 </template>
 
 <script setup lang="ts">
 import { PropType, onMounted, ref, watch } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { scaleTo0to1 } from '../composables/math-helpers';
-
+import { NormalizableRange } from 'src/composables/normalizable-range';
 const props = defineProps({
   analyserNode: {
     type: Object as PropType<AnalyserNode | null | undefined>,
@@ -18,18 +25,20 @@ const soundsStore = useSoundsStore();
 
 const canvas = ref<HTMLCanvasElement | null>(null);
 var canvasCtx = null as CanvasRenderingContext2D | null;
-var previousPeakValue = 0 as number;
-var peakHoldValue = 0 as number;
-var peakHoldTimeOutHasBeenSet = false as boolean;
-var peakValue = 0 as number;
-const dbLinesToDraw = [-24, -12, -9, -6, -3] as number[];
-var range = -60 as number;
 
-var loudnessValue = 0 as number;
+var range = -20 as number;
+var normRange = new NormalizableRange(-20, 20);
 
 onMounted(() => {
   if (canvas.value) {
     canvasCtx = canvas.value.getContext('2d');
+
+    const size = 100;
+    const scale = window.devicePixelRatio;
+    canvas.value.width = Math.floor(size * scale);
+    canvas.value.height = Math.floor(size * scale);
+    canvasCtx?.scale(scale, scale);
+
     const animate = () => {
       drawMeter();
       requestAnimationFrame(animate);
@@ -41,26 +50,25 @@ onMounted(() => {
 let currentValue = range;
 let targetValue = range;
 const lerpingSpeed = 0.5;
-const lufsLinesArray = [-50, -40, -30, -20, -10] as number[];
+const roundRectRadius = 5 as number;
 
 function drawMeter() {
   if (!canvasCtx) return;
 
-  const meterWidth = canvasCtx.canvas.width;
-  const meterHeight = canvasCtx.canvas.height;
-
   drawBar();
-  lufsLinesArray.forEach((value) => {
-    drawLufsLine(value, 'black');
-  });
-  drawLufsLine(-23, 'red');
+
+  drawLufsLine(-10, 'rgba(255, 255, 255, 0.2 )', true);
+  drawLufsLine(10, 'rgba(255, 255, 255, 0.2 )', true);
+  drawLufsLine(0, 'rgba(255, 255, 255, 0.2 )', true);
 }
 
 function drawBar() {
   if (!canvasCtx) return;
 
-  const meterWidth = canvasCtx.canvas.width;
-  const meterHeight = canvasCtx.canvas.height;
+  var canvasEl = document.getElementById('canvas');
+  if (!canvasEl) return;
+  const meterWidth = canvasEl.clientWidth;
+  const meterHeight = canvasEl.clientHeight;
 
   //Draw bar
   if (isNaN(currentValue)) {
@@ -74,70 +82,74 @@ function drawBar() {
   canvasCtx.strokeStyle = 'rgba(0, 255, 0, 0.1)';
   canvasCtx.fillStyle = 'rgba(0, 255, 0, 0.1)';
   canvasCtx.beginPath();
-  canvasCtx.roundRect(0, 0, meterWidth, meterHeight, 10);
+  canvasCtx.roundRect(0, 0, meterWidth, meterHeight, roundRectRadius);
   canvasCtx.stroke();
   canvasCtx.fill();
 
   // orange bar
-  const barOrangeX = meterWidth * scaleTo0to1(currentValue, range, 0);
+  const barOrangeX = meterWidth * normRange.scaleTo0to1(currentValue);
   canvasCtx.strokeStyle = 'orange';
   canvasCtx.fillStyle = 'orange';
   canvasCtx.beginPath();
-  canvasCtx.roundRect(0, 0, barOrangeX, meterHeight, 10);
+  canvasCtx.roundRect(0, 0, barOrangeX, meterHeight, roundRectRadius);
   canvasCtx.stroke();
   canvasCtx.fill();
 
   // green bar
   const barGreenX =
     meterWidth *
-    Math.min(scaleTo0to1(currentValue, range, 0), scaleTo0to1(-23, range, 0));
+    Math.min(normRange.scaleTo0to1(currentValue), normRange.scaleTo0to1(0));
   canvasCtx.strokeStyle = 'green';
   canvasCtx.fillStyle = 'green';
   canvasCtx.beginPath();
-  canvasCtx.roundRect(0, 0, barGreenX, meterHeight, 10);
+  canvasCtx.roundRect(0, 0, barGreenX, meterHeight, roundRectRadius);
   canvasCtx.stroke();
   canvasCtx.fill();
 
   // text
-  canvasCtx.fillStyle = 'black';
-  canvasCtx.font = '10px Arial';
-  canvasCtx.fillText(
-    `${Math.round(currentValue)} LUFS`,
-    0,
-    meterHeight / 2 + 5
-  );
+  canvasCtx.fillStyle = 'white';
+  canvasCtx.font = canvasHeight() * 0.6 + 'px Arial';
+  canvasCtx.textAlign = 'left';
+  canvasCtx.textBaseline = 'middle';
+  const text = currentValue > -60 ? `${Math.round(currentValue)}LU` : '-inf';
+  canvasCtx.fillText(text, 0, canvasHeight() / 2);
 }
 
-function drawLufsLine(lufs: number, color: string) {
+function drawLufsLine(lufs: number, color: string, drawText = false) {
   if (!canvasCtx) return;
 
   const meterWidth = canvasCtx.canvas.width;
 
-  const lineX = scaleTo0to1(lufs, range, 0) * meterWidth;
+  const lineX = normRange.scaleTo0to1(lufs) * meterWidth;
 
   canvasCtx.strokeStyle = color;
   canvasCtx.beginPath();
   canvasCtx.moveTo(lineX, 0);
   canvasCtx.lineTo(lineX, canvasCtx.canvas.height);
-
   canvasCtx.stroke();
-}
 
-function scale(loudness: number) {
-  var scaledValue = (loudness - range) / (0 - range);
-
-  return scaledValue;
+  if (drawText) {
+    canvasCtx.fillStyle = color;
+    canvasCtx.font = canvasHeight() * 0.5 + 'px Arial';
+    canvasCtx.textAlign = 'left';
+    canvasCtx.textBaseline = 'middle';
+    canvasCtx.fillText(`${lufs}`, lineX + 2, canvasHeight() / 2);
+  }
 }
 
 watch(
   () => soundsStore.momentaryLoudness.value,
   (newValue) => {
-    targetValue = newValue - 6;
+    targetValue = newValue + 17;
   }
 );
 
 function canvasWidth() {
   return canvas.value?.clientWidth ?? 0;
+}
+
+function canvasHeight() {
+  return canvas.value?.clientHeight ?? 0;
 }
 </script>
 
