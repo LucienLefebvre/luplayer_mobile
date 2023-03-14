@@ -35,7 +35,7 @@ import { useSoundsStore } from '../stores/sounds-store';
 import SoundDetails from './SoundDetails.vue';
 import SoundWaveform from './SoundWaveform.vue';
 import { lerpRGBAColor } from 'src/composables/color-helpers';
-import { playPauseSound, playSound } from 'src/composables/sound-controller';
+import { playStopSound, playSound } from 'src/composables/sound-controller';
 
 const soundsStore = useSoundsStore();
 
@@ -45,14 +45,10 @@ const props = defineProps({
 
 const sound = ref(props.sound);
 
-const soundInterface = soundsStore.sounds[0].find(
-  (s) => s.id === sound.value.id
-);
-
 const soundWaveforms = ref<typeof SoundWaveform | null>(null);
 
 function getWaveformColor() {
-  if (soundInterface?.isPlaying) {
+  if (sound.value.isPlaying) {
     if (redAmount === 0) {
       soundWaveforms.value?.setWaveformColor('green');
       return 'green';
@@ -61,10 +57,7 @@ function getWaveformColor() {
       soundWaveforms.value?.setWaveformColor(color);
       return color;
     }
-  } else if (
-    soundInterface?.isSelected &&
-    soundsStore.playerMode === 'playlist'
-  ) {
+  } else if (sound.value.isSelected && soundsStore.playerMode === 'playlist') {
     if (redAmount === 0) {
       soundWaveforms.value?.setWaveformColor('orange');
       return 'orange';
@@ -92,10 +85,15 @@ let redAmount = 0;
 function moveSound(e: any) {
   if (sound.value.isPlaying) return;
   if (soundsStore.isReordering) return;
-  soundOffset.value = Math.max(0, e.offset.x);
-  isHorizontallyScrolled = true;
-  redAmount = (soundOffset.value / window.innerWidth) * 3;
-  soundWaveforms.value?.setRedAmount(redAmount);
+  const deltaY = 25;
+  const ySwipe = Math.max(0, e.offset.x - deltaY);
+
+  if (ySwipe > deltaY) {
+    soundOffset.value = ySwipe - deltaY;
+    isHorizontallyScrolled = true;
+    redAmount = (soundOffset.value / window.innerWidth) * 3;
+    soundWaveforms.value?.setRedAmount(redAmount);
+  }
 }
 
 let scrolled = false;
@@ -118,7 +116,7 @@ function soundClicked(sound: SoundModel) {
   if (!soundsStore.isReordering && soundsStore.playerMode === 'playlist') {
     soundsStore.setSelectedSound(sound);
   } else if (soundsStore.playerMode === 'cart') {
-    playPauseSound(sound);
+    playStopSound(sound);
   }
 }
 function soundDoubleClicked(sound: SoundModel) {

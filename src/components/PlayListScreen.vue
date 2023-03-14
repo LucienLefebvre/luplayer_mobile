@@ -1,39 +1,15 @@
 <template>
-  <q-layout view="hhh lpR fff">
-    <q-page-container>
-      <q-page>
-        <PeakMeter
-          :analyserObject="soundsStore.outputAnalyserNodes"
-          class="metersStyle"
-        />
-        <LuMeter
-          :analyserNode="soundsStore.outputAnalyserNodes?.stereoAnalyser"
-          class="metersStyle"
-        />
-        <div class="fit" style="min-height: inherit">
-          <div class="row playlist-height">
-            <div
-              class="column"
-              style="
-                min-width: 85%;
-                max-width: 85%;
-                min-height: inherit;
-                align-items: stretch;
-              "
-            >
-              <SoundPlayList />
-            </div>
-            <div class="rightPanel">
-              <PlaylistRightPanel class="playlist-height" />
-            </div>
-          </div>
-        </div>
-      </q-page>
-    </q-page-container>
-    <q-footer elevated class="footerStyle">
-      <PlaylistFooter />
-    </q-footer>
-  </q-layout>
+  <MetersPanel />
+  <div class="row">
+    <div class="column" style="min-width: 85%; max-width: 85%">
+      <SoundPlayList />
+    </div>
+    <div class="rightPanel">
+      <PlaylistRightPanel />
+    </div>
+  </div>
+
+  <PlaylistFooter />
 </template>
 
 <script setup lang="ts">
@@ -49,6 +25,7 @@ import LuMeter from './LuMeter.vue';
 import { SoundModel } from './models';
 
 import SoundPlayList from './SoundPlayList.vue';
+import MetersPanel from './MetersPanel.vue';
 
 let drag = false;
 let scrolled = false;
@@ -88,13 +65,6 @@ function touchHold(e: TouchHold, sound: SoundModel) {
 </script>
 
 <style>
-.main {
-  height: 100%;
-  min-height: 100%;
-}
-.playlist-height {
-  min-height: calc(100vh - 220px);
-}
 .rightPanel {
   width: 15%;
   justify-content: center;
@@ -103,11 +73,7 @@ function touchHold(e: TouchHold, sound: SoundModel) {
 .sound-item {
   cursor: pointer;
 }
-
 .footerStyle {
-  background-color: var(--bkgColor);
-}
-.drawerStyle {
   background-color: var(--bkgColor);
 }
 .metersStyle {

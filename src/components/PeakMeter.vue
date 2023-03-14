@@ -1,7 +1,7 @@
 <template>
   <canvas
-    :width="canvasWidth()"
     :height="canvasHeight()"
+    :width="canvasWidth()"
     ref="canvas"
     @click="resetPeakHold"
   >
@@ -11,12 +11,7 @@
 <script setup lang="ts">
 import { useSettingsStore } from 'src/stores/settings-store';
 import { PropType, onMounted, ref } from 'vue';
-import {
-  dbToGain,
-  gainToDb,
-  scaleTo0to1,
-  logScaleTo0to1,
-} from '../composables/math-helpers';
+import { gainToDb } from '../composables/math-helpers';
 import { StereoAnalyserObject } from './models';
 import { NormalizableRange } from 'src/composables/normalizable-range';
 
@@ -49,6 +44,7 @@ onMounted(() => {
       requestAnimationFrame(animate);
     };
     animate();
+    window.addEventListener('resize', setCanvasSize);
   }
 });
 
@@ -86,6 +82,7 @@ function drawBar(channelToDraw: number) {
     props.analyserObject?.analysers[channelToDraw].frequencyBinCount ?? 0
   );
 
+  //calculate peak value to display
   props.analyserObject?.analysers[channelToDraw].getFloatTimeDomainData(data);
   const maxValue = Math.max(...data);
   peakValue[channelToDraw] = Math.max(
@@ -94,53 +91,35 @@ function drawBar(channelToDraw: number) {
   );
   previousPeakValue = peakValue;
 
+  //peak hold
   peakHoldValue = Math.max(maxValue, peakHoldValue);
   if (peakValue[channelToDraw] < peakHoldValue) {
     setPeakHoldTimeOut();
   }
   const meterWidth = canvasCtx.canvas.width;
   const meterHeight = canvasCtx.canvas.height;
+
   const barHeight = meterHeight / 2;
   const barY = (channelToDraw * meterHeight) / 2;
 
-  // red
+  //bar
   const barX =
     meterWidth * normRange.logScaleTo0to1(gainToDb(peakValue[channelToDraw]));
-
-  canvasCtx.strokeStyle = 'red';
-  canvasCtx.fillStyle = 'red';
-  canvasCtx.beginPath();
-  canvasCtx.roundRect(0, barY, barX, barHeight, roundRectRadius);
-  canvasCtx.stroke();
-  canvasCtx.fill();
-
-  // orange bar
   const barOrangeX =
     meterWidth *
     Math.min(
       normRange.logScaleTo0to1(gainToDb(peakValue[channelToDraw])),
       normRange.logScaleTo0to1(settingsStore.peakMeterRedThreshold)
     );
-  canvasCtx.strokeStyle = 'orange';
-  canvasCtx.fillStyle = 'orange';
-  canvasCtx.beginPath();
-  canvasCtx.roundRect(0, barY, barOrangeX, barHeight, roundRectRadius);
-  canvasCtx.stroke();
-  canvasCtx.fill();
-
-  // green bar
   const barGreenX =
     meterWidth *
     Math.min(
       normRange.logScaleTo0to1(gainToDb(peakValue[channelToDraw])),
       normRange.logScaleTo0to1(settingsStore.peakMeterOrangeThreshold)
     );
-  canvasCtx.strokeStyle = 'green';
-  canvasCtx.fillStyle = 'green';
-  canvasCtx.beginPath();
-  canvasCtx.roundRect(0, barY, barGreenX, barHeight, roundRectRadius);
-  canvasCtx.stroke();
-  canvasCtx.fill();
+  drawColorBar(barX, barY, barHeight, 'red');
+  drawColorBar(barOrangeX, barY, barHeight, 'orange');
+  drawColorBar(barGreenX, barY, barHeight, 'green');
 
   // text
   canvasCtx.fillStyle = 'white';
@@ -151,6 +130,22 @@ function drawBar(channelToDraw: number) {
   const text =
     peakHoldDbValue > range ? `${Math.round(peakHoldDbValue)}dBfs` : '-inf';
   canvasCtx.fillText(text, 0, canvasHeight() / 2);
+}
+
+function drawColorBar(
+  width: number,
+  ypos: number,
+  height: number,
+  color: string
+) {
+  if (!canvasCtx) return;
+
+  canvasCtx.strokeStyle = color;
+  canvasCtx.fillStyle = color;
+  canvasCtx.beginPath();
+  canvasCtx.roundRect(0, ypos, width, height, roundRectRadius);
+  canvasCtx.stroke();
+  canvasCtx.fill();
 }
 
 function drawDbLines(db: number, color: string, drawText = false) {
@@ -195,6 +190,17 @@ function canvasWidth() {
 function canvasHeight() {
   return canvas.value?.clientHeight ?? 0;
 }
+
+function setCanvasSize() {
+  if (canvas.value) {
+    canvas.value.width = canvasWidth();
+    canvas.value.height = canvasHeight();
+  }
+}
 </script>
 
-<style scoped></style>
+<style scoped>
+.peak-meter {
+  height: 30px;
+}
+</style>

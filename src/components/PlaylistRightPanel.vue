@@ -23,49 +23,24 @@
       />
     </div>
     <div class="row justify-center q-pa-sm" style="height: 10%; width: 100%">
-      <!-- <q-page-sticky position="bottom-right" :offset="[18, 18]"> -->
-      <q-btn fab icon="add" color="blue" @click="chooseFile" />
-      <!-- </q-page-sticky> -->
-      <input
-        ref="fileInput"
-        type="file"
-        @change="onFileChange"
-        hidden
-        multiple
-      />
+      <add-sound-button />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { watch, onMounted } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { dbToGain } from '../composables/math-helpers';
 import { NormalizableRange } from 'src/composables/normalizable-range';
+import AddSoundButton from './AddSoundButton.vue';
 const soundsStore = useSoundsStore();
-
-const fileInput = ref<HTMLInputElement | null>(null);
 
 onMounted(() => {
   soundsStore.selectedSoundVolumeSliderValue = normRange.logScaleTo0to1(
     soundsStore.selectedSoundVolume
   );
 });
-function chooseFile() {
-  if (fileInput?.value) {
-    fileInput.value.click();
-  }
-}
-
-function onFileChange(event: Event) {
-  const fileInput = event.target as HTMLInputElement;
-
-  if (!fileInput.files) return;
-
-  for (let i = 0; i < fileInput.files.length; i++) {
-    soundsStore.loadSound(fileInput.files[i].name, fileInput.files[i]);
-  }
-}
 
 watch(
   () => soundsStore.selectedSoundVolume,

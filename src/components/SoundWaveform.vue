@@ -65,14 +65,10 @@ var peaksInstance = null as PeaksInstance | null;
 
 const zoomLevels = [16, 32, 64, 128, 256, 512, 1024, 2048];
 
-const soundInterface =
-  soundsStore.sounds[0].find((s) => s.id === sound.value.id) ??
-  soundsStore.sounds[1].find((s) => s.id === sound.value.id);
-
 onMounted(() => {
-  if (soundInterface !== undefined) {
+  if (sound.value !== undefined) {
     document.body.appendChild<HTMLAudioElement>(
-      soundInterface.audioElement ?? document.createElement('audio')
+      sound.value.audioElement ?? document.createElement('audio')
     );
 
     const options = {
@@ -97,7 +93,7 @@ onMounted(() => {
         axisGridlineColor: '#323E44',
         playheadColor: 'black',
       },
-      mediaElement: soundInterface.audioElement,
+      mediaElement: sound.value.audioElement,
       webAudio: {
         audioContext: soundsStore.audioContext,
         multiChannel: settingsStore.showMultiChannelWaveform,
@@ -120,18 +116,18 @@ onMounted(() => {
         overview?.fitToContainer();
         peaksInstance.zoom.setZoom(3);
 
-        soundInterface.audioElement.addEventListener('play', () => {
+        sound.value.audioElement.addEventListener('play', () => {
           overview?.setWaveformColor('orange');
         });
 
-        if (soundInterface.inTime !== null) {
-          updateInPoint(soundInterface.inTime);
+        if (sound.value.inTime !== null) {
+          updateInPoint(sound.value.inTime);
         }
-        if (soundInterface.outTime !== null) {
-          updateOutPoint(soundInterface.outTime);
+        if (sound.value.outTime !== null) {
+          updateOutPoint(sound.value.outTime);
         }
 
-        setWaveformScale(soundInterface.trimGain);
+        setWaveformScale(sound.value.trimGain);
 
         window.addEventListener('resize', function () {
           const overview = peaksInstance?.views.getView('overview');
@@ -150,8 +146,8 @@ onMounted(() => {
 });
 
 function initTrimGain() {
-  if (soundInterface?.integratedLoudness !== null) {
-    setWaveformScale(soundInterface?.trimGain ?? 0);
+  if (sound.value?.integratedLoudness !== null) {
+    setWaveformScale(sound.value?.trimGain ?? 0);
   } else {
     setTimeout(() => {
       initTrimGain();
@@ -160,7 +156,7 @@ function initTrimGain() {
 }
 
 watch(
-  () => soundInterface?.isSelected,
+  () => sound.value?.isSelected,
   (newValue) => {
     peaksInstance?.views
       .getView('overview')
@@ -172,7 +168,7 @@ watch(
 );
 
 watch(
-  () => soundInterface?.trimGain,
+  () => sound.value?.trimGain,
   (newValue) => {
     if (newValue !== undefined) {
       setWaveformScale(newValue);
@@ -186,12 +182,9 @@ function setWaveformScale(scale: number) {
 }
 
 function getWaveformColor() {
-  if (soundInterface?.isPlaying) {
+  if (sound.value?.isPlaying) {
     return 'green';
-  } else if (
-    soundInterface?.isSelected &&
-    soundsStore.playerMode === 'playlist'
-  ) {
+  } else if (sound.value?.isSelected && soundsStore.playerMode === 'playlist') {
     return 'orange';
   } else {
     return 'rgb(40, 134, 189)';
@@ -230,14 +223,14 @@ function updateZoomState() {
 }
 
 function setInPoint() {
-  if (soundInterface) {
-    setInTime(soundInterface, peaksInstance?.player.getCurrentTime() ?? 0);
+  if (sound.value) {
+    setInTime(sound.value, peaksInstance?.player.getCurrentTime() ?? 0);
   }
 }
 
 function setOutPoint() {
-  if (soundInterface) {
-    setOutTime(soundInterface, peaksInstance?.player.getCurrentTime() ?? 0);
+  if (sound.value) {
+    setOutTime(sound.value, peaksInstance?.player.getCurrentTime() ?? 0);
   }
 }
 
@@ -264,7 +257,7 @@ function updateOutPoint(time: number) {
 }
 
 watch(
-  () => soundInterface?.inTime,
+  () => sound.value?.inTime,
   (newValue) => {
     if (newValue !== null && newValue !== undefined) {
       updateInPoint(newValue);
@@ -275,7 +268,7 @@ watch(
 );
 
 watch(
-  () => soundInterface?.outTime,
+  () => sound.value?.outTime,
   (newValue) => {
     if (newValue !== null && newValue !== undefined) {
       updateOutPoint(newValue);

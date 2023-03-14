@@ -1,4 +1,5 @@
 <template>
+  <div style="height: 5px"></div>
   <PeakMeter
     :analyserObject="soundsStore.outputAnalyserNodes"
     class="metersStyle"

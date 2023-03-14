@@ -5,9 +5,9 @@ import {
 } from 'src/composables/math-helpers';
 import { calculateIntegratedLoudness } from './loudness-calculation';
 
-export function playPauseSound(sound: SoundModel) {
+export function playStopSound(sound: SoundModel) {
   if (sound.isPlaying) {
-    pauseSound(sound);
+    stopSound(sound);
   } else {
     playSound(sound);
   }
@@ -32,12 +32,21 @@ export function playSound(sound: SoundModel) {
   }
 
   sound.audioElement.addEventListener('ended', () => {
-    sound.isPlaying = false;
+    stopSound(sound);
   });
+}
+
+export function stopSound(sound: SoundModel) {
+  sound.audioElement.pause();
+  sound.audioElement.currentTime = sound.inTime === null ? 0 : sound.inTime;
+  sound.isPlaying = false;
+  clearTimeout(sound.timeOutId);
 }
 
 export function pauseSound(sound: SoundModel) {
   sound.audioElement.pause();
+  sound.isPlaying = false;
+  clearTimeout(sound.timeOutId);
 }
 
 export function setTrimGain(sound: SoundModel, gain: number) {

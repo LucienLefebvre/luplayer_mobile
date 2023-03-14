@@ -33,13 +33,16 @@ export const useSoundsStore = defineStore('soundsStore', {
   }),
 
   actions: {
-    addSound(sound: SoundModel) {
+    addSound(sound: SoundModel, soundArray = 0) {
       if (this.settingsStore.autoNormalize) {
         normalizeSound(sound);
       }
-      this.sounds[0].push(sound);
+      this.sounds[soundArray].push(sound);
 
-      if (this.sounds[0].length === 1) {
+      if (
+        this.sounds[soundArray].length === 1 &&
+        this.playerMode === 'playlist'
+      ) {
         this.sounds[0][0].isSelected = true;
       }
     },
@@ -149,9 +152,21 @@ export const useSoundsStore = defineStore('soundsStore', {
           hpfNode: hpfNode,
         };
 
-        this.addSound(addedSound);
+        if (this.playerMode === 'playlist') {
+          this.addSound(addedSound);
+        } else if (this.playerMode === 'cart') {
+          const firstArrayLength = this.sounds[0].length;
+          const secondArrayLength = this.sounds[1].length;
+          if (firstArrayLength === secondArrayLength) {
+            this.addSound(addedSound, 0);
+          } else if (firstArrayLength > secondArrayLength) {
+            this.addSound(addedSound, 1);
+          } else if (firstArrayLength < secondArrayLength) {
+            this.addSound(addedSound, 0);
+          }
+        }
 
-        if (this.selectedSound === null) {
+        if (this.selectedSound === null && this.playerMode === 'playlist') {
           this.setSelectedSound(addedSound);
         }
       };
@@ -236,6 +251,15 @@ export const useSoundsStore = defineStore('soundsStore', {
       if (localStorage.getItem('sounds')) {
         this.sounds = JSON.parse(localStorage.getItem('sounds') || '[]');
       }
+    },
+
+    initializeCartPlayer() {
+      this.selectedSound = null;
+      this.sounds.forEach((soundArray) => {
+        soundArray.forEach((sound) => {
+          sound.isSelected = false;
+        });
+      });
     },
   },
 });
