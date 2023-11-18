@@ -46,6 +46,15 @@ export function logScaleWithinSameRange(
   return newScaledValue * range + min;
 }
 
+export function randomizePitch(pitch: number, percentage: number): number {
+  const maxDeviation = pitch * (percentage / 100);
+  const randomDeviation = Math.random() * maxDeviation;
+  const isNegative = Math.random() < 0.5;
+  const sign = isNegative ? -1 : 1;
+  const randomizedPitch = pitch + sign * randomDeviation;
+  return randomizedPitch;
+}
+
 export function getTrimValueFromLoudness(loudness: number) {
   return Math.round((-23 - loudness) * 10) / 10;
 }

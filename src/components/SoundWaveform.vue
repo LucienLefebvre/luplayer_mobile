@@ -74,7 +74,7 @@ onMounted(() => {
     const options = {
       overview: {
         container: overview.value,
-        playedWaveformColor: 'green',
+        playedWaveformColor: sound.value.remainingTime < 5 ? 'red' : 'green',
         waveformColor: getWaveformColor(),
         showAxisLabel: false,
         axisGridlineColor: '#323E44',
@@ -87,7 +87,7 @@ onMounted(() => {
       },
       zoomview: {
         container: zoomView.value,
-        playedWaveformColor: 'green',
+        playedWaveformColor: sound.value.remainingTime < 5 ? 'red' : 'green',
         waveformColor: getWaveformColor(),
         showAxisLabel: true,
         axisGridlineColor: '#323E44',
@@ -181,9 +181,24 @@ function setWaveformScale(scale: number) {
   peaksInstance?.views.getView('zoomview')?.setAmplitudeScale(dbToGain(scale));
 }
 
+watch(
+  () => sound.value?.remainingTime,
+  (newValue) => {
+    if (newValue !== undefined) {
+      if (newValue < 5) {
+        peaksInstance?.views.getView('overview')?.setPlayedWaveformColor('red');
+      } else {
+        peaksInstance?.views
+          .getView('overview')
+          ?.setPlayedWaveformColor('green');
+      }
+    }
+  }
+);
+
 function getWaveformColor() {
   if (sound.value?.isPlaying) {
-    return 'green';
+    return sound.value?.remainingTime < 5 ? 'red' : 'green';
   } else if (sound.value?.isSelected && soundsStore.playerMode === 'playlist') {
     return 'orange';
   } else {

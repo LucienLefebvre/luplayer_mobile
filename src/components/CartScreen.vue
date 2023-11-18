@@ -68,6 +68,4 @@ function listScrolled() {
 .ghost {
   background-color: red;
 }
-.dragging {
-}
 </style>

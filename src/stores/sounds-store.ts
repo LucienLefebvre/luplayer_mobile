@@ -48,13 +48,24 @@ export const useSoundsStore = defineStore('soundsStore', {
     },
 
     deleteSound(sound: SoundModel) {
-      const index = this.sounds[0].indexOf(sound);
+      //search for the sound in the sounds arrays
+      let array = -1;
+      let index = this.sounds[0].indexOf(sound);
+      if (index !== -1) {
+        array = 0;
+      } else {
+        index = this.sounds[1].indexOf(sound);
+        if (index !== -1) {
+          array = 1;
+        }
+      }
+
       if (!sound.isPlaying) {
         this.showEditWindow = false;
-        this.sounds[0].splice(index, 1);
+        this.sounds[array].splice(index, 1);
         if (sound.isSelected) {
           this.selectedSound = null;
-          if (this.sounds[0].length > 0) {
+          if (this.sounds[0].length > 0 && this.playerMode === 'playlist') {
             this.setSelectedSound(this.sounds[0][0]);
           }
         }
@@ -225,9 +236,11 @@ export const useSoundsStore = defineStore('soundsStore', {
     },
 
     incrementSelectedSound() {
+      console.log('incrementSelectedSound');
       if (this.selectedSound === null) return;
       const index = this.sounds[0].indexOf(this.selectedSound);
-      if (index < this.sounds.length - 1) {
+      console.log('index: ' + index);
+      if (index < this.sounds[0].length - 1) {
         this.setSelectedSound(this.sounds[0][index + 1]);
       }
     },

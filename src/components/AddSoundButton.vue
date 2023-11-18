@@ -18,6 +18,7 @@ const soundsStore = useSoundsStore();
 const fileInput = ref<HTMLInputElement | null>(null);
 function chooseFile() {
   if (fileInput?.value) {
+    fileInput.value.value = '';
     fileInput.value.click();
   }
 }

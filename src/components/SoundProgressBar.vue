@@ -36,6 +36,7 @@ function drawBar() {
 
   canvasCtx.clearRect(0, 0, canvasCtx.canvas.width, canvasCtx.canvas.height);
   canvasCtx.fillStyle = 'orange';
+
   canvasCtx.fillRect(0, 0, barWidth, barHeight);
 }
 
@@ -47,7 +48,7 @@ function canvasWidth() {
 <style scoped>
 .progress-bar {
   width: 100%;
-  height: 10px;
+  height: 15px;
   background-color: var(--bkgColor);
 }
 </style>

@@ -16,7 +16,10 @@ const soundsStore = useSoundsStore();
 
 function buttonColor() {
   if (soundsStore.isPlaying) {
-    return 'green';
+    if (soundsStore.selectedSound?.remainingTime === undefined) return 'green';
+    if (soundsStore.selectedSound?.remainingTime < 5) {
+      return 'red';
+    } else return 'green';
   } else {
     return 'orange';
   }
