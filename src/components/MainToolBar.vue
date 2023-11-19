@@ -7,22 +7,43 @@
           style="height: 30px; width: auto; object-fit: contain"
         />
       </div>
-      <q-toolbar-title> </q-toolbar-title>
+      <q-toolbar-title class="toolbar-title">LuPlayer </q-toolbar-title>
       <q-btn-dropdown
         flat
         :label="soundsStore.playerMode"
         class="q-mr-sm"
-        style="color: var(--blueColor)"
+        style="color: orange"
+        transition-duration="100"
       >
-        <q-list class="bg-primary">
-          <q-item clickable v-close-popup @click="playlistClicked()">
+        <q-list style="background-color: var(--bkgColor)">
+          <q-item
+            clickable
+            v-close-popup
+            @click="playlistClicked()"
+            :style="{
+              'background-color':
+                soundsStore.playerMode === 'playlist'
+                  ? 'orange'
+                  : 'var(--bkgColor)',
+            }"
+          >
             <q-item-section>
-              <q-item-label style="color: white">Playlist</q-item-label>
+              <q-item-label class="listLabel">Playlist</q-item-label>
             </q-item-section>
           </q-item>
-          <q-item clickable v-close-popup @click="cartClicked()">
+          <q-item
+            clickable
+            v-close-popup
+            @click="cartClicked()"
+            :style="{
+              'background-color':
+                soundsStore.playerMode === 'cart'
+                  ? 'orange'
+                  : 'var(--bkgColor)',
+            }"
+          >
             <q-item-section>
-              <q-item-label style="color: white">Cart</q-item-label>
+              <q-item-label class="listLabel"> Cart</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
@@ -36,7 +57,7 @@
         icon="low_priority"
         @click="toggleReorder"
         :style="{
-          color: soundsStore.isReordering ? 'red' : 'var(--blueColor)',
+          color: soundsStore.isReordering ? 'red' : 'orange',
         }"
       />
       <q-btn
@@ -45,7 +66,8 @@
         round
         dense
         icon="settings"
-        style="color: var(--blueColor)"
+        style="color: orange"
+        @click="toggleSettings"
       />
     </q-toolbar>
   </div>
@@ -74,8 +96,28 @@ function playlistClicked() {
 }
 
 function toggleReorder() {
-  soundsStore.isReordering = !soundsStore.isReordering;
+  if (soundsStore.sounds[0].length === 0 && soundsStore.sounds[1].length === 0)
+    return;
+  soundsStore.showReorderWindow = !soundsStore.showReorderWindow;
+}
+
+function toggleSettings() {
+  console.log('toggleSettings');
+  soundsStore.showSettingsWindow = !soundsStore.showSettingsWindow;
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+.listLabel {
+  color: var(--blueColor);
+  font-size: 17px;
+}
+
+.toolbar-title {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  color: var(--blueColor);
+  font-size: 20px;
+}
+</style>

@@ -20,6 +20,8 @@
         thumb-size="40px"
         track-size="8px"
         @update:model-value="sliderValueChanged($event!)"
+        @pan="faderTouchStart"
+        @change="faderTouchEnd"
       />
     </div>
     <div class="row justify-center q-pa-sm" style="height: 10%; width: 100%">
@@ -31,10 +33,12 @@
 <script setup lang="ts">
 import { watch, onMounted } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
+import { useSettingsStore } from 'src/stores/settings-store';
 import { dbToGain } from '../composables/math-helpers';
 import { NormalizableRange } from 'src/composables/normalizable-range';
 import AddSoundButton from './AddSoundButton.vue';
 const soundsStore = useSoundsStore();
+const settingsStore = useSettingsStore();
 
 onMounted(() => {
   soundsStore.selectedSoundVolumeSliderValue = normRange.logScaleTo0to1(
@@ -53,7 +57,14 @@ watch(
   }
 );
 
-const normRange = new NormalizableRange(-60, 10, 2);
+watch(
+  () => settingsStore.faderSkewFactor,
+  (newValue: number) => {
+    normRange.skew = newValue;
+  }
+);
+
+let normRange = new NormalizableRange(-60, 10, settingsStore.faderSkewFactor);
 
 function sliderValueChanged(value: number) {
   const normedValue = normRange.logScaleFrom0to1(value);
@@ -62,6 +73,24 @@ function sliderValueChanged(value: number) {
 
 function getVolumeLabelText() {
   return Math.round(soundsStore.selectedSoundVolume * 10) / 10 + 'dB';
+}
+
+function faderTouchStart() {
+  if (soundsStore.selectedSound === null) return;
+  if (soundsStore.selectedSound.isPlaying) {
+    soundsStore.faderTouchedDuringPlayback = true;
+  }
+}
+
+function faderTouchEnd() {
+  if (soundsStore.selectedSound === null) return;
+  if (
+    soundsStore.faderTouchedDuringPlayback &&
+    !soundsStore.selectedSound.isPlaying
+  ) {
+    soundsStore.selectedSoundVolume = 0;
+  }
+  soundsStore.faderTouchedDuringPlayback = false;
 }
 </script>
 

@@ -11,11 +11,13 @@
 
 <script setup lang="ts">
 import { useSoundsStore } from '../stores/sounds-store';
+import { watch } from 'vue';
 
 const soundsStore = useSoundsStore();
 
 function buttonColor() {
-  if (soundsStore.isPlaying) {
+  if (soundsStore.selectedSound === null || undefined) return 'orange';
+  if (soundsStore.selectedSound.isPlaying) {
     if (soundsStore.selectedSound?.remainingTime === undefined) return 'green';
     if (soundsStore.selectedSound?.remainingTime < 5) {
       return 'red';
@@ -26,12 +28,22 @@ function buttonColor() {
 }
 
 function buttonLabel() {
-  if (soundsStore.isPlaying) {
+  if (soundsStore.selectedSound === null || undefined) return 'play';
+  if (soundsStore.selectedSound.isPlaying) {
     return soundsStore.selectedSound?.remainingTime.toFixed(0);
   } else {
     return 'play';
   }
 }
+
+watch(
+  () => soundsStore.selectedSoundVolume,
+  (value) => {
+    if (value === -60 && soundsStore.selectedSound?.isPlaying) {
+      soundsStore.stopSelectedSound();
+    }
+  }
+);
 </script>
 
 <style scoped>

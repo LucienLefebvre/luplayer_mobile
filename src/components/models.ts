@@ -8,18 +8,20 @@ export interface SoundModel {
 
   isPlaying: boolean;
   isSelected: boolean;
+  isCuePlayed: boolean;
 
   audioElement: HTMLAudioElement;
   peak?: PeaksInstance;
   source: MediaElementAudioSourceNode;
 
   duration: number;
-  currentTime: number;
   remainingTime: number;
   progressIn0to1: number;
   inTime: number | null;
   outTime: number | null;
   timeOutId?: ReturnType<typeof setTimeout>;
+
+  launchTime: number;
 
   integratedLoudness: number | null;
 

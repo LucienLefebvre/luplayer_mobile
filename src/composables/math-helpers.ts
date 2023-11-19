@@ -55,6 +55,17 @@ export function randomizePitch(pitch: number, percentage: number): number {
   return randomizedPitch;
 }
 
-export function getTrimValueFromLoudness(loudness: number) {
-  return Math.round((-23 - loudness) * 10) / 10;
+export function getMMSSfromS(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds - minutes * 60;
+  const minutesString = minutes < 10 ? '' + minutes : minutes;
+  if (minutes < 1) {
+    return remainingSeconds.toFixed(0) + 's';
+  }
+  const secondsString =
+    remainingSeconds < 10
+      ? '0' + remainingSeconds.toFixed(0)
+      : remainingSeconds.toFixed(0);
+
+  return minutesString + 'm' + secondsString;
 }

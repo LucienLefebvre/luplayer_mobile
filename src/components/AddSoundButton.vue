@@ -7,7 +7,14 @@
       @click="chooseFile"
     />
   </div>
-  <input ref="fileInput" type="file" @change="onFileChange" hidden multiple />
+  <input
+    ref="fileInput"
+    type="file"
+    @change="onFileChange"
+    hidden
+    multiple
+    accept=".wav, .mp3"
+  />
 </template>
 
 <script setup lang="ts">

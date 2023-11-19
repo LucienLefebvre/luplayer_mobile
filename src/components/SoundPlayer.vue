@@ -1,11 +1,12 @@
 <template>
   <q-card
-    class="soundBackground"
+    class="soundBackground shadow-10"
     style="width: 100%"
     :style="{
       borderColor: getWaveformColor(),
       transform: 'translate(' + soundOffset + 'px, 0px)',
       transition: isTouchPanned ? 'none' : 'transform 0.5s',
+      backgroundColor: getBackgroundColor(0.1),
     }"
     v-touch-pan.mouse="moveSound"
     v-touch-hold="(e: TouchHold) => touchHold(e, sound)"
@@ -16,19 +17,14 @@
     <div class="column d-flex flex-center" style="width: 100%">
       <sound-waveform ref="soundWaveforms" :sound="sound" style="width: 100%" />
       <div class="sound-player row" :style="{ color: getWaveformColor() }">
+        <div class="sound-index">{{ getSoundIndex() }}</div>
         <div class="sound-name">{{ props.sound.name }}</div>
         <div class="sound-duration">
-          {{ getSoundDurationLabel() }}
+          {{ getSoundDurationLabel($props.sound) }}
         </div>
       </div>
     </div>
   </q-card>
-
-  <q-dialog v-model="soundsStore.showEditWindow">
-    <div class="column fit" style="align-items: center; width: 100%">
-      <sound-details :sound="soundsStore.editedSound!" />
-    </div>
-  </q-dialog>
 </template>
 
 <script setup lang="ts">
@@ -36,10 +32,11 @@ import { PropType, ref } from 'vue';
 import { SoundModel } from './models';
 import { TouchHold } from 'quasar';
 import { useSoundsStore } from '../stores/sounds-store';
-import SoundDetails from './SoundDetails.vue';
 import SoundWaveform from './SoundWaveform.vue';
-import { lerpRGBAColor } from 'src/composables/color-helpers';
-import { playStopSound } from 'src/composables/sound-controller';
+import {
+  playStopSound,
+  getSoundDurationLabel,
+} from 'src/composables/sound-controller';
 
 const soundsStore = useSoundsStore();
 
@@ -53,33 +50,27 @@ const soundWaveforms = ref<typeof SoundWaveform | null>(null);
 
 function getWaveformColor() {
   if (sound.value.isPlaying) {
-    if (redAmount === 0) {
-      soundWaveforms.value?.setWaveformColor('orange');
-      if (sound.value.remainingTime < 5) return 'red';
-      else return 'green';
-    } else {
-      let color = lerpRGBAColor([0, 255, 0, 1], [255, 0, 0, 1], redAmount);
-      soundWaveforms.value?.setWaveformColor(color);
-      return color;
-    }
+    soundWaveforms.value?.setWaveformColor('orange');
+    if (sound.value.remainingTime < 5) return 'red';
+    else return 'green';
   } else if (sound.value.isSelected && soundsStore.playerMode === 'playlist') {
-    if (redAmount === 0) {
-      soundWaveforms.value?.setWaveformColor('orange');
-      return 'orange';
-    } else {
-      let color = lerpRGBAColor([255, 165, 0, 1], [255, 0, 0, 1], redAmount);
-      soundWaveforms.value?.setWaveformColor(color);
-      return color;
-    }
+    soundWaveforms.value?.setWaveformColor('orange');
+    return 'orange';
   } else {
-    if (redAmount === 0) {
-      soundWaveforms.value?.setWaveformColor('rgb(40, 134, 189)');
-      return 'rgb(40, 134, 189)';
-    } else {
-      let color = lerpRGBAColor([40, 134, 189, 1], [255, 0, 0, 1], redAmount);
-      soundWaveforms.value?.setWaveformColor(color);
-      return color;
-    }
+    soundWaveforms.value?.setWaveformColor('rgb(40, 134, 189)');
+    return 'rgb(40, 134, 189)';
+  }
+}
+
+function getBackgroundColor(opacity: number) {
+  if (sound.value.isPlaying) {
+    if (sound.value.remainingTime < 5)
+      return 'rgba(255, 0, 0, ' + opacity + ')';
+    else return 'rgba(93, 175, 77 , ' + opacity + ')';
+  } else if (sound.value.isSelected && soundsStore.playerMode === 'playlist') {
+    return 'rgba(247, 151, 0 , ' + opacity + ')';
+  } else {
+    return 'rgb(40, 134, 189, ' + opacity + ')';
   }
 }
 
@@ -121,6 +112,7 @@ function soundClicked(sound: SoundModel) {
     playStopSound(sound);
   }
 }
+
 function soundDoubleClicked(sound: SoundModel) {
   showEditWindow(sound);
 }
@@ -132,42 +124,44 @@ function touchHold(e: TouchHold, sound: SoundModel) {
 function showEditWindow(sound: SoundModel) {
   soundsStore.editedSound = sound;
   soundsStore.showEditWindow = true;
+  console.log('touchHold');
 }
 
-function getSoundDurationLabel() {
-  if (sound.value.isPlaying) {
-    return sound.value.remainingTime.toFixed(0);
-  } else return sound.value.duration.toFixed(0);
+function getSoundIndex() {
+  return soundsStore.sounds[0].indexOf(sound.value) + 1;
 }
-const editWindow = ref(false);
 </script>
 
 <style scoped>
 .soundBackground {
   border: 1px solid;
   border-radius: 10px;
-  border-color: 'orange';
+  border-color: orange;
   background-color: var(--bkgColor);
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
 }
-
 .sound-player {
   display: flex;
   flex-direction: row;
   width: 100%;
-  max-width: 250px;
   font-size: 16px;
+  max-width: 80vw;
 }
 
 .sound-name {
   text-align: left;
-  width: 80%;
+  width: 70%;
+  max-width: 70%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
+.sound-index {
+  text-align: left;
+  width: 15%;
+}
 .sound-duration {
   text-align: right;
-  width: 20%;
+  width: 15%;
 }
 </style>

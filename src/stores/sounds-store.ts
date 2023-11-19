@@ -1,11 +1,13 @@
+import { reactive } from 'vue';
 import { defineStore } from 'pinia';
 import { useSettingsStore } from './settings-store';
 import { v4 as uuidv4 } from 'uuid';
 import { SoundModel, StereoAnalyserObject } from 'src/components/models';
 import {
   playSound,
-  setTrimGain,
+  stopSound,
   normalizeSound,
+  getIsCuePlayed,
 } from 'src/composables/sound-controller';
 import {
   calculateIntegratedLoudness,
@@ -21,22 +23,29 @@ export const useSoundsStore = defineStore('soundsStore', {
     outputGainNode: null as GainNode | null,
     outputLimiterNode: null as DynamicsCompressorNode | null,
     outputAnalyserNodes: null as StereoAnalyserObject | null,
-    isPlaying: false,
     selectedSound: null as SoundModel | null,
     editedSound: null as SoundModel | null,
     stoppedByButtonClick: false,
     isReordering: false,
     showEditWindow: false as boolean,
+    showReorderWindow: false as boolean,
+    showSettingsWindow: false as boolean,
     selectedSoundVolumeSliderValue: 0.0 as number,
     selectedSoundVolume: 0.0 as number,
     momentaryLoudness: { value: 0.0 as number },
+    faderTouchedDuringPlayback: false as boolean,
   }),
 
   actions: {
     addSound(sound: SoundModel, soundArray = 0) {
       if (this.settingsStore.autoNormalize) {
-        normalizeSound(sound);
+        normalizeSound(sound, this.settingsStore.normalizationLuTarget);
       }
+
+      sound = reactive(sound);
+
+      this.registerEventListeners(sound);
+
       this.sounds[soundArray].push(sound);
 
       if (
@@ -45,6 +54,47 @@ export const useSoundsStore = defineStore('soundsStore', {
       ) {
         this.sounds[0][0].isSelected = true;
       }
+    },
+
+    registerEventListeners(sound: SoundModel) {
+      sound.audioElement.addEventListener('play', () => {
+        sound.isPlaying = true;
+      });
+      sound.audioElement.addEventListener('pause', () => {
+        sound.isPlaying = false;
+        sound.audioElement.currentTime = 0;
+        if (!getIsCuePlayed(sound)) {
+          this.resetSelectedSoundVolume();
+          if (
+            Date.now() - sound.launchTime >
+            this.settingsStore.falseStartTime
+          ) {
+            this.incrementSelectedSound();
+          }
+        }
+        sound.isCuePlayed = false;
+      });
+      sound.audioElement.addEventListener('ended', () => {
+        sound.isPlaying = false;
+        sound.audioElement.currentTime = 0;
+        sound.remainingTime = sound.duration;
+        if (!getIsCuePlayed(sound)) {
+          this.incrementSelectedSound();
+          this.resetSelectedSoundVolume();
+        }
+        sound.isCuePlayed = false;
+      });
+      sound.audioElement.addEventListener('timeupdate', () => {
+        const remainingTime =
+          sound.audioElement.duration - sound.audioElement.currentTime;
+        if (Number.isNaN(remainingTime)) {
+          sound.remainingTime = sound.audioElement.duration;
+        } else {
+          sound.remainingTime = remainingTime;
+        }
+        sound.progressIn0to1 =
+          sound.audioElement.currentTime / sound.audioElement.duration;
+      });
     },
 
     deleteSound(sound: SoundModel) {
@@ -73,7 +123,11 @@ export const useSoundsStore = defineStore('soundsStore', {
     },
 
     setSelectedSound(sound: SoundModel) {
-      if (!this.isPlaying) {
+      let isPlaying = false;
+      this.sounds[0].forEach((sound) => {
+        if (sound.isPlaying) isPlaying = true;
+      });
+      if (!isPlaying) {
         this.sounds[0].forEach((sound) => (sound.isSelected = false));
         sound.isSelected = true;
         this.selectedSound = sound;
@@ -85,44 +139,12 @@ export const useSoundsStore = defineStore('soundsStore', {
       this.editedSound = sound;
     },
 
-    async loadSound(name: string, file: File) {
+    loadSound(name: string, file: File) {
       const uuid = uuidv4();
       const audioElement = document.createElement('audio');
       audioElement.preload = 'metadata';
       const url = URL.createObjectURL(file);
       audioElement.src = url;
-
-      audioElement.addEventListener('play', () => {
-        if (this.selectedSound === null) return;
-        this.selectedSound.isPlaying = true;
-        this.isPlaying = true;
-      });
-      audioElement.addEventListener('pause', () => {
-        if (this.selectedSound === null) return;
-        this.selectedSound.isPlaying = false;
-        this.isPlaying = false;
-        audioElement.currentTime = 0;
-        this.resetSelectedSoundVolume();
-      });
-      audioElement.addEventListener('ended', () => {
-        if (this.selectedSound === null) return;
-        this.selectedSound.isPlaying = false;
-        this.isPlaying = false;
-        this.incrementSelectedSound();
-        this.resetSelectedSoundVolume();
-      });
-      audioElement.addEventListener('timeupdate', () => {
-        if (this.selectedSound === null) return;
-        this.selectedSound.currentTime = audioElement.currentTime;
-        const remainingTime = audioElement.duration - audioElement.currentTime;
-        if (Number.isNaN(remainingTime)) {
-          this.selectedSound.remainingTime = audioElement.duration;
-        } else {
-          this.selectedSound.remainingTime = remainingTime;
-        }
-        this.selectedSound.progressIn0to1 =
-          audioElement.currentTime / audioElement.duration;
-      });
 
       audioElement.onloadedmetadata = () => {
         if (this.audioContext === null) {
@@ -139,17 +161,18 @@ export const useSoundsStore = defineStore('soundsStore', {
         trimGainNode.connect(volumeGainNode);
         if (this.outputGainNode === null) return;
         volumeGainNode.connect(this.outputGainNode);
+
         const addedSound: SoundModel = {
           id: uuid,
           file: file,
           name: name,
           audioElement: audioElement,
           duration: audioElement.duration,
-          currentTime: 0,
           remainingTime: audioElement.duration,
           progressIn0to1: 0,
           isPlaying: false,
           isSelected: false,
+          isCuePlayed: false,
           url: url,
           trimGain: 0.0,
           source: source,
@@ -161,6 +184,7 @@ export const useSoundsStore = defineStore('soundsStore', {
           hpfEnabled: true,
           hpfFrequency: 80,
           hpfNode: hpfNode,
+          launchTime: 0,
         };
 
         if (this.playerMode === 'playlist') {
@@ -210,23 +234,25 @@ export const useSoundsStore = defineStore('soundsStore', {
       );
       this.outputLimiterNode.connect(this.audioContext.destination);
 
-      console.log('AudioContext initialized');
       calculateMomentaryLoudness(
         this.outputAnalyserNodes.stereoAnalyser,
         this.momentaryLoudness
-      ).then((loudness) => {
-        console.log('Momentary loudness: ' + loudness);
-      });
+      );
     },
 
     playButtonClicked() {
-      if (this.isPlaying) {
+      if (this.selectedSound?.isPlaying) {
         if (this.selectedSound === null) return;
         this.stoppedByButtonClick = true;
         this.selectedSound.audioElement?.pause();
       } else {
         this.playSelectedSound();
       }
+    },
+
+    stopSelectedSound() {
+      if (this.selectedSound === null) return;
+      stopSound(this.selectedSound);
     },
 
     playSelectedSound() {
@@ -236,18 +262,11 @@ export const useSoundsStore = defineStore('soundsStore', {
     },
 
     incrementSelectedSound() {
-      console.log('incrementSelectedSound');
       if (this.selectedSound === null) return;
       const index = this.sounds[0].indexOf(this.selectedSound);
-      console.log('index: ' + index);
       if (index < this.sounds[0].length - 1) {
         this.setSelectedSound(this.sounds[0][index + 1]);
       }
-    },
-
-    getSoundProgress() {
-      if (this.selectedSound == null) return 0;
-      return this.selectedSound.progressIn0to1;
     },
 
     resetSelectedSoundVolume() {

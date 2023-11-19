@@ -3,27 +3,74 @@
     <q-header>
       <MainToolBar />
     </q-header>
-    <q-page-container>
+    <q-page-container class="gradient">
       <transition name="page" mode="out-in">
         <router-view />
       </transition>
     </q-page-container>
   </q-layout>
+  <q-dialog v-model="soundsStore.showEditWindow" class="centered-dialog">
+    <div class="column fit" style="align-items: center; width: 100%">
+      <sound-details :sound="soundsStore.editedSound!" />
+    </div>
+  </q-dialog>
+  <q-dialog v-model="soundsStore.showReorderWindow" class="centered-dialog">
+    <div class="column fit" style="align-items: center; width: 100%">
+      <ReorderPanel />
+    </div>
+  </q-dialog>
+  <q-dialog v-model="soundsStore.showSettingsWindow" class="centered-dialog">
+    <div class="column fit" style="align-items: center; width: 100%">
+      <SettingsPanel />
+    </div>
+  </q-dialog>
 </template>
 
 <script setup lang="ts">
 import MainToolBar from 'src/components/MainToolBar.vue';
 import { useWakeLock } from '@vueuse/core';
-import { onMounted } from 'vue';
+import { onMounted, watch } from 'vue';
+import { useSoundsStore } from 'src/stores/sounds-store';
+import { useSettingsStore } from 'src/stores/settings-store';
+import SoundDetails from 'src/components/SoundDetails.vue';
+import ReorderPanel from 'src/components/ReorderPanel.vue';
+import SettingsPanel from 'src/components/SettingsPanel.vue';
 
+const soundsStore = useSoundsStore();
+const settingsStore = useSettingsStore();
+const wakeLock = useWakeLock();
 onMounted(() => {
-  const wakeLock = useWakeLock();
-
   if (!wakeLock.isSupported) console.log('Wake Lock API not supported');
   else console.log('Wake Lock API supported');
 
+  if (settingsStore.keepScreenAwake) wakeLock.request('screen');
+
   wakeLock.request('screen');
+
+  settingsStore.loadSettings();
 });
+
+watch(
+  () => soundsStore.sounds[0].length,
+  (newValue) => {
+    if (newValue === 0) {
+      soundsStore.showReorderWindow = false;
+    }
+  }
+);
+
+watch(
+  () => settingsStore.keepScreenAwake,
+  (newValue) => {
+    if (newValue === true) {
+      wakeLock.request('screen');
+      console.log('wakeLock.request');
+    } else {
+      console.log('wakeLock.release');
+      wakeLock.release();
+    }
+  }
+);
 </script>
 
 <style>
@@ -39,3 +86,4 @@ body {
   background-color: rgb(50, 62, 68);
 }
 </style>
+<style scoped></style>

@@ -109,13 +109,13 @@ function drawBar(channelToDraw: number) {
     meterWidth *
     Math.min(
       normRange.logScaleTo0to1(gainToDb(peakValue[channelToDraw])),
-      normRange.logScaleTo0to1(settingsStore.peakMeterRedThreshold)
+      normRange.logScaleTo0to1(-settingsStore.peakMeterRedThreshold)
     );
   const barGreenX =
     meterWidth *
     Math.min(
       normRange.logScaleTo0to1(gainToDb(peakValue[channelToDraw])),
-      normRange.logScaleTo0to1(settingsStore.peakMeterOrangeThreshold)
+      normRange.logScaleTo0to1(-settingsStore.peakMeterOrangeThreshold)
     );
   drawColorBar(barX, barY, barHeight, 'red');
   drawColorBar(barOrangeX, barY, barHeight, 'orange');
