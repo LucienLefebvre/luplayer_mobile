@@ -11,7 +11,7 @@
     />
   </div>
   <q-card class="panel-class">
-    <div>
+    <div v-if="soundsStore.playerMode === 'playlist'">
       <draggable
         class="list-group"
         v-model="soundsStore.sounds[0]"
@@ -26,6 +26,32 @@
         </template>
       </draggable>
     </div>
+    <div v-else>
+      <div class="row">
+        <div
+          v-for="(draggableObj, index) in draggables"
+          :key="index"
+          :style="{ width: draggableObj.width, height: 'inherit' }"
+        >
+          <draggable
+            :list="draggableObj.list"
+            style="height: 100%"
+            group="sounds"
+            item-key="name"
+            @start="drag = true"
+            @end="drag = false"
+            ghost-class="ghost"
+            drag-class="dragging"
+          >
+            <template #item="{ element }">
+              <div class="q-px-xs q-py-xs">
+                <ReorderListElement :sound="element" :index="index" />
+              </div>
+            </template>
+          </draggable>
+        </div>
+      </div>
+    </div>
   </q-card>
 </template>
 
@@ -36,6 +62,17 @@ import ReorderListElement from './ReorderListElement.vue';
 
 const soundsStore = useSoundsStore();
 let drag = false;
+
+const draggables = [
+  {
+    width: '50%',
+    list: soundsStore.sounds[0],
+  },
+  {
+    width: '50%',
+    list: soundsStore.sounds[1],
+  },
+];
 
 function dragOptions() {
   return {

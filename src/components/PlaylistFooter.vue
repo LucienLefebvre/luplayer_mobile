@@ -1,6 +1,9 @@
 <template>
   <div class="container">
-    <SoundProgressBar :sound="soundsStore.selectedSound" />
+    <SoundProgressBar
+      :sound="soundsStore.selectedSound"
+      :is-main-toolbar="true"
+    />
     <PlayButton class="button" />
   </div>
 </template>
@@ -17,5 +20,6 @@ const soundsStore = useSoundsStore();
 .container {
   display: grid;
   place-items: center;
+  border-top: 2px solid var(--blueColor);
 }
 </style>

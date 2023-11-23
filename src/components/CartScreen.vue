@@ -1,6 +1,9 @@
 <template>
   <MetersPanel />
-  <div class="scrollable-cart">
+  <div
+    class="scrollable-cart"
+    :style="{ height: scrollablePlaylistHeight + 'px' }"
+  >
     <div class="row">
       <div
         v-for="(draggableObj, index) in draggables"
@@ -36,9 +39,12 @@
 import draggable from 'vuedraggable';
 import SoundPlayer from './SoundPlayer.vue';
 import { useSoundsStore } from '../stores/sounds-store';
+import { useSettingsStore } from 'src/stores/settings-store';
 import MetersPanel from './MetersPanel.vue';
 import AddSoundButton from './AddSoundButton.vue';
+import { ref, onMounted, watch } from 'vue';
 const soundsStore = useSoundsStore();
+const settingsStore = useSettingsStore();
 
 let drag = false;
 
@@ -53,16 +59,42 @@ const draggables = [
   },
 ];
 
-let scrolled = false;
+onMounted(() => {
+  updateHeight();
+});
 
-function listScrolled() {
-  scrolled = true;
-}
+const scrollablePlaylistHeight = ref(0);
+const updateHeight = () => {
+  console.log('updateHeight');
+  let heightToSubtract = 65;
+  const meterHeight = 31;
+  if (settingsStore.showPeakMeter) {
+    heightToSubtract += meterHeight;
+  }
+  if (settingsStore.showLuMeter) {
+    heightToSubtract += meterHeight;
+  }
+  console.log('heightToSubtract', heightToSubtract);
+  console.log('window.innerHeight', window.innerHeight);
+  scrollablePlaylistHeight.value = window.innerHeight - heightToSubtract;
+};
+watch(
+  () => settingsStore.showPeakMeter,
+  () => {
+    updateHeight();
+  }
+);
+
+watch(
+  () => settingsStore.showLuMeter,
+  () => {
+    updateHeight();
+  }
+);
 </script>
 
 <style scoped>
 .scrollable-cart {
-  height: calc(100vh - 130px);
   overflow-y: auto;
 }
 .ghost {

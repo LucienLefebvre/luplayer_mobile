@@ -2,6 +2,7 @@
   <div
     class="scrollable-playlist"
     :style="{ height: scrollablePlaylistHeight + 'px' }"
+    ref="soundPlayers"
   >
     <div
       v-for="sound in soundsStore.sounds[0]"
@@ -14,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, ref, onMounted } from 'vue';
+import { watch, ref, onMounted, Ref } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 
@@ -23,23 +24,12 @@ import SoundPlayer from './SoundPlayer.vue';
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 
-watch(
-  () => settingsStore.showPeakMeter,
-  () => {
-    updateHeight();
-  }
-);
-
-watch(
-  () => settingsStore.showLuMeter,
-  () => {
-    updateHeight();
-  }
-);
+const soundPlayers: Ref<HTMLElement | null> = ref(null);
 
 onMounted(() => {
   updateHeight();
 });
+
 const scrollablePlaylistHeight = ref(0);
 const updateHeight = () => {
   console.log('updateHeight');
@@ -55,11 +45,42 @@ const updateHeight = () => {
   console.log('window.innerHeight', window.innerHeight);
   scrollablePlaylistHeight.value = window.innerHeight - heightToSubtract;
 };
+
+watch(
+  () => settingsStore.showPeakMeter,
+  () => {
+    updateHeight();
+  }
+);
+
+watch(
+  () => settingsStore.showLuMeter,
+  () => {
+    updateHeight();
+  }
+);
+
+watch(
+  () => soundsStore.selectedSound,
+  () => {
+    if (settingsStore.autoScroll) {
+      const selectedSoundIndex = soundsStore.sounds[0].indexOf(
+        soundsStore.selectedSound!
+      );
+
+      if (soundPlayers.value === null) return;
+      soundPlayers.value.scrollTo({
+        top: (36 + 100 * settingsStore.playerHeightFactor) * selectedSoundIndex,
+        behavior: 'smooth',
+      });
+    }
+  }
+);
 </script>
 
 <style scoped>
 .scrollable-playlist {
-  height: calc(100vh - 215px);
+  height: calc(100vh - 224px);
   overflow-y: auto;
   gap: 10px;
 }

@@ -2,6 +2,7 @@
   <MetersPanel
     v-if="settingsStore.showLuMeter || settingsStore.showPeakMeter"
   />
+  <!-- <PlaylistToolBar /> -->
   <div class="row">
     <div class="rightPanel" v-if="settingsStore.faderIsOtherSide">
       <PlaylistRightPanel />
@@ -21,6 +22,7 @@
 import { useSettingsStore } from 'src/stores/settings-store';
 
 import PlaylistFooter from './PlaylistFooter.vue';
+import PlaylistToolBar from './PlaylistToolBar.vue';
 import PlaylistRightPanel from './PlaylistRightPanel.vue';
 import SoundPlayList from './SoundPlayList.vue';
 import MetersPanel from './MetersPanel.vue';

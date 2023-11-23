@@ -1,13 +1,15 @@
 <template>
   <div class="element-row" :style="{ color: getSoundColor() }">
-    <div>{{ getSoundIndex() }}</div>
+    <div v-if="soundsStore.playerMode === 'playlist'">
+      {{ getSoundIndex() }}
+    </div>
     <q-btn
       flat
       dense
       :icon="sound.isPlaying ? 'pause' : 'play_arrow'"
       class="left-buttons"
       size="sm"
-      @touchend="playStopSound(sound, true)"
+      @touchend="playStopSound(sound)"
     />
     <div class="sound-name">{{ sound.name }}</div>
     <div class="sound-duration">
@@ -70,7 +72,6 @@ function getSoundDurationLabel() {
   border: 2px solid;
   border-color: var(--blueColor);
   border-radius: 10px;
-  min-width: 70vw;
 }
 .left-buttons {
   width: 5%;

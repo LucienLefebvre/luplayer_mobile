@@ -4,6 +4,8 @@ export const useSettingsStore = defineStore('settingsStore', {
   state: () => ({
     keepScreenAwake: true as boolean,
 
+    autoScroll: true as boolean,
+
     showMultiChannelWaveform: false as boolean, //TODO dynamic change
 
     showPeakMeter: true as boolean,

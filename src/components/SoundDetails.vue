@@ -2,7 +2,7 @@
   <div class="column sound-details">
     <div class="close-button">
       <q-btn
-        @click="soundsStore.showEditWindow = false"
+        @click="closeButtonClicked()"
         icon="close"
         color="white"
         flat
@@ -156,6 +156,7 @@ import {
   normalizeSound,
   toggleHpf,
   setHpfFrequency,
+  stopSound,
 } from 'src/composables/sound-controller';
 
 const soundsStore = useSoundsStore();
@@ -171,6 +172,10 @@ onMounted(() => {
   console.log('soundDetails onMounted');
 });
 
+function closeButtonClicked() {
+  stopSound(sound!);
+  soundsStore.showEditWindow = false;
+}
 function playButtonClicked() {
   if (sound?.audioElement.paused) {
     playSound(sound, true);

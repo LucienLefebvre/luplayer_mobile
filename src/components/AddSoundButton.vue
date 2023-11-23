@@ -31,12 +31,43 @@ function chooseFile() {
 }
 
 function onFileChange(event: Event) {
-  const fileInput = event.target as HTMLInputElement;
+  /*   const fileInput = event.target as HTMLInputElement;
 
   if (!fileInput.files) return;
 
   for (let i = 0; i < fileInput.files.length; i++) {
+    if (
+      !['.wav', '.mp3'].includes(
+        fileInput.name.slice(((fileInput.name.lastIndexOf('.') - 1) >>> 0) + 2)
+      )
+    ) {
+      alert('Invalid file type');
+      return;
+    }
     soundsStore.loadSound(fileInput.files[i].name, fileInput.files[i]);
+  } */
+  const input = event.target as HTMLInputElement;
+  const files = input.files;
+
+  if (files === null || files.length === 0 || input.files === null) {
+    return;
+  }
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const allowedExtensions = ['.wav', '.mp3', '.ogg', '.flac', '.WAV', '.MP3'];
+
+    const isValidExtension = allowedExtensions.some((ext) =>
+      file.name.endsWith(ext)
+    );
+
+    if (!isValidExtension) {
+      alert('Invalid file type. Please select a .wav or .mp3 file.');
+      input.value = '';
+      return;
+    }
+
+    soundsStore.loadSound(input.files[i].name, input.files[i]);
   }
 }
 </script>

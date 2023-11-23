@@ -48,6 +48,9 @@ export const useSoundsStore = defineStore('soundsStore', {
 
       this.sounds[soundArray].push(sound);
 
+      playSound(sound);
+      stopSound(sound);
+
       if (
         this.sounds[soundArray].length === 1 &&
         this.playerMode === 'playlist'
@@ -84,7 +87,7 @@ export const useSoundsStore = defineStore('soundsStore', {
         this.resetSelectedSoundVolume();
         if (Date.now() - sound.launchTime > this.settingsStore.falseStartTime) {
           this.incrementSelectedSound();
-        }
+        } else if (sound.duration < 1) this.incrementSelectedSound();
       }
       sound.isCuePlayed = false;
     },
@@ -197,7 +200,7 @@ export const useSoundsStore = defineStore('soundsStore', {
           inTime: null,
           outTime: null,
           integratedLoudness: null,
-          hpfEnabled: true,
+          hpfEnabled: false,
           hpfFrequency: 80,
           hpfNode: hpfNode,
           launchTime: 0,

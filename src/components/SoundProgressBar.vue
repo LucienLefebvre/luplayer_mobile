@@ -11,8 +11,10 @@ var canvasCtx = null as CanvasRenderingContext2D | null;
 
 const props = defineProps({
   sound: { type: Object as PropType<SoundModel | null>, required: true },
+  isMainToolbar: { type: Boolean, required: false, default: false },
 });
 
+const barColor = ref('orange');
 onMounted(() => {
   if (canvas.value) {
     canvasCtx = canvas.value.getContext('2d');
@@ -35,20 +37,53 @@ function drawBar() {
   const barHeight = canvasCtx.canvas.height;
 
   canvasCtx.clearRect(0, 0, canvasCtx.canvas.width, canvasCtx.canvas.height);
-  canvasCtx.fillStyle = 'orange';
+  canvasCtx.fillStyle = barColor.value;
 
-  canvasCtx.fillRect(0, 0, barWidth, barHeight);
+  if (props.isMainToolbar) {
+    canvasCtx.fillRect(0, 0, barWidth, barHeight);
+  } else {
+    roundedRect(canvasCtx, 0, 0, barWidth, barHeight, 15);
+  }
+}
+
+function roundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.arcTo(x + width, y, x + width, y + radius, radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+  ctx.lineTo(x + radius, y + height);
+  ctx.arcTo(x, y + height, x, y + height - radius, radius);
+  ctx.lineTo(x, y + radius);
+  ctx.arcTo(x, y, x + radius, y, radius);
+  ctx.closePath();
+  ctx.fill();
 }
 
 function canvasWidth() {
   return canvas.value?.clientWidth ?? 0;
 }
+
+function setBarColor(color: string) {
+  barColor.value = color;
+}
+
+defineExpose({
+  setBarColor,
+});
 </script>
 
 <style scoped>
 .progress-bar {
   width: 100%;
-  height: 15px;
-  background-color: var(--bkgColor);
+  height: 24px;
 }
 </style>

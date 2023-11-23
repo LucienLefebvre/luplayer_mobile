@@ -55,7 +55,7 @@ watch(
 <style scoped>
 .button {
   width: 100%;
-  font-size: 30px;
+  font-size: 32px;
   align-items: center;
 }
 </style>

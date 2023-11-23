@@ -201,6 +201,6 @@ function setCanvasSize() {
 
 <style scoped>
 .peak-meter {
-  height: 30px;
+  height: 35px;
 }
 </style>

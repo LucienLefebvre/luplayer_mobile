@@ -1,15 +1,17 @@
 <template>
-  <div style="height: 5px"></div>
-  <PeakMeter
-    v-if="settingsStore.showPeakMeter"
-    :analyserObject="soundsStore.outputAnalyserNodes"
-    class="metersStyle"
-  />
-  <LuMeter
-    v-if="settingsStore.showLuMeter"
-    :analyserNode="soundsStore.outputAnalyserNodes?.stereoAnalyser"
-    class="metersStyle"
-  />
+  <div class="separator-div">
+    <PeakMeter
+      v-if="settingsStore.showPeakMeter"
+      :analyserObject="soundsStore.outputAnalyserNodes"
+      class="metersStyle"
+    />
+
+    <LuMeter
+      v-if="settingsStore.showLuMeter"
+      :analyserNode="soundsStore.outputAnalyserNodes?.stereoAnalyser"
+      class="metersStyle"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -26,8 +28,12 @@ const settingsStore = useSettingsStore();
 .metersStyle {
   height: 30px;
   width: 100%;
-  padding-left: 5px;
-  padding-right: 5px;
-  padding-top: 2px;
+}
+.separator-div {
+  width: 100%;
+  border-top: 2px solid orange;
+  border-bottom: 2px solid orange;
+  display: flex;
+  flex-direction: column;
 }
 </style>

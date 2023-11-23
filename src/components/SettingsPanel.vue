@@ -28,6 +28,10 @@
             color="orange"
           />
         </div>
+        <div class="settings-row">
+          <div class="settings-label">Auto scroll to selected sound</div>
+          <q-toggle v-model="settingsStore.autoScroll" color="orange" />
+        </div>
         <q-separator class="separator" size="1px" color="blue" />
         <div class="settings-row">
           <div class="settings-label">Invert fader side</div>

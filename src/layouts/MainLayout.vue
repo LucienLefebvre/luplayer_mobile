@@ -40,12 +40,7 @@ const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 const wakeLock = useWakeLock();
 onMounted(() => {
-  if (!wakeLock.isSupported) console.log('Wake Lock API not supported');
-  else console.log('Wake Lock API supported');
-
   if (settingsStore.keepScreenAwake) wakeLock.request('screen');
-
-  wakeLock.request('screen');
 
   settingsStore.loadSettings();
 });
