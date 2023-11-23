@@ -17,8 +17,13 @@ export const useSettingsStore = defineStore('settingsStore', {
 
     faderSkewFactor: 2.0 as number,
     faderIsOtherSide: false as boolean,
+    faderStop: true as boolean,
 
     falseStartTime: 1000 as number,
+
+    waveformVerticalZoomFactor: 1.7 as number,
+
+    playerHeightFactor: 1 as number,
   }),
 
   actions: {

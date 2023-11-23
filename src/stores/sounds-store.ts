@@ -57,44 +57,60 @@ export const useSoundsStore = defineStore('soundsStore', {
     },
 
     registerEventListeners(sound: SoundModel) {
-      sound.audioElement.addEventListener('play', () => {
-        sound.isPlaying = true;
-      });
-      sound.audioElement.addEventListener('pause', () => {
-        sound.isPlaying = false;
-        sound.audioElement.currentTime = 0;
-        if (!getIsCuePlayed(sound)) {
-          this.resetSelectedSoundVolume();
-          if (
-            Date.now() - sound.launchTime >
-            this.settingsStore.falseStartTime
-          ) {
-            this.incrementSelectedSound();
-          }
-        }
-        sound.isCuePlayed = false;
-      });
-      sound.audioElement.addEventListener('ended', () => {
-        sound.isPlaying = false;
-        sound.audioElement.currentTime = 0;
-        sound.remainingTime = sound.duration;
-        if (!getIsCuePlayed(sound)) {
+      sound.audioElement.addEventListener('play', () =>
+        this.handlePlayEvent(sound)
+      );
+      sound.audioElement.addEventListener('pause', () =>
+        this.handlePauseEvent(sound)
+      );
+      sound.audioElement.addEventListener('ended', () =>
+        this.handleEndedEvent(sound)
+      );
+      sound.audioElement.addEventListener('timeupdate', () =>
+        this.handleTimeUpdateEvent(sound)
+      );
+    },
+
+    handlePlayEvent(sound: SoundModel) {
+      sound.isPlaying = true;
+    },
+
+    handlePauseEvent(sound: SoundModel) {
+      console.log('pause event');
+      sound.isPlaying = false;
+      sound.audioElement.currentTime = 0;
+      sound.volumeGainNode.gain.value = 1;
+      if (!getIsCuePlayed(sound)) {
+        this.resetSelectedSoundVolume();
+        if (Date.now() - sound.launchTime > this.settingsStore.falseStartTime) {
           this.incrementSelectedSound();
-          this.resetSelectedSoundVolume();
         }
-        sound.isCuePlayed = false;
-      });
-      sound.audioElement.addEventListener('timeupdate', () => {
-        const remainingTime =
-          sound.audioElement.duration - sound.audioElement.currentTime;
-        if (Number.isNaN(remainingTime)) {
-          sound.remainingTime = sound.audioElement.duration;
-        } else {
-          sound.remainingTime = remainingTime;
-        }
-        sound.progressIn0to1 =
-          sound.audioElement.currentTime / sound.audioElement.duration;
-      });
+      }
+      sound.isCuePlayed = false;
+    },
+
+    handleEndedEvent(sound: SoundModel) {
+      console.log('ended event');
+      /* sound.isPlaying = false;
+      sound.audioElement.currentTime = 0;
+      sound.remainingTime = sound.duration;
+      if (!getIsCuePlayed(sound)) {
+        this.incrementSelectedSound();
+        this.resetSelectedSoundVolume();
+      }
+      sound.isCuePlayed = false; */
+    },
+
+    handleTimeUpdateEvent(sound: SoundModel) {
+      const remainingTime =
+        sound.audioElement.duration - sound.audioElement.currentTime;
+      if (Number.isNaN(remainingTime)) {
+        sound.remainingTime = sound.audioElement.duration;
+      } else {
+        sound.remainingTime = remainingTime;
+      }
+      sound.progressIn0to1 =
+        sound.audioElement.currentTime / sound.audioElement.duration;
     },
 
     deleteSound(sound: SoundModel) {

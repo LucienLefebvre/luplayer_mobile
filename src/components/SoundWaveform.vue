@@ -26,6 +26,7 @@
 import {
   PropType,
   ref,
+  Ref,
   onMounted,
   watch,
   defineExpose,
@@ -57,13 +58,15 @@ const emits = defineEmits([
 const sound = ref(props.sound);
 const isSoundDetails = ref(props.isSoundDetails);
 
-const overview = ref(null);
+const overview: Ref<HTMLElement | null> = ref(null);
 const zoomView = ref(null);
 
 const waveformCreated = ref(false);
 var peaksInstance = null as PeaksInstance | null;
 
 const zoomLevels = [16, 32, 64, 128, 256, 512, 1024, 2048];
+
+const playerHeight = ref(settingsStore.playerHeightFactor);
 
 onMounted(() => {
   if (sound.value !== undefined) {
@@ -142,6 +145,7 @@ onMounted(() => {
         }
       }
     });
+    updateWaveformHeight(settingsStore.playerHeightFactor);
   }
 });
 
@@ -177,8 +181,9 @@ watch(
 );
 
 function setWaveformScale(scale: number) {
-  peaksInstance?.views.getView('overview')?.setAmplitudeScale(dbToGain(scale));
-  peaksInstance?.views.getView('zoomview')?.setAmplitudeScale(dbToGain(scale));
+  const scaleToSet = dbToGain(scale) * settingsStore.waveformVerticalZoomFactor;
+  peaksInstance?.views.getView('overview')?.setAmplitudeScale(scaleToSet);
+  peaksInstance?.views.getView('zoomview')?.setAmplitudeScale(scaleToSet);
 }
 
 watch(
@@ -292,6 +297,23 @@ watch(
     }
   }
 );
+
+watch(
+  () => settingsStore.playerHeightFactor,
+  (newValue) => {
+    updateWaveformHeight(newValue);
+  }
+);
+
+function updateWaveformHeight(factor: number) {
+  if (overview.value) {
+    const height = 100 * factor;
+    overview.value.style.height = height + 'px';
+    const peaksOverview = peaksInstance?.views.getView('overview');
+
+    peaksOverview?.fitToContainer();
+  }
+}
 
 defineExpose({
   zoomIn,

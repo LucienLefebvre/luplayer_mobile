@@ -11,9 +11,11 @@
 
 <script setup lang="ts">
 import { useSoundsStore } from '../stores/sounds-store';
+import { useSettingsStore } from '../stores/settings-store';
 import { watch } from 'vue';
 
 const soundsStore = useSoundsStore();
+const settingsStore = useSettingsStore();
 
 function buttonColor() {
   if (soundsStore.selectedSound === null || undefined) return 'orange';
@@ -39,7 +41,11 @@ function buttonLabel() {
 watch(
   () => soundsStore.selectedSoundVolume,
   (value) => {
-    if (value === -60 && soundsStore.selectedSound?.isPlaying) {
+    if (
+      value === -60 &&
+      soundsStore.selectedSound?.isPlaying &&
+      settingsStore.faderStop
+    ) {
       soundsStore.stopSelectedSound();
     }
   }

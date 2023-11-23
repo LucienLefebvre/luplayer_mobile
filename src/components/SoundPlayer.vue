@@ -15,7 +15,12 @@
     @touchend="soundTouchUp(sound)"
   >
     <div class="column d-flex flex-center" style="width: 100%">
-      <sound-waveform ref="soundWaveforms" :sound="sound" style="width: 100%" />
+      <sound-waveform
+        v-if="settingsStore.playerHeightFactor > 0.1"
+        ref="soundWaveforms"
+        :sound="sound"
+        style="width: 100%"
+      />
       <div class="sound-player row" :style="{ color: getWaveformColor() }">
         <div class="sound-index">{{ getSoundIndex() }}</div>
         <div class="sound-name">{{ props.sound.name }}</div>
@@ -32,6 +37,7 @@ import { PropType, ref } from 'vue';
 import { SoundModel } from './models';
 import { TouchHold } from 'quasar';
 import { useSoundsStore } from '../stores/sounds-store';
+import { useSettingsStore } from 'src/stores/settings-store';
 import SoundWaveform from './SoundWaveform.vue';
 import {
   playStopSound,
@@ -39,6 +45,7 @@ import {
 } from 'src/composables/sound-controller';
 
 const soundsStore = useSoundsStore();
+const settingsStore = useSettingsStore();
 
 const props = defineProps({
   sound: { type: Object as PropType<SoundModel>, required: true },
@@ -146,10 +153,12 @@ function getSoundIndex() {
   width: 100%;
   font-size: 16px;
   max-width: 80vw;
+  padding-left: 5px;
+  gap: 5px;
 }
 
 .sound-name {
-  text-align: left;
+  text-align: center;
   width: 70%;
   max-width: 70%;
   overflow: hidden;
@@ -157,11 +166,19 @@ function getSoundIndex() {
   white-space: nowrap;
 }
 .sound-index {
-  text-align: left;
-  width: 15%;
+  text-align: center;
+  color: yellow;
+  background-color: rgba(255, 255, 0, 0.1);
+  width: 20px;
+  border-top-right-radius: 5px;
+  border-top-left-radius: 5px;
 }
 .sound-duration {
-  text-align: right;
+  text-align: center;
   width: 15%;
+  color: yellow;
+  background-color: rgba(255, 255, 0, 0.1);
+  border-top-right-radius: 5px;
+  border-top-left-radius: 5px;
 }
 </style>

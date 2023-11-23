@@ -17,6 +17,17 @@
           <div class="settings-label">Keep screen awake</div>
           <q-toggle v-model="settingsStore.keepScreenAwake" color="orange" />
         </div>
+        <div class="settings-row">
+          <div class="settings-label">Players height</div>
+          <q-slider
+            style="height: 100%; width: 60%"
+            v-model="settingsStore.playerHeightFactor"
+            :min="0"
+            :max="2"
+            :step="0.01"
+            color="orange"
+          />
+        </div>
         <q-separator class="separator" size="1px" color="blue" />
         <div class="settings-row">
           <div class="settings-label">Invert fader side</div>
@@ -32,6 +43,10 @@
             :step="0.01"
             color="orange"
           />
+        </div>
+        <div class="settings-row">
+          <div class="settings-label">Fader stop</div>
+          <q-toggle v-model="settingsStore.faderStop" color="orange" />
         </div>
         <q-separator class="separator" size="1px" color="blue" />
         <div class="settings-row">
