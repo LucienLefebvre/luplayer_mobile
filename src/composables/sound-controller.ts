@@ -1,6 +1,7 @@
 import { SoundModel } from 'src/components/models';
 import { dbToGain, getMMSSfromS } from 'src/composables/math-helpers';
 import { calculateIntegratedLoudness } from './loudness-calculation';
+import { calculateWaveformChunks } from './waveform-display';
 
 export function playStopSound(sound: SoundModel) {
   if (sound.isPlaying) {
@@ -120,4 +121,32 @@ export function getSoundDurationLabel(sound: SoundModel) {
 
 export function getIsCuePlayed(sound: SoundModel) {
   return sound.isCuePlayed;
+}
+
+export function generateWaveformData(sound: SoundModel, sampleRate: number) {
+  const channelCount = sound.source.channelCount;
+  const samples = sound.source.mediaElement.duration * sampleRate;
+  const offlineCtx = new OfflineAudioContext(channelCount, samples, sampleRate);
+  const sourceNode = offlineCtx.createBufferSource();
+  console.log(sound.url);
+  fetch(sound.url)
+    .then((response) => response.arrayBuffer())
+    .then((buffer) => {
+      return offlineCtx.decodeAudioData(buffer);
+    })
+    .then((audioBuffer) => {
+      sourceNode.buffer = audioBuffer;
+      sourceNode.connect(offlineCtx.destination);
+      sourceNode.start();
+
+      return offlineCtx.startRendering();
+    })
+    .then((renderedBuffer) => {
+      const channelData = renderedBuffer.getChannelData(0);
+      const waveform = calculateWaveformChunks(channelData);
+
+      sound.waveform = new Float32Array(waveform);
+      sound.waveform.set(waveform);
+      sound.waveformCalculated = true;
+    });
 }

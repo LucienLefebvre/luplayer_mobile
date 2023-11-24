@@ -58,7 +58,6 @@ import {
   playStopSound,
   getSoundDurationLabel,
 } from 'src/composables/sound-controller';
-import { get } from '@vueuse/core';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -73,14 +72,11 @@ const backgroundColor = ref('rgb(40, 134, 189)');
 
 function getWaveformColor() {
   if (sound.value.isPlaying) {
-    soundWaveforms.value?.setWaveformColor('orange');
     if (sound.value.remainingTime < 5) return 'red';
     else return 'green';
   } else if (sound.value.isSelected && soundsStore.playerMode === 'playlist') {
-    soundWaveforms.value?.setWaveformColor('orange');
     return 'orange';
   } else {
-    soundWaveforms.value?.setWaveformColor('rgb(40, 134, 189)');
     return 'rgb(40, 134, 189)';
   }
 }
@@ -104,7 +100,7 @@ function getBackgroundColor(opacity: number) {
 
 const soundOffset = ref(0);
 let isTouchPanned = false;
-let redAmount = 0;
+
 function moveSound(e: any) {
   isTouchPanned = true;
   if (sound.value.isPlaying) return;
@@ -114,8 +110,6 @@ function moveSound(e: any) {
 
   if (ySwipe > deltaY) {
     soundOffset.value = ySwipe - deltaY;
-    redAmount = (soundOffset.value / window.innerWidth) * 3;
-    soundWaveforms.value?.setRedAmount(redAmount);
   }
 }
 
@@ -128,7 +122,6 @@ function soundTouchUp(soundModel: SoundModel) {
     soundsStore.deleteSound(sound.value);
   }
   soundOffset.value = 0;
-  redAmount = 0;
 
   isTouchPanned = false;
 }

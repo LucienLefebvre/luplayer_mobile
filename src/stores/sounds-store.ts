@@ -8,6 +8,7 @@ import {
   stopSound,
   normalizeSound,
   getIsCuePlayed,
+  generateWaveformData,
 } from 'src/composables/sound-controller';
 import {
   calculateIntegratedLoudness,
@@ -34,6 +35,7 @@ export const useSoundsStore = defineStore('soundsStore', {
     selectedSoundVolume: 0.0 as number,
     momentaryLoudness: { value: 0.0 as number },
     faderTouchedDuringPlayback: false as boolean,
+    sampleRate: 0 as number,
   }),
 
   actions: {
@@ -43,6 +45,8 @@ export const useSoundsStore = defineStore('soundsStore', {
       }
 
       sound = reactive(sound);
+
+      generateWaveformData(sound, this.sampleRate);
 
       this.registerEventListeners(sound);
 
@@ -204,6 +208,8 @@ export const useSoundsStore = defineStore('soundsStore', {
           hpfFrequency: 80,
           hpfNode: hpfNode,
           launchTime: 0,
+          waveform: new Float32Array(0),
+          waveformCalculated: false,
         };
 
         if (this.playerMode === 'playlist') {
@@ -228,6 +234,7 @@ export const useSoundsStore = defineStore('soundsStore', {
 
     initAudioContext() {
       this.audioContext = new AudioContext();
+      this.sampleRate = this.audioContext.sampleRate;
 
       this.outputGainNode = this.audioContext.createGain();
       this.outputLimiterNode = this.audioContext.createDynamicsCompressor();

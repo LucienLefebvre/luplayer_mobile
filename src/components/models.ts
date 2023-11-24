@@ -32,6 +32,9 @@ export interface SoundModel {
   hpfEnabled: boolean;
   hpfFrequency: number;
   hpfNode: BiquadFilterNode;
+
+  waveform: Float32Array | null;
+  waveformCalculated: boolean;
 }
 
 export interface StereoAnalyserObject {
