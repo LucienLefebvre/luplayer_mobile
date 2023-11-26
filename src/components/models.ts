@@ -1,4 +1,5 @@
 import { PeaksInstance } from 'peaks.js';
+import Konva from 'konva';
 
 export interface SoundModel {
   id: string;
@@ -35,12 +36,23 @@ export interface SoundModel {
 
   waveform: Float32Array | null;
   waveformCalculated: boolean;
+  waveformShouldBeRedrawn: boolean;
 }
 
 export interface StereoAnalyserObject {
   splitter: ChannelSplitterNode;
   stereoAnalyser: AnalyserNode;
   analysers: AnalyserNode[];
+}
+
+export interface WaveformParams {
+  waveformChunks: Float32Array;
+  sound: SoundModel;
+  stage: Konva.Stage;
+  layer: Konva.Layer;
+  verticalZoomFactor: number;
+  startTime: number;
+  endTime: number;
 }
 
 export enum playerMode {

@@ -1,93 +1,114 @@
 import Konva from 'konva';
-import { SoundModel } from 'src/components/models';
+import { SoundModel, WaveformParams } from 'src/components/models';
 import { dbToGain } from './math-helpers';
 
-export function calculateWaveformChunks(waveform: Float32Array): Float32Array {
-  let chunks: Float32Array = new Float32Array(0);
-  const samplesPerChunk = 1000;
-  const numberOfChunks = Math.ceil(waveform.length / samplesPerChunk);
+const SAMPLES_PER_CHUNK = 200;
+
+export async function calculateWaveformChunks(
+  waveform: Float32Array
+): Promise<Float32Array> {
+  const startTime = Date.now();
+  const chunks: number[] = [];
+  const numberOfChunks = Math.ceil(waveform.length / SAMPLES_PER_CHUNK);
+  console.log(`Calculating waveform with ${numberOfChunks} chunks.`);
   for (let i = 0; i < numberOfChunks; i++) {
-    const start = i * samplesPerChunk;
-    const end = start + samplesPerChunk;
-    const currentChunk = waveform.slice(start, end);
-    const currentChunkAbsolute = currentChunk.map(Math.abs);
-    const max = Math.max(...currentChunkAbsolute);
-    chunks = Float32Array.from([...chunks, max]);
+    const start = i * SAMPLES_PER_CHUNK;
+    let max = Number.NEGATIVE_INFINITY;
+    for (let j = 0; j < SAMPLES_PER_CHUNK; j++) {
+      if (start + j >= waveform.length) break;
+      const sampleValue = Math.abs(waveform[start + j]);
+      if (sampleValue > max) max = sampleValue;
+    }
+    chunks.push(max);
   }
-  return chunks;
+  const endTime = Date.now();
+  console.log(
+    `Waveform calculated in ${endTime - startTime}ms. ${numberOfChunks} chunks.`
+  );
+  return new Float32Array(chunks);
 }
 
-export function calculateYValueArrayFromChunks(
+export async function calculateYValueArrayFromChunks(
   waveformChunks: Float32Array,
-  numberOfValues: number
-): Float32Array {
-  let dataArray = new Float32Array(0);
-  const chunkSize = waveformChunks.length / numberOfValues;
+  numberOfValues: number,
+  startTime: number,
+  endTime: number,
+  sound: SoundModel
+): Promise<Float32Array> {
+  const dataArray: number[] = [];
+
+  const clippedWaveformChunks = waveformChunks.slice(
+    waveformChunks.length * (startTime / sound.duration),
+    waveformChunks.length * (endTime / sound.duration)
+  );
+
+  const chunkSize = clippedWaveformChunks.length / numberOfValues;
+
+  let lastMax = 0;
   for (let i = 0; i < numberOfValues; i++) {
     const start = i * chunkSize;
     const end = start + chunkSize;
-    const currentChunk = waveformChunks.slice(start, end);
-    const currentChunkAbsolute = currentChunk.map(Math.abs);
-    const max = Math.max(...currentChunkAbsolute);
-    dataArray = Float32Array.from([
-      ...dataArray,
-      max === Number.NEGATIVE_INFINITY ? 0 : max,
-    ]);
+    const currentChunk = clippedWaveformChunks.slice(start, end);
+    let max = Math.max(...currentChunk);
+    if (max === Number.NEGATIVE_INFINITY) max = lastMax;
+    dataArray.push(max);
+    lastMax = max;
   }
-  console.log(dataArray);
-  return dataArray;
+  return new Float32Array(dataArray);
 }
 
-export function drawWaveform(
-  waveformChunks: Float32Array,
-  sound: SoundModel,
-  stage: Konva.Stage,
-  layer: Konva.Layer,
-  verticalZoomFactor: number
-) {
-  if (!sound.waveformCalculated || sound.waveform === null) return;
+export function drawWaveform(params: WaveformParams) {
+  if (!params.sound.waveformCalculated || params.sound.waveform === null)
+    return;
+  if (params.stage.height() < 11) return;
+  if (!params.sound.waveformShouldBeRedrawn) return;
 
-  const width = stage.width();
-  const height = stage.height();
-  const ratio = dbToGain(sound.trimGain) * verticalZoomFactor;
+  const width = params.stage.width();
+  const height = params.stage.height();
+  const ratio = dbToGain(params.sound.trimGain) * params.verticalZoomFactor;
   const middleY = height / 2;
 
-  layer.removeChildren();
+  params.layer.removeChildren();
+
+  const startTime = params.startTime;
+  const endTime = params.endTime;
 
   const soundProgress =
-    sound.audioElement.currentTime / sound.audioElement.duration;
+    (params.sound.audioElement.currentTime - startTime) / (endTime - startTime);
   const progressX = soundProgress * width;
 
-  if (waveformChunks !== null) {
+  if (params.waveformChunks !== null) {
     const playedPoints = [];
     const remainingPoints = [];
 
     for (let i = 0; i < width; i++) {
-      const yValue = middleY + waveformChunks[i] * middleY * ratio;
+      const yValue = middleY + params.waveformChunks[i] * middleY * ratio;
+
       if (i < progressX) {
-        playedPoints.push(i, yValue);
+        playedPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
       } else {
-        remainingPoints.push(i, yValue);
+        remainingPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
       }
     }
 
     for (let i = width - 1; i > 0; i--) {
-      const yValue = middleY - waveformChunks[i] * middleY * ratio;
+      const yValue = middleY - params.waveformChunks[i] * middleY * ratio;
       if (i < progressX) {
-        playedPoints.push(i, yValue);
+        playedPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
       } else {
-        remainingPoints.push(i, yValue);
+        remainingPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
       }
     }
 
-    const playedWaveformColor = sound.remainingTime < 5 ? 'red' : 'green';
+    const playedWaveformColor =
+      params.sound.remainingTime < 5 ? 'red' : 'green';
     const playedLine = new Konva.Line({
       points: playedPoints,
       fill: playedWaveformColor,
       closed: true,
     });
 
-    const remainingWaveformColor = sound.isSelected
+    const remainingWaveformColor = params.sound.isSelected
       ? 'orange'
       : 'rgb(40, 134, 189)';
     const remainingLine = new Konva.Line({
@@ -96,8 +117,12 @@ export function drawWaveform(
       closed: true,
     });
 
-    layer.add(playedLine);
-    layer.add(remainingLine);
-    layer.draw();
+    params.layer.add(playedLine);
+    params.layer.add(remainingLine);
+    params.layer.draw();
+
+    if (!params.sound.isPlaying) {
+      params.sound.waveformShouldBeRedrawn = false;
+    }
   }
 }

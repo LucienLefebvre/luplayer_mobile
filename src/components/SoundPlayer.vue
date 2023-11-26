@@ -8,14 +8,14 @@
       transition: isTouchPanned ? 'none' : 'transform 0.5s',
       backgroundColor: getBackgroundColor(0.1),
     }"
-    v-touch-pan.mouse="moveSound"
-    v-touch-hold="(e: TouchHold) => touchHold(e, sound)"
-    @dblclick="soundDoubleClicked(sound)"
-    @touchend="soundTouchUp(sound)"
   >
+    <!--      v-touch-pan.mouse="moveSound"
+       @dblclick="soundDoubleClicked(sound)"
+          @touchend="soundTouchUp(sound)"
+    v-touch-hold="(e: TouchHold) => touchHold(e, sound)" -->
     <div class="column d-flex flex-center" style="width: 100%">
       <sound-waveform
-        v-if="settingsStore.playerHeightFactor > 0.1"
+        v-show="settingsStore.playerHeightFactor > 0.1"
         ref="soundWaveforms"
         :sound="sound"
         style="width: 100%"
@@ -102,7 +102,7 @@ const soundOffset = ref(0);
 let isTouchPanned = false;
 
 function moveSound(e: any) {
-  isTouchPanned = true;
+  /*   isTouchPanned = true;
   if (sound.value.isPlaying) return;
   if (soundsStore.isReordering) return;
   const deltaY = 25;
@@ -110,7 +110,7 @@ function moveSound(e: any) {
 
   if (ySwipe > deltaY) {
     soundOffset.value = ySwipe - deltaY;
-  }
+  } */
 }
 
 function soundTouchUp(soundModel: SoundModel) {

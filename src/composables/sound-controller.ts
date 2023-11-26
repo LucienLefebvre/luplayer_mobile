@@ -9,6 +9,7 @@ export function playStopSound(sound: SoundModel) {
   } else {
     sound.isCuePlayed = true;
     playSound(sound);
+    sound.waveformShouldBeRedrawn = true;
   }
 }
 
@@ -21,6 +22,7 @@ export function playSound(sound: SoundModel, resumePaused = false) {
   sound.isPlaying = true;
   sound.launchTime = Date.now();
   clearTimeout(sound.timeOutId);
+  sound.waveformShouldBeRedrawn = true;
 
   if (sound.outTime !== null) {
     const timeOutDuration =
@@ -42,17 +44,20 @@ export function stopSound(sound: SoundModel) {
   sound.audioElement.currentTime = sound.inTime === null ? 0 : sound.inTime;
   sound.isPlaying = false;
   clearTimeout(sound.timeOutId);
+  sound.waveformShouldBeRedrawn = true;
 }
 
 export function pauseSound(sound: SoundModel) {
   sound.audioElement.pause();
   sound.isPlaying = false;
   clearTimeout(sound.timeOutId);
+  sound.waveformShouldBeRedrawn = true;
 }
 
 export function setTrimGain(sound: SoundModel, gain: number) {
   sound.trimGain = gain;
   sound.trimGainNode.gain.value = dbToGain(gain);
+  sound.waveformShouldBeRedrawn = true;
 }
 
 export function setInTime(sound: SoundModel, time: number) {
@@ -123,30 +128,32 @@ export function getIsCuePlayed(sound: SoundModel) {
   return sound.isCuePlayed;
 }
 
-export function generateWaveformData(sound: SoundModel, sampleRate: number) {
+export async function generateWaveformData(
+  sound: SoundModel,
+  sampleRate: number
+) {
   const channelCount = sound.source.channelCount;
-  const samples = sound.source.mediaElement.duration * sampleRate;
-  const offlineCtx = new OfflineAudioContext(channelCount, samples, sampleRate);
-  const sourceNode = offlineCtx.createBufferSource();
-  console.log(sound.url);
-  fetch(sound.url)
-    .then((response) => response.arrayBuffer())
-    .then((buffer) => {
-      return offlineCtx.decodeAudioData(buffer);
-    })
-    .then((audioBuffer) => {
-      sourceNode.buffer = audioBuffer;
-      sourceNode.connect(offlineCtx.destination);
-      sourceNode.start();
+  const duration = sound.source.mediaElement.duration;
+  const samples = duration * sampleRate;
 
-      return offlineCtx.startRendering();
-    })
-    .then((renderedBuffer) => {
-      const channelData = renderedBuffer.getChannelData(0);
-      const waveform = calculateWaveformChunks(channelData);
+  try {
+    const buffer = await fetch(sound.url).then((response) =>
+      response.arrayBuffer()
+    );
+    const audioBuffer = await new AudioContext().decodeAudioData(buffer);
 
-      sound.waveform = new Float32Array(waveform);
-      sound.waveform.set(waveform);
-      sound.waveformCalculated = true;
-    });
+    const channelData = audioBuffer.getChannelData(0);
+    const waveform = await calculateWaveformChunks(channelData);
+
+    sound.waveform = new Float32Array(waveform);
+    sound.waveform.set(waveform);
+    sound.waveformCalculated = true;
+
+    const memoryUsageInBytes = (sound.waveform.length * 4) / Math.pow(1024, 2);
+    console.log(`Memory usage: ${memoryUsageInBytes} MB`);
+
+    sound.waveformShouldBeRedrawn = true;
+  } catch (error) {
+    console.error('Error:', error);
+  }
 }

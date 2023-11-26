@@ -210,6 +210,7 @@ export const useSoundsStore = defineStore('soundsStore', {
           launchTime: 0,
           waveform: new Float32Array(0),
           waveformCalculated: false,
+          waveformShouldBeRedrawn: true,
         };
 
         if (this.playerMode === 'playlist') {
