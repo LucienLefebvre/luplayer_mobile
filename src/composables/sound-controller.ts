@@ -127,33 +127,3 @@ export function getSoundDurationLabel(sound: SoundModel) {
 export function getIsCuePlayed(sound: SoundModel) {
   return sound.isCuePlayed;
 }
-
-export async function generateWaveformData(
-  sound: SoundModel,
-  sampleRate: number
-) {
-  const channelCount = sound.source.channelCount;
-  const duration = sound.source.mediaElement.duration;
-  const samples = duration * sampleRate;
-
-  try {
-    const buffer = await fetch(sound.url).then((response) =>
-      response.arrayBuffer()
-    );
-    const audioBuffer = await new AudioContext().decodeAudioData(buffer);
-
-    const channelData = audioBuffer.getChannelData(0);
-    const waveform = await calculateWaveformChunks(channelData);
-
-    sound.waveform = new Float32Array(waveform);
-    sound.waveform.set(waveform);
-    sound.waveformCalculated = true;
-
-    const memoryUsageInBytes = (sound.waveform.length * 4) / Math.pow(1024, 2);
-    console.log(`Memory usage: ${memoryUsageInBytes} MB`);
-
-    sound.waveformShouldBeRedrawn = true;
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}

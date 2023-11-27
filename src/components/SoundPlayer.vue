@@ -19,6 +19,8 @@
         ref="soundWaveforms"
         :sound="sound"
         style="width: 100%"
+        @click="soundTouchUp(sound)"
+        @long-touch="touchHold($event, sound)"
       />
 
       <div

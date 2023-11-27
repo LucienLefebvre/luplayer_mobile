@@ -53,6 +53,8 @@ export interface WaveformParams {
   verticalZoomFactor: number;
   startTime: number;
   endTime: number;
+  isMinimap: boolean;
+  isZoomable: boolean;
 }
 
 export enum playerMode {

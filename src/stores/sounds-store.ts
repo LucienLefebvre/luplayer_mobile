@@ -8,7 +8,6 @@ import {
   stopSound,
   normalizeSound,
   getIsCuePlayed,
-  generateWaveformData,
 } from 'src/composables/sound-controller';
 import {
   calculateIntegratedLoudness,
@@ -40,16 +39,9 @@ export const useSoundsStore = defineStore('soundsStore', {
 
   actions: {
     addSound(sound: SoundModel, soundArray = 0) {
-      if (this.settingsStore.autoNormalize) {
-        normalizeSound(sound, this.settingsStore.normalizationLuTarget);
-      }
-
       sound = reactive(sound);
 
-      generateWaveformData(sound, this.sampleRate);
-
       this.registerEventListeners(sound);
-
       this.sounds[soundArray].push(sound);
 
       playSound(sound);
@@ -212,6 +204,10 @@ export const useSoundsStore = defineStore('soundsStore', {
           waveformCalculated: false,
           waveformShouldBeRedrawn: true,
         };
+
+        if (this.settingsStore.autoNormalize) {
+          normalizeSound(addedSound, this.settingsStore.normalizationLuTarget);
+        }
 
         if (this.playerMode === 'playlist') {
           this.addSound(addedSound);

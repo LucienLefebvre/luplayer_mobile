@@ -1,8 +1,9 @@
 import Konva from 'konva';
 import { SoundModel, WaveformParams } from 'src/components/models';
 import { dbToGain } from './math-helpers';
-
-const SAMPLES_PER_CHUNK = 200;
+import { ref } from 'vue';
+const SAMPLES_PER_CHUNK = 50;
+const NUMBER_OF_PIXELS_PER_LINE = 1;
 
 export async function calculateWaveformChunks(
   waveform: Float32Array
@@ -10,7 +11,6 @@ export async function calculateWaveformChunks(
   const startTime = Date.now();
   const chunks: number[] = [];
   const numberOfChunks = Math.ceil(waveform.length / SAMPLES_PER_CHUNK);
-  console.log(`Calculating waveform with ${numberOfChunks} chunks.`);
   for (let i = 0; i < numberOfChunks; i++) {
     const start = i * SAMPLES_PER_CHUNK;
     let max = Number.NEGATIVE_INFINITY;
@@ -22,9 +22,6 @@ export async function calculateWaveformChunks(
     chunks.push(max);
   }
   const endTime = Date.now();
-  console.log(
-    `Waveform calculated in ${endTime - startTime}ms. ${numberOfChunks} chunks.`
-  );
   return new Float32Array(chunks);
 }
 
@@ -54,6 +51,7 @@ export async function calculateYValueArrayFromChunks(
     dataArray.push(max);
     lastMax = max;
   }
+
   return new Float32Array(dataArray);
 }
 
@@ -81,7 +79,7 @@ export function drawWaveform(params: WaveformParams) {
     const playedPoints = [];
     const remainingPoints = [];
 
-    for (let i = 0; i < width; i++) {
+    for (let i = 0; i < width; i += NUMBER_OF_PIXELS_PER_LINE) {
       const yValue = middleY + params.waveformChunks[i] * middleY * ratio;
 
       if (i < progressX) {
@@ -91,7 +89,7 @@ export function drawWaveform(params: WaveformParams) {
       }
     }
 
-    for (let i = width - 1; i > 0; i--) {
+    for (let i = width - 1; i > 0; i -= NUMBER_OF_PIXELS_PER_LINE) {
       const yValue = middleY - params.waveformChunks[i] * middleY * ratio;
       if (i < progressX) {
         playedPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
