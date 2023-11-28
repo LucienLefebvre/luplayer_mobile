@@ -200,9 +200,7 @@ export const useSoundsStore = defineStore('soundsStore', {
           hpfFrequency: 80,
           hpfNode: hpfNode,
           launchTime: 0,
-          waveform: new Float32Array(0),
-          waveformCalculated: false,
-          waveformShouldBeRedrawn: true,
+          waveformChunks: null,
         };
 
         if (this.settingsStore.autoNormalize) {

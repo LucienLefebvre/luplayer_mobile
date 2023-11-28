@@ -127,7 +127,6 @@ const settingsStore = useSettingsStore();
 const soundsStore = useSoundsStore();
 
 watchEffect(() => {
-  console.log(settingsStore.$state);
   settingsStore.saveSettings();
 });
 

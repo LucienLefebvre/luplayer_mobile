@@ -14,7 +14,6 @@ import { dbToGain } from 'src/composables/math-helpers';
 const settingsStore = useSettingsStore();
 const props = defineProps({
   sound: { type: Object as PropType<SoundModel>, required: true },
-  isSoundDetails: { type: Boolean, required: false, default: false },
 });
 const sound = ref(props.sound);
 
@@ -25,17 +24,29 @@ const emits = defineEmits(['click', 'doubleClick', 'long-touch']);
 
 onMounted(async () => {
   if (!waveformNew.value) return;
-  waveform = new Waveform(waveformNew as Ref<HTMLDivElement>, props.sound);
+  waveform = new Waveform(
+    waveformNew as Ref<HTMLDivElement>,
+    props.sound.audioElement
+  );
   waveform.setHeight(settingsStore.playerHeightFactor * 100);
   waveform.setVerticalZoomFactor(settingsStore.waveformVerticalZoomFactor);
-  console.log(sound.value.trimGain);
-  await waveform.calculateWaveformChunks();
+  waveform.isDraggable = false;
+  waveform.isZoomable = false;
+
+  updateWaveformColor();
 
   waveform.addEventListener('click', (event) => {
     emits('click', event);
   });
   waveform.addEventListener('touchHold', (event) => {
     emits('long-touch', event);
+  });
+  waveform.addEventListener('waveformChunksCalculated', () => {
+    console.log('waveformChunksCalculated');
+  });
+
+  waveform.calculateWaveformChunks().then((chunks) => {
+    sound.value.waveformChunks = chunks;
   });
 });
 
@@ -49,15 +60,38 @@ watch(
 watch(
   () => sound.value.isSelected,
   () => {
-    waveform?.updateWaveform();
+    updateWaveformColor();
   }
 );
+
+function updateWaveformColor() {
+  if (sound.value.isSelected) {
+    waveform?.setRemainingWaveformFillColor('orange');
+  } else {
+    waveform?.setRemainingWaveformFillColor('rgb(40, 134, 189)');
+  }
+}
 
 watch(
   () => sound.value.trimGain,
   (newValue) => {
-    console.log('trimGain', newValue);
-    waveform?.setAudioGain(dbToGain(newValue));
+    waveform?.setVerticalZoomFactor(dbToGain(newValue));
+  }
+);
+
+watch(
+  () => sound.value.remainingTime,
+  (newValue) => {
+    if (newValue < 5) {
+      waveform?.setPlayedWaveformFillColor('red');
+    }
+  }
+);
+
+watch(
+  () => sound.value.isPlaying,
+  (newValue) => {
+    updateWaveformColor();
   }
 );
 </script>

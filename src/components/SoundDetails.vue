@@ -91,31 +91,10 @@
             />
           </div>
         </div>
-        <sound-waveform
-          ref="soundWaveforms"
-          :sound="sound"
-          :is-sound-details="true"
-          style="width: 100%"
-          @is-max-zoomed="setIsMaxZoomed($event)"
-          @is-min-zoomed="setIsMinZoomed($event)"
-        />
         <div style="height: 10px"></div>
-        <div class="zoom-buttons">
-          <q-btn
-            label="-"
-            @click="soundWaveforms?.zoomOut()"
-            :disabled="isMinZoomed"
-            size="sm"
-            class="zoom-button"
-          />
-          <q-btn
-            label="+"
-            @click="soundWaveforms?.zoomIn()"
-            :disabled="isMaxZoomed"
-            size="sm"
-            class="zoom-button"
-          />
-        </div>
+        <div ref="minimapWaveformView" style="width: 100%"></div>
+        <div ref="zoomableWaveformView" style="width: 100%"></div>
+        <div style="height: 10px"></div>
 
         <q-separator color="primary" class="separator" size="2px" />
 
@@ -139,11 +118,11 @@
 </template>
 
 <script setup lang="ts">
-import { PropType, ref, onMounted } from 'vue';
+import { PropType, ref, onMounted, Ref } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import { SoundModel } from './models';
-import SoundWaveform from './SoundWaveform.vue';
+import { Waveform } from 'src/composables/waveform';
 
 import {
   deleteInTime,
@@ -167,9 +146,36 @@ const props = defineProps({
 });
 
 const sound = soundsStore.editedSound;
-const soundWaveforms = ref<typeof SoundWaveform | null>(null);
+
+let minimap = null as Waveform | null;
+const minimapWaveformView = ref<HTMLDivElement | null>(null);
+
+let zoomable = null as Waveform | null;
+const zoomableWaveformView = ref<HTMLDivElement | null>(null);
+
 onMounted(() => {
-  console.log('soundDetails onMounted');
+  if (!minimapWaveformView.value || !zoomableWaveformView.value) return;
+
+  zoomable = new Waveform(
+    zoomableWaveformView as Ref<HTMLDivElement>,
+    sound!.audioElement,
+    125
+  );
+
+  minimap = new Waveform(
+    minimapWaveformView as Ref<HTMLDivElement>,
+    sound!.audioElement,
+    30,
+    true,
+    zoomable
+  );
+
+  minimap.setMinimapRangeRectangleOpacity(0.2);
+
+  if (sound?.waveformChunks) {
+    minimap.setWaveformChunks(sound.waveformChunks);
+    zoomable.setWaveformChunks(sound.waveformChunks);
+  }
 });
 
 function closeButtonClicked() {
@@ -183,7 +189,6 @@ function playButtonClicked() {
     pauseSound(sound!);
   }
 }
-
 function getPlayButtonLabel() {
   if (sound?.audioElement.paused) {
     return 'play';
@@ -200,7 +205,6 @@ function getWaveformColor() {
     return 'rgb(40, 134, 189)';
   }
 }
-
 function getHpfButtonColor() {
   if (sound?.hpfEnabled) {
     return 'green';
@@ -208,26 +212,6 @@ function getHpfButtonColor() {
     return 'var(--blueColor)';
   }
 }
-const isMaxZoomed = ref(false);
-const isMinZoomed = ref(false);
-
-function setIsMaxZoomed(e: boolean) {
-  isMaxZoomed.value = e;
-}
-
-function setIsMinZoomed(e: boolean) {
-  isMinZoomed.value = e;
-}
-
-interface SliderLabel {
-  value: number;
-  label: string;
-}
-const sliderLabelArray: SliderLabel[] = [
-  { value: -24, label: '-24dB' },
-  { value: 0, label: '0dB' },
-  { value: 24, label: '24dB' },
-];
 </script>
 
 <style scoped>
