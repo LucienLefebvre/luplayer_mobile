@@ -32,7 +32,7 @@ export interface SoundModel {
 
   hpfEnabled: boolean;
   hpfFrequency: number;
-  hpfNode: BiquadFilterNode;
+  //hpfNode: BiquadFilterNode;
 
   waveformChunks: Float32Array | null;
 }

@@ -9,20 +9,19 @@ export function playStopSound(sound: SoundModel) {
   } else {
     sound.isCuePlayed = true;
     playSound(sound);
-    sound.waveformShouldBeRedrawn = true;
   }
 }
 
-export function playSound(sound: SoundModel, resumePaused = false) {
-  if (sound.inTime !== null && !resumePaused) {
+export function playSound(sound: SoundModel, isCuePlayed = false) {
+  if (!isCuePlayed) {
     sound.audioElement.currentTime = sound.inTime ?? 0;
   }
 
+  sound.isCuePlayed = isCuePlayed;
   sound.audioElement.play();
   sound.isPlaying = true;
   sound.launchTime = Date.now();
   clearTimeout(sound.timeOutId);
-  sound.waveformShouldBeRedrawn = true;
 
   if (sound.outTime !== null) {
     const timeOutDuration =
@@ -41,23 +40,22 @@ export function playSound(sound: SoundModel, resumePaused = false) {
 
 export function stopSound(sound: SoundModel) {
   sound.audioElement.pause();
-  sound.audioElement.currentTime = sound.inTime === null ? 0 : sound.inTime;
+  if (!sound.isCuePlayed) {
+    sound.audioElement.currentTime = sound.inTime ?? 0;
+  }
   sound.isPlaying = false;
   clearTimeout(sound.timeOutId);
-  sound.waveformShouldBeRedrawn = true;
 }
 
 export function pauseSound(sound: SoundModel) {
   sound.audioElement.pause();
   sound.isPlaying = false;
   clearTimeout(sound.timeOutId);
-  sound.waveformShouldBeRedrawn = true;
 }
 
 export function setTrimGain(sound: SoundModel, gain: number) {
   sound.trimGain = gain;
   sound.trimGainNode.gain.value = dbToGain(gain);
-  sound.waveformShouldBeRedrawn = true;
 }
 
 export function setInTime(sound: SoundModel, time: number) {

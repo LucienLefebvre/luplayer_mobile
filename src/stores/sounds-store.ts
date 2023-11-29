@@ -77,7 +77,6 @@ export const useSoundsStore = defineStore('soundsStore', {
     handlePauseEvent(sound: SoundModel) {
       console.log('pause event');
       sound.isPlaying = false;
-      sound.audioElement.currentTime = 0;
       sound.volumeGainNode.gain.value = 1;
       if (!getIsCuePlayed(sound)) {
         this.resetSelectedSoundVolume();
@@ -169,10 +168,10 @@ export const useSoundsStore = defineStore('soundsStore', {
         const source = this.audioContext.createMediaElementSource(audioElement);
         const trimGainNode = this.audioContext.createGain();
         const volumeGainNode = this.audioContext.createGain();
-        const hpfNode = this.audioContext.createBiquadFilter();
-        source.connect(hpfNode);
-        hpfNode.connect(trimGainNode);
-        hpfNode.type = 'highpass';
+        //const hpfNode = this.audioContext.createBiquadFilter();
+        source.connect(trimGainNode);
+        /* hpfNode.connect(trimGainNode);
+        hpfNode.type = 'highpass'; */
         trimGainNode.connect(volumeGainNode);
         if (this.outputGainNode === null) return;
         volumeGainNode.connect(this.outputGainNode);
@@ -198,7 +197,7 @@ export const useSoundsStore = defineStore('soundsStore', {
           integratedLoudness: null,
           hpfEnabled: false,
           hpfFrequency: 80,
-          hpfNode: hpfNode,
+          //hpfNode: hpfNode,
           launchTime: 0,
           waveformChunks: null,
         };
@@ -243,7 +242,7 @@ export const useSoundsStore = defineStore('soundsStore', {
       };
 
       this.outputGainNode.connect(this.outputLimiterNode);
-      this.outputLimiterNode.connect(this.outputAnalyserNodes.stereoAnalyser);
+      //this.outputLimiterNode.connect(this.outputAnalyserNodes.stereoAnalyser);
       this.outputLimiterNode.connect(this.outputAnalyserNodes.splitter);
       this.outputAnalyserNodes.splitter.connect(
         this.outputAnalyserNodes.analysers[0],
@@ -255,17 +254,17 @@ export const useSoundsStore = defineStore('soundsStore', {
       );
       this.outputLimiterNode.connect(this.audioContext.destination);
 
-      calculateMomentaryLoudness(
+      /* calculateMomentaryLoudness(
         this.outputAnalyserNodes.stereoAnalyser,
         this.momentaryLoudness
-      );
+      ); */
     },
 
     playButtonClicked() {
       if (this.selectedSound?.isPlaying) {
         if (this.selectedSound === null) return;
         this.stoppedByButtonClick = true;
-        this.selectedSound.audioElement?.pause();
+        stopSound(this.selectedSound);
       } else {
         this.playSelectedSound();
       }

@@ -1,5 +1,6 @@
 <template>
   <div style="position: relative">
+    <div ref="minimapWaveformView" style="width: 100%"></div>
     <div ref="waveformNew" class="waveform-view"></div>
   </div>
 </template>
@@ -10,14 +11,16 @@ import { useSettingsStore } from '../stores/settings-store';
 import { SoundModel } from './models';
 import { Waveform } from 'src/composables/waveform';
 import { dbToGain } from 'src/composables/math-helpers';
+import { useSoundsStore } from 'src/stores/sounds-store';
 
+const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 const props = defineProps({
   sound: { type: Object as PropType<SoundModel>, required: true },
 });
 const sound = ref(props.sound);
 
-let waveform = null as Waveform | null;
+let waveform: Waveform;
 const waveformNew = ref<HTMLDivElement | null>(null);
 
 const emits = defineEmits(['click', 'doubleClick', 'long-touch']);
@@ -30,9 +33,10 @@ onMounted(async () => {
   );
   waveform.setHeight(settingsStore.playerHeightFactor * 100);
   waveform.setVerticalZoomFactor(settingsStore.waveformVerticalZoomFactor);
-  waveform.isDraggable = false;
-  waveform.isZoomable = false;
-
+  waveform.showInTime = true;
+  waveform.showOutTime = true;
+  waveform.inTimeColor = 'lightblue';
+  waveform.outTimeColor = 'yellow';
   updateWaveformColor();
 
   waveform.addEventListener('click', (event) => {
@@ -63,7 +67,28 @@ watch(
     updateWaveformColor();
   }
 );
-
+watch(
+  () => sound.value.inTime,
+  (newValue) => {
+    console.log('inTime changed to ' + newValue);
+    if (newValue) {
+      waveform.setInTime(newValue);
+    } else {
+      waveform.setInTime(null);
+    }
+  }
+);
+watch(
+  () => sound.value.outTime,
+  (newValue) => {
+    console.log('outTime changed to ' + newValue);
+    if (newValue) {
+      waveform.setOutTime(newValue);
+    } else {
+      waveform.setOutTime(null);
+    }
+  }
+);
 function updateWaveformColor() {
   if (sound.value.isSelected) {
     waveform?.setRemainingWaveformFillColor('orange');
@@ -83,7 +108,11 @@ watch(
   () => sound.value.remainingTime,
   (newValue) => {
     if (newValue < 5) {
-      waveform?.setPlayedWaveformFillColor('red');
+      if (waveform?.playedWaveformFillColor !== 'red')
+        waveform?.setPlayedWaveformFillColor('red');
+    } else {
+      if (waveform?.playedWaveformFillColor !== 'green')
+        waveform?.setPlayedWaveformFillColor('green');
     }
   }
 );

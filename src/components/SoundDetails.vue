@@ -61,8 +61,13 @@
           />
         </div>
         <q-separator color="primary" class="separator" size="2px" />
-        <div class="in-out-buttons">
-          <div>
+
+        <div style="height: 10px"></div>
+        <div ref="minimapWaveformView" style="width: 100%"></div>
+        <div ref="zoomableWaveformView" style="width: 100%"></div>
+        <div style="height: 10px"></div>
+        <div class="buttons-row">
+          <div class="buttons-row-group">
             <q-btn
               label="In"
               @click="setInTimeAtCurrentPosition(sound)"
@@ -76,7 +81,7 @@
               size="sm"
             />
           </div>
-          <div>
+          <div class="buttons-row-group">
             <q-btn
               label="Out"
               @click="setOutTimeAtCurrentPosition(sound)"
@@ -91,11 +96,6 @@
             />
           </div>
         </div>
-        <div style="height: 10px"></div>
-        <div ref="minimapWaveformView" style="width: 100%"></div>
-        <div ref="zoomableWaveformView" style="width: 100%"></div>
-        <div style="height: 10px"></div>
-
         <q-separator color="primary" class="separator" size="2px" />
 
         <div style="height: 10px"></div>
@@ -118,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { PropType, ref, onMounted, Ref } from 'vue';
+import { PropType, ref, onMounted, Ref, watch } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import { SoundModel } from './models';
@@ -147,10 +147,10 @@ const props = defineProps({
 
 const sound = soundsStore.editedSound;
 
-let minimap = null as Waveform | null;
+let minimap: Waveform;
 const minimapWaveformView = ref<HTMLDivElement | null>(null);
 
-let zoomable = null as Waveform | null;
+let zoomable: Waveform;
 const zoomableWaveformView = ref<HTMLDivElement | null>(null);
 
 onMounted(() => {
@@ -170,7 +170,21 @@ onMounted(() => {
     zoomable
   );
 
+  zoomable.isPlayPositionAlwaysOnCenter = true;
+  zoomable.shouldDrawPlayHead = true;
+  zoomable.showInTime = true;
+  zoomable.showOutTime = true;
+  zoomable.inTimeColor = 'lightblue';
+  zoomable.outTimeColor = 'yellow';
+  zoomable.inTimeWidth = 2;
+  zoomable.outTimeWidth = 2;
+  zoomable.playHeadWidth = 2;
+
   minimap.setMinimapRangeRectangleOpacity(0.2);
+  minimap.showInTime = true;
+  minimap.showOutTime = true;
+  minimap.inTimeColor = 'lightblue';
+  minimap.outTimeColor = 'yellow';
 
   if (sound?.waveformChunks) {
     minimap.setWaveformChunks(sound.waveformChunks);
@@ -179,7 +193,7 @@ onMounted(() => {
 });
 
 function closeButtonClicked() {
-  stopSound(sound!);
+  if (sound?.isCuePlayed) stopSound(sound!);
   soundsStore.showEditWindow = false;
 }
 function playButtonClicked() {
@@ -212,6 +226,31 @@ function getHpfButtonColor() {
     return 'var(--blueColor)';
   }
 }
+
+watch(
+  () => sound?.inTime,
+  (newValue) => {
+    if (newValue) {
+      zoomable.setInTime(newValue);
+      minimap.setInTime(newValue);
+    } else {
+      zoomable.setInTime(null);
+      minimap.setInTime(null);
+    }
+  }
+);
+watch(
+  () => sound?.outTime,
+  (newValue) => {
+    if (newValue) {
+      zoomable.setOutTime(newValue);
+      minimap.setOutTime(newValue);
+    } else {
+      zoomable.setOutTime(null);
+      minimap.setOutTime(null);
+    }
+  }
+);
 </script>
 
 <style scoped>
@@ -260,8 +299,15 @@ function getHpfButtonColor() {
   background-color: green;
   flex: 0.5;
 }
-.in-out-buttons {
+
+.buttons-row {
   display: flex;
+  justify-content: space-evenly;
+  gap: 10px;
+}
+.buttons-row-group {
+  display: flex;
+  flex-direction: row;
   justify-content: space-between;
   gap: 10px;
 }
@@ -271,14 +317,7 @@ function getHpfButtonColor() {
 .delete-mark-button {
   background-color: red;
 }
-.zoom-buttons {
-  display: flex;
-  justify-content: space-evenly;
-  gap: 10px;
-}
-.zoom-button {
-  background-color: var(--blueColor);
-}
+
 .soundDetailsBackground {
   border: 1px solid;
   border-radius: 10px;

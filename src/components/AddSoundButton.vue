@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 const soundsStore = useSoundsStore();
 
@@ -29,23 +29,16 @@ function chooseFile() {
     fileInput.value.click();
   }
 }
+import soundFileUrl from '../assets/son.mp3';
+
+onMounted(async () => {
+  /*   const response = await fetch(soundFileUrl);
+  const blob = await response.blob();
+  const file = new File([blob], 'son.mp3', { type: 'audio/mpeg' });
+  soundsStore.loadSound(file.name, file); */
+});
 
 function onFileChange(event: Event) {
-  /*   const fileInput = event.target as HTMLInputElement;
-
-  if (!fileInput.files) return;
-
-  for (let i = 0; i < fileInput.files.length; i++) {
-    if (
-      !['.wav', '.mp3'].includes(
-        fileInput.name.slice(((fileInput.name.lastIndexOf('.') - 1) >>> 0) + 2)
-      )
-    ) {
-      alert('Invalid file type');
-      return;
-    }
-    soundsStore.loadSound(fileInput.files[i].name, fileInput.files[i]);
-  } */
   const input = event.target as HTMLInputElement;
   const files = input.files;
 

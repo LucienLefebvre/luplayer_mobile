@@ -103,18 +103,6 @@ function getBackgroundColor(opacity: number) {
 const soundOffset = ref(0);
 let isTouchPanned = false;
 
-function moveSound(e: any) {
-  /*   isTouchPanned = true;
-  if (sound.value.isPlaying) return;
-  if (soundsStore.isReordering) return;
-  const deltaY = 25;
-  const ySwipe = Math.max(0, e.offset.x - deltaY);
-
-  if (ySwipe > deltaY) {
-    soundOffset.value = ySwipe - deltaY;
-  } */
-}
-
 function soundTouchUp(soundModel: SoundModel) {
   if (!soundsStore.isReordering && !isTouchPanned) {
     soundClicked(soundModel);
@@ -134,10 +122,6 @@ function soundClicked(sound: SoundModel) {
   } else if (soundsStore.playerMode === 'cart') {
     playStopSound(sound);
   }
-}
-
-function soundDoubleClicked(sound: SoundModel) {
-  showEditWindow(sound);
 }
 
 function touchHold(e: TouchHold, sound: SoundModel) {
@@ -170,6 +154,14 @@ watch(
     progressBar.value?.setBarColor(backgroundColor.value);
   }
 );
+
+/* watch(
+  () => sound.value.waveformChunks,
+  () => {
+    showEditWindow(sound.value);
+  }
+);
+ */
 </script>
 
 <style scoped>
@@ -180,6 +172,7 @@ watch(
   background-color: var(--bkgColor);
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
   max-width: 85vw;
+  overflow: hidden;
 }
 .sound-player {
   display: flex;
