@@ -9,7 +9,7 @@ import init, {
 } from 'src/rust/waveform_process/pkg';
 
 const SAMPLES_PER_CHUNK = 64;
-const WINDOW_SIZE = 1024;
+const WINDOW_SIZE = 64;
 const NUMBER_OF_PIXELS_PER_LINE = 1;
 const TOUCH_MOUSE_CLICK_TIME = 200;
 const TOUCH_HOLD_TIME = 500;
@@ -306,14 +306,16 @@ export class Waveform {
       }
       this.globalWaveformChunks = new Float32Array(chunks);
       const jsEndTime = performance.now();
+      console.log('jsCHunks :', this.globalWaveformChunks.slice(0, 100));
       //console.log('jsDuration: ', jsEndTime - jsStartTime);
       //////////////////////////////////
       const wasmStartTime = performance.now();
       this.globalWaveformChunks = calculate_waveform_chunks(
         channelData,
-        windowSize
+        WINDOW_SIZE
       );
       const wasmEndTime = performance.now();
+      console.log('wasmChunks :', this.globalWaveformChunks.slice(0, 100));
       //console.log('wasmDuration: ', wasmEndTime - wasmStartTime);
       ///////////////////////////////
     } catch (error) {
@@ -398,11 +400,16 @@ export class Waveform {
 
     const endTime = performance.now();
     const duration = endTime - startTime;
+    console.log(
+      'js chunks lenght : ',
+      this.diplayWaveformChunks.slice(this.diplayWaveformChunks.length / 2, 50)
+    );
     //console.log('js duration: ', duration);
 
     ///////////////////////////////////////////////
 
     const wasmStartTime = performance.now();
+
     this.diplayWaveformChunks = calculate_y_value_array_from_chunks(
       this.globalWaveformChunks,
       this.startTime,
@@ -410,8 +417,17 @@ export class Waveform {
       this.soundDuration,
       this.stage.width()
     );
+    this.displayChunkSize =
+      this.diplayWaveformChunks.length / this.stage.width();
     const wasmEndTime = performance.now();
+
+    console.log(
+      'rust chunks lenght : ',
+      this.diplayWaveformChunks.slice(this.diplayWaveformChunks.length / 2, 50)
+    );
+
     //console.log('wasmDuration: ', wasmEndTime - wasmStartTime);
+    //console.log(this.name);
   }
 
   private draw() {
@@ -536,6 +552,7 @@ export class Waveform {
     const frameRedrawEndTime = performance.now();
     const frameRedrawDuration = frameRedrawEndTime - frameRedrawStartTime;
     //console.log('frameRedrawDuration: ', frameRedrawDuration);
+    //console.log(this.name);
   }
 
   private initMinimap() {
@@ -640,6 +657,7 @@ export class Waveform {
   }
 
   public updateWaveform() {
+    if (this.freezed) return;
     this.calculateYValueArrayFromChunks().then(() => {
       this.waveformShouldBeRedrawn = true;
     });

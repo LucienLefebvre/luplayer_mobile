@@ -1,5 +1,7 @@
 use wasm_bindgen::prelude::*;
-use std::cmp;
+use web_sys::console;
+
+
 
 #[wasm_bindgen]
 pub fn calculate_waveform_chunks(channel_data: Vec<f32>, window_size: usize) -> Vec<f32> {
@@ -8,7 +10,6 @@ pub fn calculate_waveform_chunks(channel_data: Vec<f32>, window_size: usize) -> 
 
     for i in 0..number_of_chunks {
         let start = i * window_size;
-        let _end = std::cmp::min(start + window_size, channel_data.len());
 
         let mut max = f32::NEG_INFINITY;
 
@@ -32,43 +33,47 @@ pub fn calculate_waveform_chunks(channel_data: Vec<f32>, window_size: usize) -> 
 #[wasm_bindgen]
 pub fn calculate_y_value_array_from_chunks(
     global_waveform_chunks: Vec<f32>,
-    start_time: f64,
-    end_time: f64,
-    sound_duration: f64,
+    start_time: f32,
+    end_time: f32,
+    sound_duration: f32,
     stage_width: usize,
 ) -> Vec<f32> {
-    let start_index = (global_waveform_chunks.len() as f64 * (start_time / sound_duration)).floor() as usize;
-    let end_index = (global_waveform_chunks.len() as f64 * (end_time / sound_duration)).floor() as usize;
+    let start_index = (global_waveform_chunks.len() as f32 * (start_time / sound_duration)).floor() as f32;
+    let end_index = (global_waveform_chunks.len() as f32 * (end_time / sound_duration)).floor() as f32;
 
-    let mut clipped_waveform_chunks = global_waveform_chunks[start_index..end_index].to_vec();
+    let clipped_start_index =  (global_waveform_chunks.len() as f32 * (start_time.max(0.0) / sound_duration)).floor() as f32;
+    let clipped_end_index = (global_waveform_chunks.len() as f32 * (end_time.min(sound_duration) / sound_duration)).floor() as f32;
 
-    if start_index > 0 {
-        let zeroed_chunks = vec![0.0; start_index];
-        let result = [&zeroed_chunks[..], &clipped_waveform_chunks[..]].concat();
-        clipped_waveform_chunks = result;
+
+
+    let mut clipped_waveform_chunks = global_waveform_chunks[clipped_start_index as usize..clipped_end_index as usize].to_vec();
+
+    if start_index < 0.0{
+        let zeroed_chunks = vec![0.0; start_index.abs() as usize];
+        clipped_waveform_chunks.splice(0..0, zeroed_chunks);
+    }
+    if end_index > global_waveform_chunks.len() as f32{
+        let zeroed_chunks = vec![0.0; end_index as usize - global_waveform_chunks.len()];
+        clipped_waveform_chunks.extend(zeroed_chunks);
     }
 
-    let slice_end_padding = end_index.saturating_sub(global_waveform_chunks.len());
-    if slice_end_padding > 0 {
-        let zeroed_chunks = vec![0.0; slice_end_padding];
-        let result = [&clipped_waveform_chunks[..], &zeroed_chunks[..]].concat();
-        clipped_waveform_chunks = result;
-    }
+    let display_chunk_size = clipped_waveform_chunks.len() / stage_width;
 
-    let display_chunk_size = clipped_waveform_chunks.len() as f64 / stage_width as f64;
 
     let mut last_max = 0.0;
-    let mut data_array = Vec::new();
+    let mut chunks = Vec::with_capacity(stage_width);
 
-    for i in 0..stage_width {
-        let start = (i as f64 * display_chunk_size) as usize;
-        let end = cmp::min(start + display_chunk_size as usize, clipped_waveform_chunks.len());
-        let current_chunk = clipped_waveform_chunks[start..end].to_vec();
-        let max = current_chunk.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
-        let max = if max.is_finite() { max } else { last_max };
-        data_array.push(max);
-        last_max = max;
-    }
+   for i in 0..stage_width{
+    let start = i * display_chunk_size;
+    let end = start + display_chunk_size;
+    let current_chunk = &clipped_waveform_chunks[start..end];
 
-    data_array
+    let max_value = current_chunk.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+    let actual_value = if max_value.is_finite() { max_value } else { last_max };
+
+    chunks.push(actual_value);
+    last_max = actual_value;
+   }
+
+    chunks
 }
