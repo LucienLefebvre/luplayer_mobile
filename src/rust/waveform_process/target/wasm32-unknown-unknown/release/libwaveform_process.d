@@ -1,0 +1,1 @@
+C:\Users\lucie\Documents\vue\luplayer_web\src\rust\waveform_process\target\wasm32-unknown-unknown\release\libwaveform_process.rlib: C:\Users\lucie\Documents\vue\luplayer_web\src\rust\waveform_process\src\lib.rs

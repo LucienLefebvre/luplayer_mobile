@@ -118,7 +118,15 @@
 </template>
 
 <script setup lang="ts">
-import { PropType, ref, onMounted, Ref, watch } from 'vue';
+import {
+  PropType,
+  ref,
+  onMounted,
+  Ref,
+  watch,
+  onUnmounted,
+  onBeforeUnmount,
+} from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import { SoundModel } from './models';
@@ -147,10 +155,10 @@ const props = defineProps({
 
 const sound = soundsStore.editedSound;
 
-let minimap: Waveform;
+let minimap: Waveform | null = null;
 const minimapWaveformView = ref<HTMLDivElement | null>(null);
 
-let zoomable: Waveform;
+let zoomable: Waveform | null = null;
 const zoomableWaveformView = ref<HTMLDivElement | null>(null);
 
 onMounted(() => {
@@ -170,6 +178,7 @@ onMounted(() => {
     zoomable
   );
 
+  zoomable.name = 'zoomable';
   zoomable.isPlayPositionAlwaysOnCenter = true;
   zoomable.shouldDrawPlayHead = true;
   zoomable.showInTime = true;
@@ -179,16 +188,36 @@ onMounted(() => {
   zoomable.inTimeWidth = 2;
   zoomable.outTimeWidth = 2;
   zoomable.playHeadWidth = 2;
+  zoomable.freezed = false;
 
   minimap.setMinimapRangeRectangleOpacity(0.2);
   minimap.showInTime = true;
   minimap.showOutTime = true;
   minimap.inTimeColor = 'lightblue';
   minimap.outTimeColor = 'yellow';
-
+  minimap.freezed = false;
   if (sound?.waveformChunks) {
     minimap.setWaveformChunks(sound.waveformChunks);
     zoomable.setWaveformChunks(sound.waveformChunks);
+  }
+
+  console.log('sound details Mounted');
+});
+
+onBeforeUnmount(() => {
+  console.log('sound details Unmounted');
+  if (zoomable) {
+    zoomable.freezed = true;
+    zoomable.cleanUp();
+    zoomable.minimapWaveformReference = null;
+    zoomable = null;
+  }
+
+  if (minimap) {
+    minimap.freezed = true;
+    minimap.cleanUp();
+    minimap.zoomableWaveformReference = null;
+    minimap = null;
   }
 });
 
@@ -231,11 +260,11 @@ watch(
   () => sound?.inTime,
   (newValue) => {
     if (newValue) {
-      zoomable.setInTime(newValue);
-      minimap.setInTime(newValue);
+      zoomable?.setInTime(newValue);
+      minimap?.setInTime(newValue);
     } else {
-      zoomable.setInTime(null);
-      minimap.setInTime(null);
+      zoomable?.setInTime(null);
+      minimap?.setInTime(null);
     }
   }
 );
@@ -243,11 +272,11 @@ watch(
   () => sound?.outTime,
   (newValue) => {
     if (newValue) {
-      zoomable.setOutTime(newValue);
-      minimap.setOutTime(newValue);
+      zoomable?.setOutTime(newValue);
+      minimap?.setOutTime(newValue);
     } else {
-      zoomable.setOutTime(null);
-      minimap.setOutTime(null);
+      zoomable?.setOutTime(null);
+      minimap?.setOutTime(null);
     }
   }
 );
