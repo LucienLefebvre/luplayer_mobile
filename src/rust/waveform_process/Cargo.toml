@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+lttb = "0.2.0"
+rayon = "1.8.0"
 wasm-bindgen = "0.2.89"
 web-sys = { version = "0.3.66", features = ["console"] }
 

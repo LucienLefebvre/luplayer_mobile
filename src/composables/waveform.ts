@@ -1,7 +1,8 @@
-import { Ref } from 'vue';
 import Konva from 'konva';
+import { Layer } from 'konva/lib/Layer';
 import { KonvaEventObject } from 'konva/lib/Node';
 import { debounce } from 'quasar';
+import * as PIXI from 'pixi.js';
 
 import init, {
   calculate_waveform_chunks,
@@ -16,8 +17,8 @@ const TOUCH_HOLD_TIME = 500;
 const FRAME_RATE = 25;
 
 export class Waveform {
-  private waveformView: Ref<HTMLDivElement>;
-  private audioElement: HTMLAudioElement;
+  private waveformView: HTMLDivElement;
+  audioElement: HTMLAudioElement;
 
   public eventTarget = new EventTarget();
 
@@ -45,9 +46,6 @@ export class Waveform {
   public isDraggable: boolean;
   public isZoomable: boolean;
 
-  public shouldDrawPlayHead: boolean;
-  public playHeadWidth: number;
-
   public touchMouseDownTime: number;
   private touchHoldTimeout: ReturnType<typeof setTimeout> | null;
 
@@ -59,17 +57,22 @@ export class Waveform {
   private initialTouchDistance: number;
   private oldTimeDeltaX: number;
 
+  private waveformStyle: 'line' | 'bars';
+  private xResolution: number;
+  private waveformBarsRect: Konva.Rect[];
+
   public strokeWaveform: boolean;
   public fillWaveform: boolean;
-  public playedWaveformOpacity: number;
-  public remainingWaveformOpacity: number;
-  public playedWaveformFillColor: string;
-  public remainingWaveformFillColor: string;
-  public playedWaveformStrokeColor: string;
-  public remainingWaveformStrokeColor: string;
   public minimapRangeRectangleFillColor: string;
   public minimapRangeRectangleOpacity: number;
   public minimapRangeRectangleCornerRadius: number;
+
+  public showPlayHead: boolean;
+  public playHeadWidth: number;
+
+  public showHorizontalLine: boolean;
+  public horizontalLineColor: string;
+  public horizontalLineSize: number;
 
   public inTime: number | null;
   public showInTime: boolean;
@@ -92,7 +95,7 @@ export class Waveform {
   public freezed: boolean;
 
   constructor(
-    waveformView: Ref<HTMLDivElement>,
+    waveformView: HTMLDivElement,
     audioElement: HTMLAudioElement,
     height = 100,
     isMinimap = false,
@@ -105,8 +108,8 @@ export class Waveform {
     this.audioElement = audioElement;
 
     this.stage = new Konva.Stage({
-      container: this.waveformView.value,
-      width: this.waveformView.value.clientWidth,
+      container: this.waveformView,
+      width: this.waveformView.clientWidth,
       height: height,
     });
 
@@ -120,7 +123,9 @@ export class Waveform {
     this.stage.add(this.waveformLayer);
 
     this.playedLine = new Konva.Line();
+    this.playedLine.closed(true);
     this.remainingLine = new Konva.Line();
+    this.remainingLine.closed(true);
 
     this.soundDuration = audioElement.duration;
     this.startTime = 0;
@@ -137,9 +142,6 @@ export class Waveform {
     this.isDraggable = this.isMinimap ? false : true;
     this.isDragging = false;
 
-    this.shouldDrawPlayHead = false;
-    this.playHeadWidth = 1;
-
     this.touchMouseDownTime = 0;
     this.dragStartX = 0;
     this.dragStartY = 0;
@@ -151,12 +153,19 @@ export class Waveform {
 
     this.strokeWaveform = false;
     this.fillWaveform = true;
-    this.playedWaveformFillColor = 'green';
-    this.remainingWaveformFillColor = 'orange';
-    this.playedWaveformStrokeColor = 'black';
-    this.remainingWaveformStrokeColor = 'black';
-    this.playedWaveformOpacity = 1;
-    this.remainingWaveformOpacity = 1;
+
+    this.showPlayHead = false;
+    this.playHeadWidth = 1;
+
+    this.waveformStyle = 'line';
+    this.xResolution = 1;
+    this.waveformBarsRect = new Array(2000)
+      .fill(null)
+      .map(() => new Konva.Rect());
+
+    this.showHorizontalLine = false;
+    this.horizontalLineColor = 'orange';
+    this.horizontalLineSize = 1;
 
     this.minimapRangeLayer = null;
     this.minimapRangeRect = null;
@@ -180,7 +189,7 @@ export class Waveform {
     if (this.isPlayPositionAlwaysOnCenter) this.centerTimeRangeOnPlayPosition();
     this.registerEventsListeners();
     this.registerMouseEvents();
-    this.initializeResizeObserver();
+    //this.initializeResizeObserver();
 
     this.launchAnimation();
   }
@@ -214,7 +223,7 @@ export class Waveform {
     this.eventTarget.removeEventListener(type, listener, options);
   }
 
-  private handleAudioElementUpdate() {
+  public handleAudioElementUpdate() {
     if (this.isPlayPositionAlwaysOnCenter) this.centerTimeRangeOnPlayPosition();
     this.waveformShouldBeRedrawn = true;
   }
@@ -289,9 +298,19 @@ export class Waveform {
       const audioBuffer = await new AudioContext().decodeAudioData(buffer);
 
       const channelData = audioBuffer.getChannelData(0);
-      const numberOfChunks = Math.ceil(channelData.length / windowSize);
-      /////////////////////////////////////
+
+      //////////////////////////////////
+      const wasmStartTime = performance.now();
+      this.globalWaveformChunks = calculate_waveform_chunks(
+        channelData,
+        WINDOW_SIZE
+      );
+      const wasmEndTime = performance.now();
+      //console.log('wasmChunks :', this.globalWaveformChunks.slice(0, 500));
+      console.log('wasmDuration: ', wasmEndTime - wasmStartTime);
+      ///////////////////////////////
       const jsStartTime = performance.now();
+      const numberOfChunks = Math.ceil(channelData.length / windowSize);
       for (let i = 0; i < numberOfChunks; i++) {
         const start = i * windowSize;
 
@@ -306,18 +325,8 @@ export class Waveform {
       }
       this.globalWaveformChunks = new Float32Array(chunks);
       const jsEndTime = performance.now();
-      console.log('jsCHunks :', this.globalWaveformChunks.slice(0, 100));
-      //console.log('jsDuration: ', jsEndTime - jsStartTime);
-      //////////////////////////////////
-      const wasmStartTime = performance.now();
-      this.globalWaveformChunks = calculate_waveform_chunks(
-        channelData,
-        WINDOW_SIZE
-      );
-      const wasmEndTime = performance.now();
-      console.log('wasmChunks :', this.globalWaveformChunks.slice(0, 100));
-      //console.log('wasmDuration: ', wasmEndTime - wasmStartTime);
-      ///////////////////////////////
+      //console.log('jsCHunks :', this.globalWaveformChunks.slice(0, 500));
+      console.log('jsDuration: ', jsEndTime - jsStartTime);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -344,7 +353,7 @@ export class Waveform {
   }
 
   private async calculateYValueArrayFromChunks() {
-    const startTime = performance.now();
+    /*  const startTime = performance.now();
     const dataArray: number[] = [];
 
     const sliceStart = Math.floor(
@@ -354,11 +363,16 @@ export class Waveform {
       this.globalWaveformChunks.length * (this.endTime / this.soundDuration)
     );
 
+    const clipStartIndex =
+      this.globalWaveformChunks.length *
+      (Math.max(this.startTime, 0) / this.soundDuration);
+    const clipEndIndex =
+      this.globalWaveformChunks.length *
+      (Math.min(this.endTime, this.soundDuration) / this.soundDuration);
+
     let clippedWaveformChunks = this.globalWaveformChunks.slice(
-      this.globalWaveformChunks.length *
-        (Math.max(this.startTime, 0) / this.soundDuration),
-      this.globalWaveformChunks.length *
-        (Math.min(this.endTime, this.soundDuration) / this.soundDuration)
+      clipStartIndex,
+      clipEndIndex
     );
 
     if (sliceStart < 0) {
@@ -396,21 +410,17 @@ export class Waveform {
       lastMax = max;
     }
 
-    this.diplayWaveformChunks = new Float32Array(dataArray);
+    const jsDisplayChunks = new Float32Array(dataArray);
 
     const endTime = performance.now();
     const duration = endTime - startTime;
-    console.log(
-      'js chunks lenght : ',
-      this.diplayWaveformChunks.slice(this.diplayWaveformChunks.length / 2, 50)
-    );
-    //console.log('js duration: ', duration);
+    console.log('js duration: ', duration); */
 
     ///////////////////////////////////////////////
 
     const wasmStartTime = performance.now();
 
-    this.diplayWaveformChunks = calculate_y_value_array_from_chunks(
+    const wasmDisplayChunks = calculate_y_value_array_from_chunks(
       this.globalWaveformChunks,
       this.startTime,
       this.endTime,
@@ -420,14 +430,9 @@ export class Waveform {
     this.displayChunkSize =
       this.diplayWaveformChunks.length / this.stage.width();
     const wasmEndTime = performance.now();
-
-    console.log(
-      'rust chunks lenght : ',
-      this.diplayWaveformChunks.slice(this.diplayWaveformChunks.length / 2, 50)
-    );
+    this.diplayWaveformChunks = wasmDisplayChunks;
 
     //console.log('wasmDuration: ', wasmEndTime - wasmStartTime);
-    //console.log(this.name);
   }
 
   private draw() {
@@ -469,82 +474,16 @@ export class Waveform {
   private drawWaveform() {
     const frameRedrawStartTime = performance.now();
 
-    const width = this.stage.width();
-    const height = this.stage.height();
-    const ratio = this.verticalZoomFactor;
-    const middleY = height / 2;
-    const progressX = this.timeToX(this.audioElement.currentTime);
+    if (this.waveformStyle === 'line') this.drawLineWaveform();
+    else if (this.waveformStyle === 'bars') this.drawBarsWaveform();
 
-    this.waveformLayer.removeChildren();
+    if (this.showHorizontalLine) this.drawHorizontalLine();
+    if (this.showPlayHead) this.drawPlayHead();
+    if (this.showInTime) this.drawInTime();
+    if (this.showOutTime) this.drawOutTime();
 
-    const playedPoints = [];
-    const remainingPoints = [];
-
-    for (let i = 0; i < width; i += NUMBER_OF_PIXELS_PER_LINE) {
-      const yValue = middleY + this.diplayWaveformChunks[i] * middleY * ratio;
-
-      if (i < progressX) {
-        playedPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
-      } else {
-        remainingPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
-      }
-    }
-
-    for (let i = width - 1; i > 0; i -= NUMBER_OF_PIXELS_PER_LINE) {
-      const yValue = middleY - this.diplayWaveformChunks[i] * middleY * ratio;
-      if (i < progressX) {
-        playedPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
-      } else {
-        remainingPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
-      }
-    }
-
-    this.playedLine.points(playedPoints);
-    this.playedLine.fill(this.playedWaveformFillColor);
-    //this.playedLine.stroke(this.playedWaveformStrokeColor);
-    this.playedLine.opacity(this.playedWaveformOpacity);
-    this.playedLine.closed(true);
-
-    this.remainingLine.points(remainingPoints);
-    this.remainingLine.fill(this.remainingWaveformFillColor);
-    //this.remainingLine.stroke(this.remainingWaveformStrokeColor);
-    this.remainingLine.opacity(this.remainingWaveformOpacity);
-    this.remainingLine.closed(true);
-
-    this.waveformLayer.add(this.playedLine);
-    this.waveformLayer.add(this.remainingLine);
-
-    if (this.shouldDrawPlayHead) {
-      const playHeadPosition = progressX;
-      const playHead = new Konva.Line({
-        points: [playHeadPosition, 0, playHeadPosition, height],
-        stroke: 'black',
-        strokeWidth: this.playHeadWidth,
-      });
-      this.waveformLayer.add(playHead);
-    }
-
-    if (this.showInTime && this.inTime !== null) {
-      const position = this.timeToX(this.inTime);
-      const inTimeLine = new Konva.Line({
-        points: [position, 0, position, height],
-        stroke: this.inTimeColor,
-        strokeWidth: this.inTimeWidth,
-      });
-      this.waveformLayer.add(inTimeLine);
-    }
-
-    if (this.showOutTime && this.outTime !== null) {
-      const position = this.timeToX(this.outTime);
-      const outTimeLine = new Konva.Line({
-        points: [position, 0, position, height],
-        stroke: this.outTimeColor,
-        strokeWidth: this.outTimeWidth,
-      });
-      this.waveformLayer.add(outTimeLine);
-    }
-
-    this.waveformLayer.draw();
+    //this.waveformLayer.batchDraw();
+    //this.waveformLayer.cache();
 
     if (this.audioElement.paused) {
       this.waveformShouldBeRedrawn = false;
@@ -553,6 +492,148 @@ export class Waveform {
     const frameRedrawDuration = frameRedrawEndTime - frameRedrawStartTime;
     //console.log('frameRedrawDuration: ', frameRedrawDuration);
     //console.log(this.name);
+  }
+
+  private drawBarsWaveform() {
+    const middleY = this.stage.height() / 2;
+    const length = this.diplayWaveformChunks.length;
+    const progressX = Math.floor(this.timeToX(this.audioElement.currentTime));
+    const stageHeight = this.stage.height();
+    const xResolution = this.xResolution;
+    const verticalZoomFactor = this.verticalZoomFactor;
+
+    for (let i = 0; i < length; i += xResolution) {
+      const yValue =
+        middleY - this.diplayWaveformChunks[i] * middleY * verticalZoomFactor;
+
+      const rect = this.waveformBarsRect[i];
+      rect.x(i);
+      rect.y(yValue);
+      rect.width(xResolution);
+      rect.height(stageHeight - 2 * yValue);
+      rect.fill(i >= progressX ? 'orange' : 'green');
+      rect.cornerRadius(5);
+      rect.stroke(i > progressX ? 'darkorange' : 'darkgreen');
+
+      this.waveformLayer.add(rect);
+    }
+  }
+
+  private drawLineWaveform() {
+    const points = this.createWaveformLines();
+
+    this.playedLine.points(points.playedPoints);
+    this.remainingLine.points(points.remainingPoints);
+    this.waveformLayer.add(this.playedLine);
+    this.waveformLayer.add(this.remainingLine);
+  }
+
+  private createWaveformLines(): {
+    playedPoints: number[];
+    remainingPoints: number[];
+  } {
+    const width = this.stage.width();
+    const height = this.stage.height();
+    const ratio = this.verticalZoomFactor;
+    const middleY = height / 2;
+    const progressX = Math.floor(this.timeToX(this.audioElement.currentTime));
+
+    this.waveformLayer.removeChildren();
+
+    const playedPoints = [];
+    const remainingPoints = [];
+
+    for (let i = 0; i < width; i += this.xResolution) {
+      const yValue = middleY - this.diplayWaveformChunks[i] * middleY * ratio;
+
+      if (i < progressX) {
+        playedPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
+      } else {
+        remainingPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
+      }
+    }
+
+    for (let i = width - 1; i > 0; i -= this.xResolution) {
+      const yValue = middleY + this.diplayWaveformChunks[i] * middleY * ratio;
+      if (i < progressX) {
+        playedPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
+      } else {
+        remainingPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
+      }
+    }
+    return { playedPoints, remainingPoints };
+  }
+
+  private drawOutTime() {
+    if (this.outTime === null) return;
+    const position = this.timeToX(this.outTime);
+    const outTimeLine = new Konva.Line({
+      points: [position, 0, position, this.stage.height()],
+      stroke: this.outTimeColor,
+      strokeWidth: this.outTimeWidth,
+    });
+    this.waveformLayer.add(outTimeLine);
+  }
+
+  private drawInTime() {
+    if (this.inTime === null) return;
+    const position = this.timeToX(this.inTime);
+    const inTimeLine = new Konva.Line({
+      points: [position, 0, position, this.stage.height()],
+      stroke: this.inTimeColor,
+      strokeWidth: this.inTimeWidth,
+    });
+    this.waveformLayer.add(inTimeLine);
+  }
+
+  private drawPlayHead() {
+    const progressX = this.isPlayPositionAlwaysOnCenter
+      ? this.timeToX(this.audioElement.currentTime)
+      : this.stage.width() / 2;
+    const playHead = new Konva.Line({
+      points: [progressX, 0, progressX, this.stage.height()],
+      stroke: 'black',
+      strokeWidth: this.playHeadWidth,
+    });
+    this.waveformLayer.add(playHead);
+  }
+
+  private drawHorizontalLine() {
+    const middleY = this.stage.height() / 2;
+    const horizontalLine = new Konva.Line({
+      points: [
+        this.timeToX(0),
+        middleY,
+        this.timeToX(this.soundDuration),
+        middleY,
+      ],
+      stroke: this.horizontalLineColor,
+      strokeWidth: this.horizontalLineSize,
+    });
+    this.waveformLayer.add(horizontalLine);
+  }
+
+  private drawMinimapRange() {
+    const width = this.stage.width();
+    const height = this.stage.height();
+
+    //if (this.minimapWaveformReference === null) return;
+    const rangeStartTime = this.minimapWaveformReference!.startTime;
+    const rangeEndTime = this.minimapWaveformReference!.endTime;
+
+    const rectStartX = Math.floor(
+      (rangeStartTime / this.soundDuration) * width
+    );
+    const recWidth = Math.floor(
+      ((rangeEndTime - rangeStartTime) / this.soundDuration) * width
+    );
+
+    this.minimapRangeRect!.x(rectStartX);
+    this.minimapRangeRect!.y(0);
+    this.minimapRangeRect!.width(recWidth);
+    this.minimapRangeRect!.height(height);
+
+    this.minimapRangeLayer!.draw();
   }
 
   private initMinimap() {
@@ -618,29 +699,6 @@ export class Waveform {
     }
   }
 
-  private drawMinimapRange() {
-    const width = this.stage.width();
-    const height = this.stage.height();
-
-    const rangeStartTime = this.minimapWaveformReference!.startTime;
-
-    const rangeEndTime = this.minimapWaveformReference!.endTime;
-
-    const rectStartX = Math.floor(
-      (rangeStartTime / this.soundDuration) * width
-    );
-    const recWidth = Math.floor(
-      ((rangeEndTime - rangeStartTime) / this.soundDuration) * width
-    );
-
-    this.minimapRangeRect!.x(rectStartX);
-    this.minimapRangeRect!.y(0);
-    this.minimapRangeRect!.width(recWidth);
-    this.minimapRangeRect!.height(height);
-
-    this.minimapRangeLayer!.draw();
-  }
-
   setMinimapRangeRectangleFillColor(color: string) {
     this.minimapRangeRect!.fill(color);
     this.drawMinimapRange();
@@ -661,16 +719,6 @@ export class Waveform {
     this.calculateYValueArrayFromChunks().then(() => {
       this.waveformShouldBeRedrawn = true;
     });
-  }
-
-  private initializeResizeObserver() {
-    const handleResized = debounce(() => {
-      this.stage.width(this.waveformView.value.clientWidth);
-      this.updateWaveform();
-    }, 100);
-
-    const resizeObserver = new ResizeObserver(handleResized);
-    resizeObserver.observe(this.waveformView.value);
   }
 
   private handleMouseTouchStart(e: KonvaEventObject<any>) {
@@ -767,7 +815,7 @@ export class Waveform {
       const newEndTime =
         timeDeltaX / this.horizontalZoomFactor + this.waveformDragEndTime;
 
-      if (newStartTime >= 0 && newEndTime <= this.soundDuration) {
+      if (newStartTime > 0 && newEndTime < this.soundDuration) {
         this.setStartEndTimes(newStartTime, newEndTime);
       }
     } else if (this.isPlayPositionAlwaysOnCenter) {
@@ -913,33 +961,57 @@ export class Waveform {
   }
 
   setPlayedWaveformFillColor(color: string) {
-    this.playedWaveformFillColor = color;
+    this.playedLine.fill(color);
     this.updateWaveform();
   }
 
   setRemainingWaveformFillColor(color: string) {
-    this.remainingWaveformFillColor = color;
+    this.remainingLine.fill(color);
     this.updateWaveform();
   }
 
   setPlayedWaveformStrokeColor(color: string) {
-    this.playedWaveformStrokeColor = color;
+    this.playedLine.stroke(color);
     this.updateWaveform();
   }
 
   setRemainingWaveformStrokeColor(color: string) {
-    this.remainingWaveformStrokeColor = color;
+    this.remainingLine.stroke(color);
     this.updateWaveform();
   }
 
   setPlayedWaveformOpacity(opacity: number) {
-    this.playedWaveformOpacity = opacity;
+    this.playedLine.opacity(opacity);
     this.updateWaveform();
   }
 
   setRemainingWaveformOpacity(opacity: number) {
-    this.remainingWaveformOpacity = opacity;
+    this.remainingLine.opacity(opacity);
     this.updateWaveform();
+  }
+
+  getPlayedWaveformFillColor(): string {
+    return this.playedLine.fill();
+  }
+
+  getRemainingWaveformFillColor(): string {
+    return this.remainingLine.fill();
+  }
+
+  getPlayedWaveformStrokeColor(): string {
+    return this.playedLine.stroke();
+  }
+
+  getRemainingWaveformStrokeColor(): string {
+    return this.remainingLine.stroke();
+  }
+
+  getPlayedWaveformOpacity(): number {
+    return this.playedLine.opacity();
+  }
+
+  getRemainingWaveformOpacity(): number {
+    return this.remainingLine.opacity();
   }
 
   setInTime(value: number | null) {

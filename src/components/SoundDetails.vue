@@ -164,14 +164,10 @@ const zoomableWaveformView = ref<HTMLDivElement | null>(null);
 onMounted(() => {
   if (!minimapWaveformView.value || !zoomableWaveformView.value) return;
 
-  zoomable = new Waveform(
-    zoomableWaveformView as Ref<HTMLDivElement>,
-    sound!.audioElement,
-    125
-  );
+  zoomable = new Waveform(zoomableWaveformView.value, sound!.audioElement, 125);
 
   minimap = new Waveform(
-    minimapWaveformView as Ref<HTMLDivElement>,
+    minimapWaveformView.value,
     sound!.audioElement,
     30,
     true,
@@ -180,7 +176,7 @@ onMounted(() => {
 
   zoomable.name = 'zoomable';
   zoomable.isPlayPositionAlwaysOnCenter = true;
-  zoomable.shouldDrawPlayHead = true;
+  zoomable.showPlayHead = true;
   zoomable.showInTime = true;
   zoomable.showOutTime = true;
   zoomable.inTimeColor = 'lightblue';
@@ -189,6 +185,8 @@ onMounted(() => {
   zoomable.outTimeWidth = 2;
   zoomable.playHeadWidth = 2;
   zoomable.freezed = false;
+  zoomable.setPlayedWaveformFillColor('orange');
+  zoomable.setRemainingWaveformFillColor('orange');
 
   minimap.setMinimapRangeRectangleOpacity(0.2);
   minimap.showInTime = true;
@@ -196,6 +194,9 @@ onMounted(() => {
   minimap.inTimeColor = 'lightblue';
   minimap.outTimeColor = 'yellow';
   minimap.freezed = false;
+  minimap.setPlayedWaveformFillColor('orange');
+  minimap.setRemainingWaveformFillColor('orange');
+
   if (sound?.waveformChunks) {
     minimap.setWaveformChunks(sound.waveformChunks);
     zoomable.setWaveformChunks(sound.waveformChunks);

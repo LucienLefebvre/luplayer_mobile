@@ -5,12 +5,12 @@
 <script setup lang="ts">
 import { PropType, onMounted, ref } from 'vue';
 import { SoundModel } from './models';
-
+import { useSoundsStore } from 'src/stores/sounds-store';
 const canvas = ref<HTMLCanvasElement | null>(null);
 var canvasCtx = null as CanvasRenderingContext2D | null;
 
+const soundsStore = useSoundsStore();
 const props = defineProps({
-  sound: { type: Object as PropType<SoundModel | null>, required: true },
   isMainToolbar: { type: Boolean, required: false, default: false },
 });
 
@@ -29,10 +29,11 @@ onMounted(() => {
 
 function drawBar() {
   if (!canvasCtx) return;
-  if (props.sound == null) return;
+  if (soundsStore.selectedSound === null) return;
 
   const barWidth =
-    (props.sound.audioElement.currentTime / props.sound.audioElement.duration) *
+    (soundsStore.selectedSound.audioElement.currentTime /
+      soundsStore.selectedSound.audioElement.duration) *
     canvasCtx.canvas.width;
   const barHeight = canvasCtx.canvas.height;
 

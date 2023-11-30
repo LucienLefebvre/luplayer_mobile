@@ -51,6 +51,8 @@ onMounted(() => {
 function drawMeter() {
   if (!canvasCtx) return;
 
+  const drawStart = performance.now();
+
   const meterWidth = canvasCtx.canvas.width;
   const meterHeight = canvasCtx.canvas.height;
   canvasCtx.clearRect(0, 0, meterWidth, meterHeight);
@@ -73,6 +75,8 @@ function drawMeter() {
   if (peakHoldValue > 0) {
     drawDbLines(gainToDb(peakHoldValue), 'red');
   }
+  const drawEnd = performance.now();
+  //console.log(`drawMeter: ${drawEnd - drawStart}ms`);
 }
 
 function drawBar(channelToDraw: number) {
@@ -199,8 +203,4 @@ function setCanvasSize() {
 }
 </script>
 
-<style scoped>
-.peak-meter {
-  height: 35px;
-}
-</style>
+<style scoped></style>

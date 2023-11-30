@@ -86,11 +86,14 @@ export function setName(sound: SoundModel, name: string) {
   sound.name = name;
 }
 
-export function normalizeSound(sound: SoundModel, targetValue: number) {
+export async function normalizeSound(sound: SoundModel, targetValue: number) {
+  const startTime = performance.now();
   if (sound.integratedLoudness === null) {
     calculateIntegratedLoudness(sound).then((loudness) => {
       sound.integratedLoudness = loudness;
       setTrimGain(sound, getTrimValueFromLoudness(loudness, targetValue));
+      const endTime = performance.now();
+      console.log(`Normalize took ${endTime - startTime} ms`);
     });
   } else {
     setTrimGain(
@@ -113,7 +116,7 @@ export function toggleHpf(sound: SoundModel) {
 
 export function setHpfFrequency(sound: SoundModel, frequency: number) {
   sound.hpfFrequency = frequency;
-  sound.hpfNode.frequency.value = frequency;
+  //sound.hpfNode.frequency.value = frequency;
 }
 
 export function getSoundDurationLabel(sound: SoundModel) {

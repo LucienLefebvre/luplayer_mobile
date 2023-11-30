@@ -27,10 +27,7 @@ const emits = defineEmits(['click', 'doubleClick', 'long-touch']);
 
 onMounted(async () => {
   if (!waveformNew.value) return;
-  waveform = new Waveform(
-    waveformNew as Ref<HTMLDivElement>,
-    props.sound.audioElement
-  );
+  waveform = new Waveform(waveformNew.value, props.sound.audioElement);
   waveform.setHeight(settingsStore.playerHeightFactor * 100);
   waveform.setVerticalZoomFactor(settingsStore.waveformVerticalZoomFactor);
   waveform.showInTime = true;
@@ -108,10 +105,11 @@ watch(
   () => sound.value.remainingTime,
   (newValue) => {
     if (newValue < 5) {
-      if (waveform?.playedWaveformFillColor !== 'red')
+      if (waveform?.getPlayedWaveformFillColor() !== 'red') {
         waveform?.setPlayedWaveformFillColor('red');
+      }
     } else {
-      if (waveform?.playedWaveformFillColor !== 'green')
+      if (waveform?.getPlayedWaveformFillColor() !== 'green')
         waveform?.setPlayedWaveformFillColor('green');
     }
   }

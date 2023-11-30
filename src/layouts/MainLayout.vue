@@ -4,9 +4,7 @@
       <MainToolBar />
     </q-header>
     <q-page-container class="gradient">
-      <transition name="page" mode="out-in">
-        <router-view />
-      </transition>
+      <router-view />
     </q-page-container>
   </q-layout>
   <q-dialog v-model="soundsStore.showEditWindow" class="centered-dialog">

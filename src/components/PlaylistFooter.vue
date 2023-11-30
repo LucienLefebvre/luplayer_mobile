@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <SoundProgressBar
-      :sound="soundsStore.selectedSound"
+      :sound="soundsStore.selectedSound ?? null"
       :is-main-toolbar="true"
     />
     <PlayButton class="button" />
