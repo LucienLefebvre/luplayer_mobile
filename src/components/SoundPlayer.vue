@@ -155,13 +155,12 @@ watch(
   }
 );
 
-/* watch(
+watch(
   () => sound.value.waveformChunks,
   () => {
     showEditWindow(sound.value);
   }
 );
- */
 </script>
 
 <style scoped>

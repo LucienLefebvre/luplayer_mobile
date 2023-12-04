@@ -29,12 +29,20 @@ export interface SoundModel {
   trimGain: number;
   trimGainNode: GainNode;
   volumeGainNode: GainNode;
+  enveloppeGainNode: GainNode;
 
   hpfEnabled: boolean;
   hpfFrequency: number;
   //hpfNode: BiquadFilterNode;
 
   waveformChunks: Float32Array | null;
+
+  enveloppePoints: EnveloppePoint[];
+}
+
+export interface EnveloppePoint {
+  time: number;
+  gainDb: number;
 }
 
 export interface StereoAnalyserObject {

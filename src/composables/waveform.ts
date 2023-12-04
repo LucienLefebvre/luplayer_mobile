@@ -7,7 +7,11 @@ import * as PIXI from 'pixi.js';
 import init, {
   calculate_waveform_chunks,
   calculate_y_value_array_from_chunks,
+  calculate_y_value_array_from_chunks_windowed_overlap,
 } from 'src/rust/waveform_process/pkg';
+import { dbToGain, gainToDb } from './math-helpers';
+import { NormalizableRange } from './normalizable-range';
+import { useThrottledRefHistory } from '@vueuse/core';
 
 const SAMPLES_PER_CHUNK = 64;
 const WINDOW_SIZE = 64;
@@ -24,6 +28,7 @@ export class Waveform {
 
   private stage: Konva.Stage;
   private waveformLayer: Konva.Layer;
+  private waveformLayerBackground: Konva.Rect;
 
   private globalWaveformChunks: Float32Array;
   private waveformCalculated: boolean;
@@ -92,6 +97,26 @@ export class Waveform {
 
   public name: string;
 
+  private showEnvelope: boolean;
+  private enveloppeLayer: Konva.Layer;
+  private enveloppePoints: EnveloppePoint[];
+  private enveloppePointsDisplayCircles: Konva.Circle[];
+  private enveloppePointsDragCircles: Konva.Circle[];
+  private enveloppePointsLine: Konva.Line[];
+  private enveloppePointsValueLayer: Konva.Layer;
+  private enveloppePointsValueText: Konva.Text;
+  private enveloppePointsValueTextBackground: Konva.Rect;
+  private enveloppeDragTimeoutID: ReturnType<typeof setTimeout> | null;
+  public enveloppePointsDisplayCircleSize: number;
+  public enveloppePointsDisplayCircleFillColor: string;
+  public enveloppePointsDisplayCircleStrokeColor: string;
+  public enveloppePointsDragCircleSize: number;
+  private enveloppePointsNormRange: NormalizableRange;
+  public enveloppeLineColor: string;
+  public enveloppeLineSize: number;
+  public enveloppeMaxGainDb: number;
+  public enveloppeMinGainDb: number;
+
   public freezed: boolean;
 
   constructor(
@@ -119,13 +144,29 @@ export class Waveform {
     this.waveformCalculated = false;
     this.waveformShouldBeRedrawn = false;
 
-    this.waveformLayer = new Konva.Layer();
+    this.waveformLayer = new Konva.Layer({
+      height: this.stage.height(),
+      width: this.stage.width(),
+    });
+    this.waveformLayerBackground = new Konva.Rect({
+      width: this.stage.width(),
+      height: this.stage.height(),
+      fill: 'transparent',
+    });
+    this.waveformLayer.add(this.waveformLayerBackground);
+
     this.stage.add(this.waveformLayer);
 
     this.playedLine = new Konva.Line();
     this.playedLine.closed(true);
+    this.playedLine.lineCap('round');
+
     this.remainingLine = new Konva.Line();
     this.remainingLine.closed(true);
+    this.remainingLine.lineCap('round');
+    this.remainingLine.tension(1);
+    this.remainingLine.filters([Konva.Filters.Blur]);
+    this.remainingLine.blurRadius(1);
 
     this.soundDuration = audioElement.duration;
     this.startTime = 0;
@@ -185,6 +226,30 @@ export class Waveform {
     this.name = '';
     this.freezed = false;
 
+    this.enveloppeLayer = new Konva.Layer();
+    this.enveloppePoints = [] as EnveloppePoint[];
+    this.enveloppePointsDisplayCircles = [] as Konva.Circle[];
+    this.enveloppePointsDragCircles = [] as Konva.Circle[];
+    this.enveloppePointsLine = [] as Konva.Line[];
+    this.enveloppePointsDisplayCircleSize = 7;
+    this.enveloppePointsDisplayCircleFillColor = 'red';
+    this.enveloppePointsDisplayCircleStrokeColor = 'black';
+    this.enveloppePointsDragCircleSize = 15;
+    this.enveloppeLineColor = 'red';
+    this.enveloppeLineSize = 2;
+    this.showEnvelope = false;
+    this.enveloppeMaxGainDb = 24;
+    this.enveloppeMinGainDb = -100;
+    this.enveloppePointsValueLayer = new Konva.Layer();
+    this.enveloppePointsValueText = new Konva.Text();
+    this.enveloppePointsValueTextBackground = new Konva.Rect();
+    this.enveloppeDragTimeoutID = null;
+    this.enveloppePointsNormRange = new NormalizableRange(-80, 0, 15);
+    this.enveloppePointsValueLayer.add(this.enveloppePointsValueTextBackground);
+    this.enveloppePointsValueLayer.add(this.enveloppePointsValueText);
+    this.stage.add(this.enveloppePointsValueLayer);
+    this.stage.add(this.enveloppeLayer);
+
     if (isMinimap) this.initMinimap();
     if (this.isPlayPositionAlwaysOnCenter) this.centerTimeRangeOnPlayPosition();
     this.registerEventsListeners();
@@ -240,7 +305,7 @@ export class Waveform {
   }
 
   private registerMouseEvents() {
-    this.stage?.on('mousedown touchstart', (e) => {
+    this.waveformLayer?.on('mousedown touchstart', (e) => {
       const debounceClick = debounce(
         () => {
           this.handleMouseTouchStart(e);
@@ -251,7 +316,7 @@ export class Waveform {
       debounceClick();
     });
 
-    this.stage?.on('mouseup touchend', (e) => {
+    this.waveformLayer?.on('mouseup touchend', (e) => {
       clearTimeout(this.touchHoldTimeout!);
       if (Date.now() - this.touchMouseDownTime < TOUCH_MOUSE_CLICK_TIME) {
         this.handleClick();
@@ -259,7 +324,7 @@ export class Waveform {
       this.isDragging = false;
     });
 
-    this.stage?.on('mousemove touchmove', (e) => {
+    this.waveformLayer?.on('mousemove touchmove', (e) => {
       if (e.evt.touches && e.evt.touches.length > 1) {
         this.handleTouchPan(e);
       } else if (this.isDragging) {
@@ -267,7 +332,7 @@ export class Waveform {
       }
     });
 
-    this.stage?.on('wheel', (e) => {
+    this.waveformLayer?.on('wheel', (e) => {
       this.handleMouseWheel(e.evt);
     });
 
@@ -464,11 +529,9 @@ export class Waveform {
     this.setStartEndTimes(visibleStart, visibleEnd, true, false);
   }
 
-  private timeToX(time: number) {
-    return (
-      ((time - this.startTime) / (this.endTime - this.startTime)) *
-      this.stage.width()
-    );
+  public setIsAlwaysCenteredOnPlayPosition(isAlwaysCentered: boolean) {
+    this.isPlayPositionAlwaysOnCenter = isAlwaysCentered;
+    if (isAlwaysCentered) this.centerTimeRangeOnPlayPosition();
   }
 
   private drawWaveform() {
@@ -482,6 +545,7 @@ export class Waveform {
     if (this.showInTime) this.drawInTime();
     if (this.showOutTime) this.drawOutTime();
 
+    if (this.showEnvelope) this.drawEnveloppe();
     //this.waveformLayer.batchDraw();
     //this.waveformLayer.cache();
 
@@ -490,8 +554,12 @@ export class Waveform {
     }
     const frameRedrawEndTime = performance.now();
     const frameRedrawDuration = frameRedrawEndTime - frameRedrawStartTime;
-    //console.log('frameRedrawDuration: ', frameRedrawDuration);
+    console.log('frameRedrawDuration: ', frameRedrawDuration);
     //console.log(this.name);
+  }
+
+  private drawEnveloppe() {
+    if (this.enveloppePoints.length < 2) return;
   }
 
   private drawBarsWaveform() {
@@ -540,11 +608,20 @@ export class Waveform {
 
     this.waveformLayer.removeChildren();
 
+    this.waveformLayer.add(this.waveformLayerBackground);
     const playedPoints = [];
     const remainingPoints = [];
 
     for (let i = 0; i < width; i += this.xResolution) {
-      const yValue = middleY - this.diplayWaveformChunks[i] * middleY * ratio;
+      let enveloppeMultiplier = 1;
+      if (this.showEnvelope) {
+        const time = this.xToTime(i);
+        const enveloppeValue = this.getEnveloppeValueAtTime(time);
+        enveloppeMultiplier = dbToGain(enveloppeValue);
+      }
+      const yValue =
+        middleY -
+        this.diplayWaveformChunks[i] * middleY * ratio * enveloppeMultiplier;
 
       if (i < progressX) {
         playedPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
@@ -554,7 +631,15 @@ export class Waveform {
     }
 
     for (let i = width - 1; i > 0; i -= this.xResolution) {
-      const yValue = middleY + this.diplayWaveformChunks[i] * middleY * ratio;
+      let enveloppeMultiplier = 1;
+      if (this.showEnvelope) {
+        const time = this.xToTime(i);
+        const enveloppeValue = this.getEnveloppeValueAtTime(time);
+        enveloppeMultiplier = dbToGain(enveloppeValue);
+      }
+      const yValue =
+        middleY +
+        this.diplayWaveformChunks[i] * middleY * ratio * enveloppeMultiplier;
       if (i < progressX) {
         playedPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
       } else {
@@ -588,8 +673,8 @@ export class Waveform {
 
   private drawPlayHead() {
     const progressX = this.isPlayPositionAlwaysOnCenter
-      ? this.timeToX(this.audioElement.currentTime)
-      : this.stage.width() / 2;
+      ? this.stage.width() / 2
+      : this.timeToX(this.audioElement.currentTime);
     const playHead = new Konva.Line({
       points: [progressX, 0, progressX, this.stage.height()],
       stroke: 'black',
@@ -617,7 +702,7 @@ export class Waveform {
     const width = this.stage.width();
     const height = this.stage.height();
 
-    //if (this.minimapWaveformReference === null) return;
+    if (this.minimapWaveformReference === null) return;
     const rangeStartTime = this.minimapWaveformReference!.startTime;
     const rangeEndTime = this.minimapWaveformReference!.endTime;
 
@@ -788,7 +873,7 @@ export class Waveform {
     this.endTime = endTime;
     if (updateZoomFactor) this.updateZoomFactor();
 
-    this.updateWaveform();
+    if (this.showEnvelope) this.updateEnveloppePoints();
 
     if (shouldEmit) {
       const event = new CustomEvent('waveformStartEndTimesChanged');
@@ -844,36 +929,41 @@ export class Waveform {
   }
 
   private handleTouchPan(e: KonvaEventObject<any>) {
-    const touch1 = e.evt.touches[0];
-    const touch2 = e.evt.touches[1];
+    if (this.isZoomable) {
+      const touch1 = e.evt.touches[0];
+      const touch2 = e.evt.touches[1];
 
-    const touch1X = touch1.clientX;
-    const touch2X = touch2.clientX;
+      const touch1X = touch1.clientX;
+      const touch2X = touch2.clientX;
 
-    const deltaX = Math.abs(touch1X - touch2X) - this.initialTouchDistance;
+      const deltaX = Math.abs(touch1X - touch2X) - this.initialTouchDistance;
 
-    const timeDeltaX = -((deltaX! / this.stage!.width()) * this.soundDuration);
+      const timeDeltaX = -(
+        (deltaX! / this.stage!.width()) *
+        this.soundDuration
+      );
 
-    const zoomDirection = this.oldTimeDeltaX - timeDeltaX > 0 ? 'in' : 'out';
-    if (zoomDirection === 'in' && this.displayChunkSize < 0.1) return;
+      const zoomDirection = this.oldTimeDeltaX - timeDeltaX > 0 ? 'in' : 'out';
+      if (zoomDirection === 'in' && this.displayChunkSize < 0.1) return;
 
-    const startTime = this.waveformDragStartTime - timeDeltaX / 2;
-    const endTime = this.waveformDragEndTime + timeDeltaX / 2;
+      const startTime = this.waveformDragStartTime - timeDeltaX / 2;
+      const endTime = this.waveformDragEndTime + timeDeltaX / 2;
 
-    const newStartTime = Math.max(
-      this.isPlayPositionAlwaysOnCenter ? startTime : 0,
-      startTime
-    );
-    const newEndTime = Math.min(
-      this.isPlayPositionAlwaysOnCenter ? endTime : this.soundDuration,
-      this.waveformDragEndTime + timeDeltaX / 2
-    );
+      const newStartTime = Math.max(
+        this.isPlayPositionAlwaysOnCenter ? startTime : 0,
+        startTime
+      );
+      const newEndTime = Math.min(
+        this.isPlayPositionAlwaysOnCenter ? endTime : this.soundDuration,
+        this.waveformDragEndTime + timeDeltaX / 2
+      );
 
-    this.setStartEndTimes(newStartTime, newEndTime);
+      this.setStartEndTimes(newStartTime, newEndTime);
 
-    this.oldTimeDeltaX = timeDeltaX;
-    if (Math.abs(deltaX) > 5) {
-      clearTimeout(this.touchHoldTimeout!);
+      this.oldTimeDeltaX = timeDeltaX;
+      if (Math.abs(deltaX) > 5) {
+        clearTimeout(this.touchHoldTimeout!);
+      }
     }
   }
 
@@ -881,6 +971,13 @@ export class Waveform {
     return (
       (xPos / this.stage.width()) * (this.endTime - this.startTime) +
       this.startTime
+    );
+  }
+
+  private timeToX(time: number) {
+    return (
+      ((time - this.startTime) / (this.endTime - this.startTime)) *
+      this.stage.width()
     );
   }
 
@@ -1024,6 +1121,246 @@ export class Waveform {
     this.updateWaveform();
   }
 
+  setShowEnveloppe(showEnvelope: boolean) {
+    this.showEnvelope = showEnvelope;
+    this.updateWaveform();
+  }
+
+  setEnveloppePoints(enveloppePoints: EnveloppePoint[]) {
+    this.enveloppeLayer.removeChildren();
+    this.enveloppePoints = enveloppePoints;
+
+    this.createEnveloppePointsCircles();
+    this.createEnveloppesPointsLines();
+
+    this.updateEnveloppePoints();
+  }
+
+  private createEnveloppePointsCircles() {
+    this.enveloppePointsDisplayCircles = [];
+    this.enveloppePointsDragCircles = [];
+    for (let i = 0; i < this.enveloppePoints.length; i++) {
+      const point = this.enveloppePoints[i];
+      const x = this.timeToX(point.time);
+      const y = this.envGainDbToY(point.gainDb);
+      const circle = new Konva.Circle({
+        radius: this.enveloppePointsDisplayCircleSize,
+        fill: this.enveloppePointsDisplayCircleFillColor,
+        stroke: this.enveloppePointsDisplayCircleStrokeColor,
+        strokeWidth: 1,
+      });
+      this.enveloppePointsDisplayCircles.push(circle);
+      this.enveloppeLayer.add(circle);
+
+      const dragCircle = new Konva.Circle({
+        radius: this.enveloppePointsDragCircleSize,
+        fill: 'transparent',
+      });
+      this.enveloppePointsDragCircles.push(dragCircle);
+      this.enveloppeLayer.add(dragCircle);
+
+      dragCircle.draggable(true);
+      dragCircle.dragBoundFunc((pos) => {
+        return this.getEnveloppeCirculeDragBoundFunc(pos, i);
+      });
+
+      dragCircle.on('dragmove', () => {
+        this.handleEnveloppeCircleDragMove(dragCircle);
+      });
+
+      dragCircle.on('dbltap dblclick', () => {
+        this.handleEnveloppeCircleDoubleCkick(dragCircle);
+      });
+    }
+  }
+
+  private createEnveloppesPointsLines() {
+    this.enveloppePointsLine = [];
+    for (let i = 0; i < this.enveloppePointsDisplayCircles.length - 1; i++) {
+      const line = new Konva.Line({
+        stroke: this.enveloppeLineColor,
+        strokeWidth: this.enveloppeLineSize,
+      });
+      this.enveloppePointsLine.push(line);
+      this.enveloppeLayer.add(line);
+    }
+  }
+
+  private getEnveloppeCirculeDragBoundFunc(
+    pos: { x: number; y: number },
+    i: number
+  ) {
+    const newY = Math.max(0, Math.min(pos.y, this.stage.height()));
+    let newX = pos.x;
+
+    if (i === 0) newX = this.timeToX(0);
+    else if (i === this.enveloppePoints.length - 1)
+      newX = this.timeToX(this.soundDuration);
+
+    const previousPoint = this.enveloppePoints[i - 1] ?? null;
+    if (previousPoint && newX <= this.timeToX(previousPoint.time)) {
+      newX = this.timeToX(previousPoint.time) + 1;
+    }
+
+    const nextPoint = this.enveloppePoints[i + 1] ?? null;
+    if (nextPoint && newX >= this.timeToX(nextPoint.time)) {
+      newX = this.timeToX(nextPoint.time) - 1;
+    }
+    return {
+      x: newX,
+      y: newY,
+    };
+  }
+
+  private handleEnveloppeCircleDoubleCkick(dragCircle: Konva.Circle) {
+    const index = this.enveloppePointsDragCircles.indexOf(dragCircle);
+
+    if (index === 0 || index === this.enveloppePoints.length - 1) return;
+
+    this.enveloppePoints.splice(index, 1);
+    this.setEnveloppePoints(this.enveloppePoints);
+
+    const event = new CustomEvent('enveloppePointsChanged');
+    this.eventTarget.dispatchEvent(event);
+  }
+
+  private handleEnveloppeCircleDragMove(dragCircle: Konva.Circle) {
+    let newGainDb = this.envYToGainDb(dragCircle.y());
+    const newTime = this.xToTime(dragCircle.x());
+
+    if (newGainDb === Number.NEGATIVE_INFINITY) newGainDb = -100;
+
+    const index = this.enveloppePointsDragCircles.indexOf(dragCircle);
+    this.enveloppePoints[index] = {
+      time: newTime,
+      gainDb: newGainDb,
+    };
+
+    this.enveloppePoints.sort((a, b) => a.time - b.time);
+    this.updateEnveloppePoints();
+
+    const event = new CustomEvent('enveloppePointsChanged');
+    this.eventTarget.dispatchEvent(event);
+
+    this.drawDraggedEnveloppePointValue(dragCircle, newGainDb);
+  }
+
+  private drawDraggedEnveloppePointValue(
+    dragCircle: Konva.Circle,
+    newGainDb: number
+  ) {
+    const text = this.enveloppePointsValueText;
+    this.enveloppePointsValueLayer.visible(true);
+    text.text(`${newGainDb.toFixed(1)}dB`);
+    text.fill('white');
+
+    const textX = dragCircle.x() - text.width() / 2;
+    const textY = dragCircle.y() - 25;
+    text.x(textX);
+    text.y(textY);
+
+    const background = this.enveloppePointsValueTextBackground;
+    background.x(textX - 2);
+    background.y(textY - 2);
+    background.width(text.width() + 4);
+    background.height(text.height() + 4);
+    background.fill('red');
+    background.opacity(0.5);
+    background.stroke('black');
+    background.strokeWidth(1);
+    background.cornerRadius(5);
+
+    if (this.enveloppeDragTimeoutID !== null) {
+      clearTimeout(this.enveloppeDragTimeoutID);
+    }
+    this.enveloppeDragTimeoutID = setTimeout(() => {
+      this.enveloppePointsValueLayer.visible(false);
+      this.enveloppeDragTimeoutID = null;
+    }, 500);
+  }
+
+  private updateEnveloppePoints() {
+    for (let i = 0; i < this.enveloppePoints.length; i++) {
+      const point = this.enveloppePoints[i];
+      const x = this.timeToX(point.time);
+      const y = this.envGainDbToY(point.gainDb);
+
+      const circle = this.enveloppePointsDisplayCircles[i];
+      circle.x(x);
+      circle.y(y);
+      const dragCircle = this.enveloppePointsDragCircles[i];
+      dragCircle.x(x);
+      dragCircle.y(y);
+    }
+
+    for (let i = 0; i < this.enveloppePointsDisplayCircles.length - 1; i++) {
+      this.enveloppePointsLine[i].points([
+        this.enveloppePointsDisplayCircles[i].x(),
+        this.enveloppePointsDisplayCircles[i].y(),
+        this.enveloppePointsDisplayCircles[i + 1].x(),
+        this.enveloppePointsDisplayCircles[i + 1].y(),
+      ]);
+    }
+
+    this.updateWaveform();
+  }
+
+  public getEnveloppeValueAtTime(time: number) {
+    const enveloppePoints = this.enveloppePoints;
+
+    if (enveloppePoints.length === 0) return 0;
+    if (time <= enveloppePoints[0].time) return enveloppePoints[0].gainDb;
+    if (time >= enveloppePoints[enveloppePoints.length - 1].time)
+      return enveloppePoints[enveloppePoints.length - 1].gainDb;
+
+    for (let i = 0; i < enveloppePoints.length - 1; i++) {
+      const point1 = enveloppePoints[i];
+      const point2 = enveloppePoints[i + 1];
+      if (time >= point1.time && time <= point2.time) {
+        const timeDelta = point2.time - point1.time;
+        const gainDbDelta = point2.gainDb - point1.gainDb;
+        const timeRatio = (time - point1.time) / timeDelta;
+        const gainDb = point1.gainDb + timeRatio * gainDbDelta;
+        return gainDb;
+      }
+    }
+    return 0;
+  }
+
+  private envGainDbToY(gainDb: number) {
+    const height = this.stage.height();
+    const middleY = height / 2;
+
+    if (gainDb === 0) return middleY;
+    else if (gainDb > 0) {
+      return middleY - (gainDb / this.enveloppeMaxGainDb) * middleY;
+    } else if (gainDb < 0) {
+      const valueFromScale =
+        this.enveloppePointsNormRange.logScaleTo0to1(gainDb);
+      const y = middleY * (1 + (1 - valueFromScale));
+      return y;
+    }
+    return middleY;
+  }
+
+  private envYToGainDb(y: number) {
+    const height = this.stage.height();
+    const middleY = height / 2;
+
+    if (y === middleY) return 0;
+    else if (y < middleY) {
+      return ((middleY - y) / middleY) * this.enveloppeMaxGainDb;
+    } else if (y > middleY) {
+      const valueToScale = 1 - (y - middleY) / middleY;
+      return this.enveloppePointsNormRange.logScaleFrom0to1(valueToScale);
+    }
+    return 0;
+  }
+
+  public getEnveloppePoints(): EnveloppePoint[] {
+    return this.enveloppePoints;
+  }
+
   cleanUp() {
     this.stage.off('mousedown touchstart');
     this.stage.off('mouseup touchend');
@@ -1056,4 +1393,9 @@ export class Waveform {
     this.minimapWaveformReference = null;
     this.zoomableWaveformReference = null;
   }
+}
+
+export interface EnveloppePoint {
+  time: number;
+  gainDb: number;
 }

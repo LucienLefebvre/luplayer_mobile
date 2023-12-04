@@ -39,7 +39,7 @@
             class="volume-slider"
           />
         </div>
-        <div class="row filter-container">
+        <!-- <div class="row filter-container">
           <q-btn
             label="HPF"
             @click="toggleHpf(sound)"
@@ -59,7 +59,7 @@
             thumb-size="20px"
             color="orange"
           />
-        </div>
+        </div> -->
         <q-separator color="primary" class="separator" size="2px" />
 
         <div style="height: 10px"></div>
@@ -95,7 +95,16 @@
               size="sm"
             />
           </div>
+          <div class="buttons-row-group">
+            <q-btn
+              label="point"
+              @click="addEnveloppePointAtPlayPosition()"
+              class="set-mark-button"
+              size="sm"
+            />
+          </div>
         </div>
+
         <q-separator color="primary" class="separator" size="2px" />
 
         <div style="height: 10px"></div>
@@ -129,7 +138,7 @@ import {
 } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
-import { SoundModel } from './models';
+import { SoundModel, EnveloppePoint } from './models';
 import { Waveform } from 'src/composables/waveform';
 
 import {
@@ -145,6 +154,7 @@ import {
   setHpfFrequency,
   stopSound,
 } from 'src/composables/sound-controller';
+import { spritesheetAsset } from 'pixi.js';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -164,7 +174,7 @@ const zoomableWaveformView = ref<HTMLDivElement | null>(null);
 onMounted(() => {
   if (!minimapWaveformView.value || !zoomableWaveformView.value) return;
 
-  zoomable = new Waveform(zoomableWaveformView.value, sound!.audioElement, 125);
+  zoomable = new Waveform(zoomableWaveformView.value, sound!.audioElement, 175);
 
   minimap = new Waveform(
     minimapWaveformView.value,
@@ -175,7 +185,7 @@ onMounted(() => {
   );
 
   zoomable.name = 'zoomable';
-  zoomable.isPlayPositionAlwaysOnCenter = true;
+  zoomable.setIsAlwaysCenteredOnPlayPosition(true);
   zoomable.showPlayHead = true;
   zoomable.showInTime = true;
   zoomable.showOutTime = true;
@@ -185,8 +195,11 @@ onMounted(() => {
   zoomable.outTimeWidth = 2;
   zoomable.playHeadWidth = 2;
   zoomable.freezed = false;
+  zoomable.showHorizontalLine = true;
   zoomable.setPlayedWaveformFillColor('orange');
   zoomable.setRemainingWaveformFillColor('orange');
+  zoomable.setEnveloppePoints(sound!.enveloppePoints);
+  zoomable.setShowEnveloppe(true);
 
   minimap.setMinimapRangeRectangleOpacity(0.2);
   minimap.showInTime = true;
@@ -202,7 +215,11 @@ onMounted(() => {
     zoomable.setWaveformChunks(sound.waveformChunks);
   }
 
-  console.log('sound details Mounted');
+  zoomable.addEventListener('enveloppePointsChanged', () => {
+    sound!.enveloppePoints = zoomable!.getEnveloppePoints();
+    console.log('enveloppePointsChanged');
+    console.log(sound!.enveloppePoints);
+  });
 });
 
 onBeforeUnmount(() => {
@@ -228,7 +245,7 @@ function closeButtonClicked() {
 }
 function playButtonClicked() {
   if (sound?.audioElement.paused) {
-    playSound(sound, true);
+    playSound(sound, soundsStore.audioContext!, true);
   } else {
     pauseSound(sound!);
   }
@@ -257,6 +274,22 @@ function getHpfButtonColor() {
   }
 }
 
+function addEnveloppePointAtPlayPosition() {
+  if (sound?.audioElement.currentTime) {
+    const gainDb = zoomable!.getEnveloppeValueAtTime(
+      sound.audioElement.currentTime
+    );
+    const point = {
+      time: sound.audioElement.currentTime,
+      gainDb: gainDb,
+    } as EnveloppePoint;
+    sound.enveloppePoints.push(point);
+    sound.enveloppePoints = sound.enveloppePoints.sort(
+      (a, b) => a.time - b.time
+    );
+    zoomable?.setEnveloppePoints(sound.enveloppePoints);
+  }
+}
 watch(
   () => sound?.inTime,
   (newValue) => {

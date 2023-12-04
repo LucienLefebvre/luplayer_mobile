@@ -2,7 +2,11 @@ import { reactive } from 'vue';
 import { defineStore } from 'pinia';
 import { useSettingsStore } from './settings-store';
 import { v4 as uuidv4 } from 'uuid';
-import { SoundModel, StereoAnalyserObject } from 'src/components/models';
+import {
+  SoundModel,
+  StereoAnalyserObject,
+  EnveloppePoint,
+} from 'src/components/models';
 import {
   playSound,
   stopSound,
@@ -44,7 +48,7 @@ export const useSoundsStore = defineStore('soundsStore', {
       this.registerEventListeners(sound);
       this.sounds[soundArray].push(sound);
 
-      playSound(sound);
+      playSound(sound, this.audioContext!, false);
       stopSound(sound);
 
       if (
@@ -168,13 +172,20 @@ export const useSoundsStore = defineStore('soundsStore', {
         const source = this.audioContext.createMediaElementSource(audioElement);
         const trimGainNode = this.audioContext.createGain();
         const volumeGainNode = this.audioContext.createGain();
+        const enveloppeGainNode = this.audioContext.createGain();
         //const hpfNode = this.audioContext.createBiquadFilter();
         source.connect(trimGainNode);
         /* hpfNode.connect(trimGainNode);
         hpfNode.type = 'highpass'; */
         trimGainNode.connect(volumeGainNode);
+        volumeGainNode.connect(enveloppeGainNode);
         if (this.outputGainNode === null) return;
-        volumeGainNode.connect(this.outputGainNode);
+        enveloppeGainNode.connect(this.outputGainNode);
+
+        const defaultEnveloppePoints = [
+          { time: 0, gainDb: 0 },
+          { time: audioElement.duration, gainDb: 0 },
+        ] as EnveloppePoint[];
 
         const addedSound: SoundModel = {
           id: uuid,
@@ -192,6 +203,7 @@ export const useSoundsStore = defineStore('soundsStore', {
           source: source,
           trimGainNode: trimGainNode,
           volumeGainNode: volumeGainNode,
+          enveloppeGainNode: enveloppeGainNode,
           inTime: null,
           outTime: null,
           integratedLoudness: null,
@@ -200,6 +212,7 @@ export const useSoundsStore = defineStore('soundsStore', {
           //hpfNode: hpfNode,
           launchTime: 0,
           waveformChunks: null,
+          enveloppePoints: defaultEnveloppePoints,
         };
 
         if (this.settingsStore.autoNormalize) {
@@ -278,7 +291,7 @@ export const useSoundsStore = defineStore('soundsStore', {
     playSelectedSound() {
       const selectedSound = this.selectedSound;
       if (selectedSound === null) return;
-      playSound(selectedSound);
+      playSound(selectedSound, this.audioContext!, false);
     },
 
     incrementSelectedSound() {

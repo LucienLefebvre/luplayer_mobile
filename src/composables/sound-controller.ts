@@ -3,18 +3,45 @@ import { dbToGain, getMMSSfromS } from 'src/composables/math-helpers';
 import { calculateIntegratedLoudness } from './loudness-calculation';
 import { calculateWaveformChunks } from './waveform-display';
 
-export function playStopSound(sound: SoundModel) {
+export function playStopSound(sound: SoundModel, audioContext: AudioContext) {
   if (sound.isPlaying) {
     stopSound(sound);
   } else {
     sound.isCuePlayed = true;
-    playSound(sound);
+    playSound(sound, audioContext);
   }
 }
 
-export function playSound(sound: SoundModel, isCuePlayed = false) {
+export function playSound(
+  sound: SoundModel,
+  audioContext: AudioContext,
+  isCuePlayed = false
+) {
   if (!isCuePlayed) {
     sound.audioElement.currentTime = sound.inTime ?? 0;
+  }
+
+  if ((sound.enveloppePoints, sound.enveloppePoints.length > 0)) {
+    const enveloppePoints = sound.enveloppePoints;
+
+    enveloppePoints.forEach((point, index) => {
+      const gain = dbToGain(point.gainDb);
+      const nextPoint = enveloppePoints[index + 1];
+      const currentTime = audioContext.currentTime;
+      const startTime = sound.audioElement.currentTime;
+      if (nextPoint) {
+        sound.enveloppeGainNode.gain.setValueAtTime(
+          gain,
+          point.time + currentTime - startTime
+        );
+        sound.enveloppeGainNode.gain.exponentialRampToValueAtTime(
+          dbToGain(nextPoint.gainDb),
+          nextPoint.time + currentTime - startTime
+        );
+      } else {
+        sound.enveloppeGainNode.gain.setValueAtTime(gain, point.time);
+      }
+    });
   }
 
   sound.isCuePlayed = isCuePlayed;
@@ -24,11 +51,12 @@ export function playSound(sound: SoundModel, isCuePlayed = false) {
   clearTimeout(sound.timeOutId);
 
   if (sound.outTime !== null) {
-    const timeOutDuration =
-      (sound.outTime - (sound.inTime !== null ? sound.inTime : 0)) * 1000;
+    const inTime = sound.inTime !== null ? sound.inTime : 0;
+    const timeOutDuration = (sound.outTime - inTime) * 1000;
 
     sound.timeOutId = setTimeout(() => {
       sound.audioElement.pause();
+      sound.audioElement.currentTime = inTime;
     }, timeOutDuration);
   }
 
