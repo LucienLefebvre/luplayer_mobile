@@ -160,6 +160,9 @@ export class Waveform {
     this.playedLine = new Konva.Line();
     this.playedLine.closed(true);
     this.playedLine.lineCap('round');
+    this.playedLine.tension(1);
+    this.playedLine.filters([Konva.Filters.Blur]);
+    this.playedLine.blurRadius(1);
 
     this.remainingLine = new Konva.Line();
     this.remainingLine.closed(true);
