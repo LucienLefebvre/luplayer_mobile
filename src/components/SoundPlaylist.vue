@@ -32,7 +32,6 @@ onMounted(() => {
 
 const scrollablePlaylistHeight = ref(0);
 const updateHeight = () => {
-  console.log('updateHeight');
   let heightToSubtract = 155;
   const meterHeight = 31;
   if (settingsStore.showPeakMeter) {
@@ -41,8 +40,6 @@ const updateHeight = () => {
   if (settingsStore.showLuMeter) {
     heightToSubtract += meterHeight;
   }
-  console.log('heightToSubtract', heightToSubtract);
-  console.log('window.innerHeight', window.innerHeight);
   scrollablePlaylistHeight.value = window.innerHeight - heightToSubtract;
 };
 

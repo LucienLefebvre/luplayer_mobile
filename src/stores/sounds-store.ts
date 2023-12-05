@@ -48,8 +48,8 @@ export const useSoundsStore = defineStore('soundsStore', {
       this.registerEventListeners(sound);
       this.sounds[soundArray].push(sound);
 
-      playSound(sound, this.audioContext!, false);
-      stopSound(sound);
+      /* playSound(sound, this.audioContext!, false);
+      stopSound(sound); */
 
       if (
         this.sounds[soundArray].length === 1 &&
@@ -79,7 +79,8 @@ export const useSoundsStore = defineStore('soundsStore', {
     },
 
     handlePauseEvent(sound: SoundModel) {
-      console.log('pause event');
+      sound.enveloppeGainNode.gain.cancelScheduledValues(0);
+      //console.log('pause event');
       sound.isPlaying = false;
       sound.volumeGainNode.gain.value = 1;
       if (!getIsCuePlayed(sound)) {
@@ -164,7 +165,7 @@ export const useSoundsStore = defineStore('soundsStore', {
       const url = URL.createObjectURL(file);
       audioElement.src = url;
 
-      audioElement.onloadedmetadata = () => {
+      audioElement.onloadedmetadata = async () => {
         if (this.audioContext === null) {
           this.initAudioContext();
           if (this.audioContext === null) return;
@@ -239,7 +240,7 @@ export const useSoundsStore = defineStore('soundsStore', {
       };
     },
 
-    initAudioContext() {
+    async initAudioContext() {
       this.audioContext = new AudioContext();
       this.sampleRate = this.audioContext.sampleRate;
 

@@ -1,7 +1,32 @@
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
- pub fn calculate_waveform_chunks(channel_data: Vec<f32>, window_size: usize) -> Vec<f32> {
+pub fn calculate_waveform_chunks(channel_data: Vec<f32>, window_size: usize) -> Vec<f32> {
+    let mut chunks = Vec::new();
+    let number_of_chunks = (channel_data.len() as f64 / window_size as f64).ceil() as usize;
+
+    for i in 0..number_of_chunks {
+        let start = i * window_size;
+        let _end = std::cmp::min(start + window_size, channel_data.len());
+
+        let mut max = f32::NEG_INFINITY;
+
+        for j in 0..window_size {
+            if start + j >= channel_data.len() {
+                break;
+            }
+            let sample_value = channel_data[start + j].abs();
+            if sample_value > max {
+                max = sample_value;
+            }
+        }
+
+        chunks.push(max);
+    }
+
+    chunks
+}
+/*  pub fn calculate_waveform_chunks(channel_data: Vec<f32>, window_size: usize) -> Vec<f32> {
     let mut chunks = Vec::new();
     let number_of_chunks = (channel_data.len() as f64 / window_size as f64).ceil() as usize;
     let channel_data_length = channel_data.len();
@@ -21,7 +46,7 @@ use wasm_bindgen::prelude::*;
         chunks.push(max);
     }
     chunks
-}
+} */
 
  #[wasm_bindgen]
  pub fn calculate_y_value_array_from_chunks(

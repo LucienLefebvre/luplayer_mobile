@@ -30,6 +30,7 @@ export interface SoundModel {
   trimGainNode: GainNode;
   volumeGainNode: GainNode;
   enveloppeGainNode: GainNode;
+  // enveloppeGainWorkletNode: AudioWorkletNode;
 
   hpfEnabled: boolean;
   hpfFrequency: number;

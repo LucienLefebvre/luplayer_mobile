@@ -28,13 +28,6 @@ const emits = defineEmits(['click', 'doubleClick', 'long-touch']);
 onMounted(async () => {
   if (!waveformNew.value) return;
   waveform = new Waveform(waveformNew.value, props.sound.audioElement);
-  waveform.setHeight(settingsStore.playerHeightFactor * 100);
-  waveform.setVerticalZoomFactor(settingsStore.waveformVerticalZoomFactor);
-  waveform.showInTime = true;
-  waveform.showOutTime = true;
-  waveform.inTimeColor = 'lightblue';
-  waveform.outTimeColor = 'yellow';
-  updateWaveformColor();
 
   waveform.addEventListener('click', (event) => {
     emits('click', event);
@@ -42,12 +35,19 @@ onMounted(async () => {
   waveform.addEventListener('touchHold', (event) => {
     emits('long-touch', event);
   });
-  waveform.addEventListener('waveformChunksCalculated', () => {
+  /* waveform.addEventListener('waveformChunksCalculated', () => {
     console.log('waveformChunksCalculated');
-  });
+  }); */
 
-  waveform.calculateWaveformChunks().then((chunks) => {
+  await waveform.calculateWaveformChunks().then((chunks) => {
     sound.value.waveformChunks = chunks;
+    waveform.setHeight(settingsStore.playerHeightFactor * 100);
+    waveform.setVerticalZoomFactor(settingsStore.waveformVerticalZoomFactor);
+    waveform.showInTime = true;
+    waveform.showOutTime = true;
+    waveform.inTimeColor = 'lightblue';
+    waveform.outTimeColor = 'yellow';
+    updateWaveformColor();
   });
 });
 
@@ -87,6 +87,7 @@ watch(
   }
 );
 function updateWaveformColor() {
+  if (!sound.value.waveformChunks) return;
   if (sound.value.isSelected) {
     waveform?.setRemainingWaveformFillColor('orange');
   } else {

@@ -2,6 +2,7 @@ import { SoundModel } from 'src/components/models';
 import { dbToGain, getMMSSfromS } from 'src/composables/math-helpers';
 import { calculateIntegratedLoudness } from './loudness-calculation';
 import { calculateWaveformChunks } from './waveform-display';
+import { time } from 'console';
 
 export function playStopSound(sound: SoundModel, audioContext: AudioContext) {
   if (sound.isPlaying) {
@@ -22,26 +23,7 @@ export function playSound(
   }
 
   if ((sound.enveloppePoints, sound.enveloppePoints.length > 0)) {
-    const enveloppePoints = sound.enveloppePoints;
-
-    enveloppePoints.forEach((point, index) => {
-      const gain = dbToGain(point.gainDb);
-      const nextPoint = enveloppePoints[index + 1];
-      const currentTime = audioContext.currentTime;
-      const startTime = sound.audioElement.currentTime;
-      if (nextPoint) {
-        sound.enveloppeGainNode.gain.setValueAtTime(
-          gain,
-          point.time + currentTime - startTime
-        );
-        sound.enveloppeGainNode.gain.exponentialRampToValueAtTime(
-          dbToGain(nextPoint.gainDb),
-          nextPoint.time + currentTime - startTime
-        );
-      } else {
-        sound.enveloppeGainNode.gain.setValueAtTime(gain, point.time);
-      }
-    });
+    setEnveloppeGainValues(sound, audioContext);
   }
 
   sound.isCuePlayed = isCuePlayed;
@@ -61,16 +43,44 @@ export function playSound(
   }
 
   sound.audioElement.addEventListener('ended', () => {
+    sound.enveloppeGainNode.gain.cancelScheduledValues(0);
     stopSound(sound);
     sound.isCuePlayed = false;
   });
 }
 
+export function setEnveloppeGainValues(
+  sound: SoundModel,
+  audioContext: AudioContext
+) {
+  const enveloppePoints = sound.enveloppePoints;
+
+  const ctxCurrentTime = audioContext.currentTime;
+  const soundCurrentTime = sound.audioElement.currentTime;
+
+  sound.enveloppeGainNode.gain.setValueAtTime(
+    dbToGain(getEnveloppeValueAtTime(sound, soundCurrentTime)),
+    ctxCurrentTime
+  );
+
+  enveloppePoints.forEach((point, index) => {
+    const gain = dbToGain(point.gainDb);
+    const nextPoint = enveloppePoints[index + 1];
+
+    if (nextPoint) {
+      sound.enveloppeGainNode.gain.exponentialRampToValueAtTime(
+        dbToGain(nextPoint.gainDb),
+        nextPoint.time + ctxCurrentTime - soundCurrentTime
+      );
+    } else {
+      sound.enveloppeGainNode.gain.setValueAtTime(gain, point.time);
+    }
+  });
+}
+
 export function stopSound(sound: SoundModel) {
   sound.audioElement.pause();
-  if (!sound.isCuePlayed) {
-    sound.audioElement.currentTime = sound.inTime ?? 0;
-  }
+  sound.audioElement.currentTime = sound.inTime ?? 0;
   sound.isPlaying = false;
   clearTimeout(sound.timeOutId);
 }
@@ -121,7 +131,6 @@ export async function normalizeSound(sound: SoundModel, targetValue: number) {
       sound.integratedLoudness = loudness;
       setTrimGain(sound, getTrimValueFromLoudness(loudness, targetValue));
       const endTime = performance.now();
-      console.log(`Normalize took ${endTime - startTime} ms`);
     });
   } else {
     setTrimGain(
@@ -155,4 +164,26 @@ export function getSoundDurationLabel(sound: SoundModel) {
 
 export function getIsCuePlayed(sound: SoundModel) {
   return sound.isCuePlayed;
+}
+
+export function getEnveloppeValueAtTime(sound: SoundModel, time: number) {
+  const enveloppePoints = sound.enveloppePoints;
+
+  if (enveloppePoints.length === 0) return 0;
+  if (time <= enveloppePoints[0].time) return enveloppePoints[0].gainDb;
+  if (time >= enveloppePoints[enveloppePoints.length - 1].time)
+    return enveloppePoints[enveloppePoints.length - 1].gainDb;
+
+  for (let i = 0; i < enveloppePoints.length - 1; i++) {
+    const point1 = enveloppePoints[i];
+    const point2 = enveloppePoints[i + 1];
+    if (time >= point1.time && time <= point2.time) {
+      const timeDelta = point2.time - point1.time;
+      const gainDbDelta = point2.gainDb - point1.gainDb;
+      const timeRatio = (time - point1.time) / timeDelta;
+      const gainDb = point1.gainDb + timeRatio * gainDbDelta;
+      return gainDb;
+    }
+  }
+  return 0;
 }

@@ -10,19 +10,17 @@
 
 <script setup lang="ts">
 import { useSettingsStore } from 'src/stores/settings-store';
-import { PropType, onMounted, ref } from 'vue';
+import { useSoundsStore } from 'src/stores/sounds-store';
+import { onMounted, ref, watch } from 'vue';
 import { gainToDb } from '../composables/math-helpers';
 import { StereoAnalyserObject } from './models';
 import { NormalizableRange } from 'src/composables/normalizable-range';
 
-const props = defineProps({
-  analyserObject: {
-    type: Object as PropType<StereoAnalyserObject | null>,
-    required: true,
-  },
-});
+const analyser = ref<StereoAnalyserObject | null>(null);
 
 const settingsStore = useSettingsStore();
+const soundsStore = useSoundsStore();
+
 const canvas = ref<HTMLCanvasElement | null>(null);
 var canvasCtx = null as CanvasRenderingContext2D | null;
 var peakValue = [0, 0] as number[];
@@ -83,11 +81,11 @@ function drawBar(channelToDraw: number) {
   if (!canvasCtx) return;
 
   const data: Float32Array = new Float32Array(
-    props.analyserObject?.analysers[channelToDraw].frequencyBinCount ?? 0
+    analyser.value?.analysers[channelToDraw].frequencyBinCount ?? 0
   );
 
   //calculate peak value to display
-  props.analyserObject?.analysers[channelToDraw].getFloatTimeDomainData(data);
+  analyser.value?.analysers[channelToDraw].getFloatTimeDomainData(data);
   const maxValue = Math.max(...data);
   peakValue[channelToDraw] = Math.max(
     maxValue,
@@ -201,6 +199,15 @@ function setCanvasSize() {
     canvas.value.height = canvasHeight();
   }
 }
+
+watch(
+  () => soundsStore.outputAnalyserNodes,
+  (newValue) => {
+    if (newValue) {
+      analyser.value = newValue;
+    }
+  }
+);
 </script>
 
 <style scoped></style>

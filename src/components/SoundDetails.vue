@@ -140,6 +140,7 @@ import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import { SoundModel, EnveloppePoint } from './models';
 import { Waveform } from 'src/composables/waveform';
+import { setEnveloppeGainValues } from 'src/composables/sound-controller';
 
 import {
   deleteInTime,
@@ -215,15 +216,24 @@ onMounted(() => {
     zoomable.setWaveformChunks(sound.waveformChunks);
   }
 
+  zoomable.addEventListener('waveformDragEnd', () => {
+    if (zoomable?.wasPlayingOnDragStart) {
+      playSound(sound!, soundsStore.audioContext!, true);
+    }
+  });
+
   zoomable.addEventListener('enveloppePointsChanged', () => {
     sound!.enveloppePoints = zoomable!.getEnveloppePoints();
-    console.log('enveloppePointsChanged');
-    console.log(sound!.enveloppePoints);
+    setEnveloppeGainValues(sound!, soundsStore.audioContext!);
+  });
+
+  minimap.addEventListener('click', () => {
+    pauseSound(sound!);
+    playSound(sound!, soundsStore.audioContext!, true);
   });
 });
 
 onBeforeUnmount(() => {
-  console.log('sound details Unmounted');
   if (zoomable) {
     zoomable.freezed = true;
     zoomable.cleanUp();
@@ -241,6 +251,7 @@ onBeforeUnmount(() => {
 
 function closeButtonClicked() {
   if (sound?.isCuePlayed) stopSound(sound!);
+
   soundsStore.showEditWindow = false;
 }
 function playButtonClicked() {
@@ -289,6 +300,7 @@ function addEnveloppePointAtPlayPosition() {
     );
     zoomable?.setEnveloppePoints(sound.enveloppePoints);
   }
+  setEnveloppeGainValues(sound!, soundsStore.audioContext!);
 }
 watch(
   () => sound?.inTime,

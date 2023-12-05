@@ -1,24 +1,19 @@
 import Konva from 'konva';
-import { Layer } from 'konva/lib/Layer';
 import { KonvaEventObject } from 'konva/lib/Node';
 import { debounce } from 'quasar';
-import * as PIXI from 'pixi.js';
 
 import init, {
   calculate_waveform_chunks,
   calculate_y_value_array_from_chunks,
   calculate_y_value_array_from_chunks_windowed_overlap,
 } from 'src/rust/waveform_process/pkg';
-import { dbToGain, gainToDb } from './math-helpers';
+import { dbToGain } from './math-helpers';
 import { NormalizableRange } from './normalizable-range';
-import { useThrottledRefHistory } from '@vueuse/core';
 
 const SAMPLES_PER_CHUNK = 64;
 const WINDOW_SIZE = 64;
-const NUMBER_OF_PIXELS_PER_LINE = 1;
 const TOUCH_MOUSE_CLICK_TIME = 200;
 const TOUCH_HOLD_TIME = 500;
-const FRAME_RATE = 25;
 
 export class Waveform {
   private waveformView: HTMLDivElement;
@@ -61,6 +56,7 @@ export class Waveform {
   private waveformDragEndTime: number;
   private initialTouchDistance: number;
   private oldTimeDeltaX: number;
+  public wasPlayingOnDragStart: boolean;
 
   private waveformStyle: 'line' | 'bars';
   private xResolution: number;
@@ -144,15 +140,16 @@ export class Waveform {
     this.waveformCalculated = false;
     this.waveformShouldBeRedrawn = false;
 
-    this.waveformLayer = new Konva.Layer({
-      height: this.stage.height(),
-      width: this.stage.width(),
-    });
+    this.waveformLayer = new Konva.Layer({});
+
     this.waveformLayerBackground = new Konva.Rect({
+      x: 0,
+      y: 0,
       width: this.stage.width(),
       height: this.stage.height(),
       fill: 'transparent',
     });
+
     this.waveformLayer.add(this.waveformLayerBackground);
 
     this.stage.add(this.waveformLayer);
@@ -194,6 +191,7 @@ export class Waveform {
     this.initialTouchDistance = 0;
     this.oldTimeDeltaX = 0;
     this.touchHoldTimeout = null;
+    this.wasPlayingOnDragStart = false;
 
     this.strokeWaveform = false;
     this.fillWaveform = true;
@@ -247,7 +245,7 @@ export class Waveform {
     this.enveloppePointsValueText = new Konva.Text();
     this.enveloppePointsValueTextBackground = new Konva.Rect();
     this.enveloppeDragTimeoutID = null;
-    this.enveloppePointsNormRange = new NormalizableRange(-80, 0, 15);
+    this.enveloppePointsNormRange = new NormalizableRange(-60, 0, 15);
     this.enveloppePointsValueLayer.add(this.enveloppePointsValueTextBackground);
     this.enveloppePointsValueLayer.add(this.enveloppePointsValueText);
     this.stage.add(this.enveloppePointsValueLayer);
@@ -257,13 +255,24 @@ export class Waveform {
     if (this.isPlayPositionAlwaysOnCenter) this.centerTimeRangeOnPlayPosition();
     this.registerEventsListeners();
     this.registerMouseEvents();
-    //this.initializeResizeObserver();
+    this.initializeResizeObserver();
 
-    this.launchAnimation();
+    init().then(() => {
+      this.launchAnimation();
+    });
+  }
+
+  private initializeResizeObserver() {
+    const handleResized = debounce(() => {
+      this.stage.width(this.waveformView.clientWidth);
+      this.updateWaveform();
+    }, 100);
+
+    const resizeObserver = new ResizeObserver(handleResized);
+    resizeObserver.observe(this.waveformView);
   }
 
   public async launchAnimation() {
-    await init();
     const anim = new Konva.Animation((frame) => {
       this.draw();
       if (frame) {
@@ -324,7 +333,9 @@ export class Waveform {
       if (Date.now() - this.touchMouseDownTime < TOUCH_MOUSE_CLICK_TIME) {
         this.handleClick();
       }
-      this.isDragging = false;
+      if (this.isDragging) {
+        this.handleDragEnd();
+      }
     });
 
     this.waveformLayer?.on('mousemove touchmove', (e) => {
@@ -349,64 +360,40 @@ export class Waveform {
     }
   }
 
+  private handleDragEnd() {
+    const event = new CustomEvent('waveformDragEnd');
+    this.eventTarget.dispatchEvent(event);
+    this.wasPlayingOnDragStart = false;
+    this.isDragging = false;
+  }
+
   public handleMinimapTimesChanged() {
     if (this.isMinimap) this.drawMinimapRange();
     else this.draw();
   }
 
-  public async calculateWaveformChunks(
-    windowSize: number = SAMPLES_PER_CHUNK
-  ): Promise<Float32Array> {
-    const chunks: number[] = [];
+  public async calculateWaveformChunks(): Promise<Float32Array> {
     try {
-      this.audioElement.baseURI;
       const buffer = await fetch(this.audioElement.src).then((response) =>
         response.arrayBuffer()
       );
       const audioBuffer = await new AudioContext().decodeAudioData(buffer);
-
       const channelData = audioBuffer.getChannelData(0);
 
-      //////////////////////////////////
-      const wasmStartTime = performance.now();
       this.globalWaveformChunks = calculate_waveform_chunks(
         channelData,
         WINDOW_SIZE
       );
-      const wasmEndTime = performance.now();
-      //console.log('wasmChunks :', this.globalWaveformChunks.slice(0, 500));
-      console.log('wasmDuration: ', wasmEndTime - wasmStartTime);
-      ///////////////////////////////
-      const jsStartTime = performance.now();
-      const numberOfChunks = Math.ceil(channelData.length / windowSize);
-      for (let i = 0; i < numberOfChunks; i++) {
-        const start = i * windowSize;
-
-        let max = Number.NEGATIVE_INFINITY;
-
-        for (let j = 0; j < windowSize; j++) {
-          if (start + j >= channelData.length) break;
-          const sampleValue = Math.abs(channelData[start + j]);
-          if (sampleValue > max) max = sampleValue;
-        }
-        chunks.push(max);
-      }
-      this.globalWaveformChunks = new Float32Array(chunks);
-      const jsEndTime = performance.now();
-      //console.log('jsCHunks :', this.globalWaveformChunks.slice(0, 500));
-      console.log('jsDuration: ', jsEndTime - jsStartTime);
     } catch (error) {
       console.error('Error:', error);
     }
 
     this.waveformCalculated = true;
-
     this.waveformShouldBeRedrawn = true;
+    this.calculateYValueArrayFromChunks();
 
     const event = new CustomEvent('waveformChunksCalculated');
     this.eventTarget.dispatchEvent(event);
-
-    this.calculateYValueArrayFromChunks();
 
     return this.globalWaveformChunks;
   }
@@ -416,78 +403,10 @@ export class Waveform {
 
     this.waveformCalculated = true;
     this.waveformShouldBeRedrawn = true;
-
     this.calculateYValueArrayFromChunks();
   }
 
   private async calculateYValueArrayFromChunks() {
-    /*  const startTime = performance.now();
-    const dataArray: number[] = [];
-
-    const sliceStart = Math.floor(
-      this.globalWaveformChunks.length * (this.startTime / this.soundDuration)
-    );
-    const sliceEnd = Math.floor(
-      this.globalWaveformChunks.length * (this.endTime / this.soundDuration)
-    );
-
-    const clipStartIndex =
-      this.globalWaveformChunks.length *
-      (Math.max(this.startTime, 0) / this.soundDuration);
-    const clipEndIndex =
-      this.globalWaveformChunks.length *
-      (Math.min(this.endTime, this.soundDuration) / this.soundDuration);
-
-    let clippedWaveformChunks = this.globalWaveformChunks.slice(
-      clipStartIndex,
-      clipEndIndex
-    );
-
-    if (sliceStart < 0) {
-      const zeroedChunks = new Float32Array(Math.abs(sliceStart));
-      const result = new Float32Array(
-        zeroedChunks.length + clippedWaveformChunks.length
-      );
-      result.set(zeroedChunks);
-      result.set(clippedWaveformChunks, zeroedChunks.length);
-      clippedWaveformChunks = result;
-    }
-    if (sliceEnd > this.globalWaveformChunks.length) {
-      const zeroedChunks = new Float32Array(
-        sliceEnd - this.globalWaveformChunks.length
-      );
-      const result = new Float32Array(
-        clippedWaveformChunks.length + zeroedChunks.length
-      );
-      result.set(clippedWaveformChunks);
-      result.set(zeroedChunks, clippedWaveformChunks.length);
-      clippedWaveformChunks = result;
-    }
-
-    this.displayChunkSize = clippedWaveformChunks.length / this.stage.width();
-
-    let lastMax = 0;
-    for (let i = 0; i < this.stage.width(); i++) {
-      const start = i * this.displayChunkSize;
-      const end = start + this.displayChunkSize;
-      const currentChunk = clippedWaveformChunks.slice(start, end);
-      let max = Math.max(...currentChunk);
-      if (max === Number.NEGATIVE_INFINITY) max = lastMax;
-      dataArray.push(max);
-
-      lastMax = max;
-    }
-
-    const jsDisplayChunks = new Float32Array(dataArray);
-
-    const endTime = performance.now();
-    const duration = endTime - startTime;
-    console.log('js duration: ', duration); */
-
-    ///////////////////////////////////////////////
-
-    const wasmStartTime = performance.now();
-
     const wasmDisplayChunks = calculate_y_value_array_from_chunks(
       this.globalWaveformChunks,
       this.startTime,
@@ -495,12 +414,9 @@ export class Waveform {
       this.soundDuration,
       this.stage.width()
     );
+    this.diplayWaveformChunks = wasmDisplayChunks;
     this.displayChunkSize =
       this.diplayWaveformChunks.length / this.stage.width();
-    const wasmEndTime = performance.now();
-    this.diplayWaveformChunks = wasmDisplayChunks;
-
-    //console.log('wasmDuration: ', wasmEndTime - wasmStartTime);
   }
 
   private draw() {
@@ -557,7 +473,7 @@ export class Waveform {
     }
     const frameRedrawEndTime = performance.now();
     const frameRedrawDuration = frameRedrawEndTime - frameRedrawStartTime;
-    console.log('frameRedrawDuration: ', frameRedrawDuration);
+    //console.log('frameRedrawDuration: ', frameRedrawDuration);
     //console.log(this.name);
   }
 
@@ -633,7 +549,7 @@ export class Waveform {
       }
     }
 
-    for (let i = width - 1; i > 0; i -= this.xResolution) {
+    /* for (let i = width - 1; i > 0; i -= this.xResolution) {
       let enveloppeMultiplier = 1;
       if (this.showEnvelope) {
         const time = this.xToTime(i);
@@ -648,7 +564,7 @@ export class Waveform {
       } else {
         remainingPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
       }
-    }
+    } */
     return { playedPoints, remainingPoints };
   }
 
@@ -887,6 +803,9 @@ export class Waveform {
   private handleDrag() {
     if (this.isMinimap) return;
 
+    if (!this.wasPlayingOnDragStart && !this.audioElement.paused)
+      this.wasPlayingOnDragStart = true;
+
     const pointerPosX = this.stage!.getPointerPosition()?.x ?? 0;
     const pointerPosY = this.stage!.getPointerPosition()?.y ?? 0;
     const deltaX = pointerPosX - this.dragStartX;
@@ -915,6 +834,10 @@ export class Waveform {
       this.centerTimeRangeOnPlayPosition();
 
       this.dragStartX = pointerPosX;
+
+      if (!this.audioElement.paused) {
+        this.audioElement.pause();
+      }
     }
     if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
       clearTimeout(this.touchHoldTimeout!);
