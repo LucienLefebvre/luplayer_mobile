@@ -76,16 +76,6 @@ export const useSoundsStore = defineStore('soundsStore', {
           if (this.audioContext === null) return;
         }
 
-        const source = this.audioContext.createMediaElementSource(audioElement);
-        /*const trimGainNode = this.audioContext.createGain();
-        const volumeGainNode = this.audioContext.createGain();
-        const enveloppeGainNode = this.audioContext.createGain(); */
-
-        /* source.connect(trimGainNode);
-        trimGainNode.connect(volumeGainNode);
-        volumeGainNode.connect(enveloppeGainNode);
-        enveloppeGainNode.connect(this.outputGainNode!); */
-
         const defaultEnveloppePoints = [
           { time: 0, gainDb: 0 },
           { time: audioElement.duration, gainDb: 0 },
@@ -98,13 +88,12 @@ export const useSoundsStore = defineStore('soundsStore', {
           audioElement: audioElement,
           duration: audioElement.duration,
           remainingTime: audioElement.duration,
-          progressIn0to1: 0,
           isPlaying: false,
           isSelected: false,
           isCuePlayed: false,
           url: url,
           trimGain: 0.0,
-          source: source,
+          source: null,
           trimGainNode: null,
           volumeGainNode: null,
           enveloppeGainNode: null,
@@ -116,6 +105,7 @@ export const useSoundsStore = defineStore('soundsStore', {
           launchTime: 0,
           waveformChunks: null,
           enveloppePoints: defaultEnveloppePoints,
+          displayWaveform: true,
         };
 
         let arrayToAdd = 0;

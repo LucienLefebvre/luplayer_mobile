@@ -25,7 +25,8 @@ export const useSettingsStore = defineStore('settingsStore', {
 
     waveformVerticalZoomFactor: 1.7 as number,
 
-    playerHeightFactor: 1 as number,
+    waveformHeightFactor: 1 as number,
+    soundNameHeightFactor: 1 as number,
   }),
 
   actions: {

@@ -13,11 +13,10 @@ export interface SoundModel {
 
   audioElement: HTMLAudioElement;
   peak?: PeaksInstance;
-  source: MediaElementAudioSourceNode;
+  source: MediaElementAudioSourceNode | null;
 
   duration: number;
   remainingTime: number;
-  progressIn0to1: number;
   inTime: number | null;
   outTime: number | null;
   timeOutId?: ReturnType<typeof setTimeout>;
@@ -37,7 +36,7 @@ export interface SoundModel {
   //hpfNode: BiquadFilterNode;
 
   waveformChunks: Float32Array | null;
-
+  displayWaveform: boolean;
   enveloppePoints: EnveloppePoint[];
 }
 

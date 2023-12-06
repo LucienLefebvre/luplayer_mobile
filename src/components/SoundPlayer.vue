@@ -4,8 +4,6 @@
     style="width: 100%"
     :style="{
       borderColor: getWaveformColor(),
-      transform: 'translate(' + soundOffset + 'px, 0px)',
-      transition: isTouchPanned ? 'none' : 'transform 0.5s',
       backgroundColor: getBackgroundColor(0.1),
     }"
     @click="soundTouchUp(sound)"
@@ -17,30 +15,36 @@
         v-if="!sound.waveformChunks"
         indeterminate
         rounded
-        :size="75 * settingsStore.playerHeightFactor + 'px'"
+        :size="75 * settingsStore.waveformHeightFactor + 'px'"
         :style="{
-          height: settingsStore.playerHeightFactor * 100 + 'px',
+          height: settingsStore.waveformHeightFactor * 100 + 'px',
           color: getWaveformColor(),
         }"
       />
       <sound-waveform
         :v-if="sound.waveformChunks"
-        v-show="settingsStore.playerHeightFactor > 0.1 && sound.waveformChunks"
+        v-show="
+          settingsStore.waveformHeightFactor > 0.1 && sound.waveformChunks
+        "
         ref="soundWaveforms"
         :sound="sound"
         style="width: 100%"
       />
 
       <div
-        class="sound-player row"
+        class="bottom-row row"
         :style="{
           color: getWaveformColor(),
+          fontSize: settingsStore.soundNameHeightFactor * 20 + 'px',
         }"
         ref="soundPlayer"
       >
         <sound-progress-bar
           :sound="sound"
-          style="width: 100%"
+          :style="{
+            width: '100%',
+            height: '100%',
+          }"
           class="sound-progress-bar"
           ref="progressBar"
         />
@@ -68,8 +72,8 @@ import {
   playOrStopSound,
   getSoundDurationLabel,
   setSelectedSound,
+  getRemainingTime,
 } from 'src/composables/sound-controller';
-import { Color } from 'pixi.js';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -84,7 +88,7 @@ const backgroundColor = ref('rgb(40, 134, 189)');
 
 function getWaveformColor() {
   if (sound.value.isPlaying) {
-    if (sound.value.remainingTime < 5) return 'red';
+    if (getRemainingTime(sound.value) < 5) return 'red';
     else return 'green';
   } else if (sound.value.isSelected && soundsStore.playerMode === 'playlist') {
     return 'orange';
@@ -96,7 +100,7 @@ function getWaveformColor() {
 function getBackgroundColor(opacity: number) {
   let color;
   if (sound.value.isPlaying) {
-    if (sound.value.remainingTime < 5) {
+    if (getRemainingTime(sound.value) < 5) {
       color = 'rgba(255, 0, 0, ' + opacity + ')';
     } else {
       color = 'rgba(93, 175, 77 , ' + opacity + ')';
@@ -154,14 +158,14 @@ const barWidth = ref(0);
 onMounted(() => {
   if (soundPlayer.value) {
     barWidth.value = soundPlayer.value.offsetWidth;
-    progressBar.value?.setBarColor(getBackgroundColor(0.1));
+    progressBar.value?.setBarColor(getBackgroundColor(0.2));
   }
 });
 
 watch(
   () => backgroundColor.value,
   () => {
-    progressBar.value?.setBarColor(backgroundColor.value);
+    progressBar.value?.setBarColor(getBackgroundColor(0.2));
   }
 );
 
@@ -183,7 +187,7 @@ watch(
   max-width: 85vw;
   overflow: hidden;
 }
-.sound-player {
+.bottom-row {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;

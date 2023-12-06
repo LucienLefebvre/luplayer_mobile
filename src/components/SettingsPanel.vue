@@ -18,11 +18,22 @@
           <q-toggle v-model="settingsStore.keepScreenAwake" color="orange" />
         </div>
         <div class="settings-row">
-          <div class="settings-label">Players height</div>
+          <div class="settings-label">Waveform size</div>
           <q-slider
             style="height: 100%; width: 60%"
-            v-model="settingsStore.playerHeightFactor"
+            v-model="settingsStore.waveformHeightFactor"
             :min="0"
+            :max="2"
+            :step="0.01"
+            color="orange"
+          />
+        </div>
+        <div class="settings-row">
+          <div class="settings-label">Sound name size</div>
+          <q-slider
+            style="height: 100%; width: 60%"
+            v-model="settingsStore.soundNameHeightFactor"
+            :min="0.5"
             :max="2"
             :step="0.01"
             color="orange"
@@ -32,7 +43,7 @@
           <div class="settings-label">Auto scroll to selected sound</div>
           <q-toggle v-model="settingsStore.autoScroll" color="orange" />
         </div>
-        <q-separator class="separator" size="1px" color="blue" />
+        <q-separator class="separator" size="1px" />
         <div class="settings-row">
           <div class="settings-label">Invert fader side</div>
           <q-toggle v-model="settingsStore.faderIsOtherSide" color="orange" />
@@ -52,7 +63,7 @@
           <div class="settings-label">Fader stop</div>
           <q-toggle v-model="settingsStore.faderStop" color="orange" />
         </div>
-        <q-separator class="separator" size="1px" color="blue" />
+        <q-separator class="separator" size="1px" />
         <div class="settings-row">
           <div class="settings-label">Auto normalize</div>
           <q-toggle
@@ -76,7 +87,7 @@
             borderless
           />
         </div>
-        <q-separator class="separator" size="1px" color="blue" />
+        <q-separator class="separator" size="1px" />
         <div class="settings-row">
           <div class="settings-label">Show peak meter</div>
           <q-toggle v-model="settingsStore.showPeakMeter" color="orange" />
@@ -158,21 +169,14 @@ watch(
   justify-content: center;
   align-items: center;
 }
-.soundDetailsBackground {
-  border: 1px solid;
-  border-radius: 10px;
-
-  background-color: var(--bkgColor);
-  width: 90%;
-}
 .card-class {
   background-color: var(--bkgColor);
-  color: white;
   padding: 5px;
   border-radius: 10px;
   overflow-y: auto;
   max-width: 100%;
   width: 100%;
+  border: 2px solid var(--blueColor);
 }
 .settings-panel {
   display: flex;

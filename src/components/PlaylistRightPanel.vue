@@ -1,10 +1,6 @@
 <template>
   <div class="column q-py-sm fit justifi-center" style="min-height: inherit">
-    <div
-      class="row justify-center volumeLabel"
-      style="height: 5%"
-      @dblclick="soundsStore.selectedSoundVolume = 0"
-    >
+    <div class="row justify-center volumeLabel" style="height: 5%">
       {{ getVolumeLabelText() }}
     </div>
     <div class="row justify-center flex" style="height: 85%">
@@ -31,14 +27,20 @@
 </template>
 
 <script setup lang="ts">
-import { watch, onMounted } from 'vue';
+import { watch, onMounted, ref } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import { dbToGain } from '../composables/math-helpers';
 import { NormalizableRange } from 'src/composables/normalizable-range';
 import AddSoundButton from './AddSoundButton.vue';
+import {
+  setSelectedSoundVolume,
+  stopSelectedSound,
+} from 'src/composables/sound-controller';
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
+
+let normRange = new NormalizableRange(-60, 10, settingsStore.faderSkewFactor);
 
 onMounted(() => {
   soundsStore.selectedSoundVolumeSliderValue = normRange.logScaleTo0to1(
@@ -49,10 +51,9 @@ onMounted(() => {
 watch(
   () => soundsStore.selectedSoundVolume,
   (newValue: number) => {
-    if (soundsStore.selectedSound !== null) {
-      soundsStore.selectedSound.volumeGainNode.gain.value = dbToGain(newValue);
-      soundsStore.selectedSoundVolumeSliderValue =
-        normRange.logScaleTo0to1(newValue);
+    if (soundsStore.selectedSound) {
+      const newSliderValue = normRange.logScaleTo0to1(newValue);
+      soundsStore.selectedSoundVolumeSliderValue = newSliderValue;
     }
   }
 );
@@ -64,11 +65,23 @@ watch(
   }
 );
 
-let normRange = new NormalizableRange(-60, 10, settingsStore.faderSkewFactor);
+watch(
+  () => soundsStore.selectedSoundVolume,
+  (value) => {
+    if (
+      value === -60 &&
+      soundsStore.selectedSound?.isPlaying &&
+      settingsStore.faderStop
+    ) {
+      stopSelectedSound();
+      soundsStore.faderTouchedDuringPlayback = true;
+    }
+  }
+);
 
 function sliderValueChanged(value: number) {
   const normedValue = normRange.logScaleFrom0to1(value);
-  soundsStore.selectedSoundVolume = normedValue;
+  setSelectedSoundVolume(normedValue);
 }
 
 function getVolumeLabelText() {

@@ -31,7 +31,10 @@
 import { PropType, ref } from 'vue';
 import { SoundModel } from './models';
 import { useSoundsStore } from '../stores/sounds-store';
-import { playOrStopSound } from 'src/composables/sound-controller';
+import {
+  getRemainingTime,
+  playOrStopSound,
+} from 'src/composables/sound-controller';
 import { getMMSSfromS } from 'src/composables/math-helpers';
 
 const soundsStore = useSoundsStore();
@@ -56,7 +59,7 @@ function getSoundColor() {
 }
 
 function getSoundDurationLabel() {
-  return getMMSSfromS(sound.value.remainingTime);
+  return getMMSSfromS(getRemainingTime(sound.value));
 }
 </script>
 

@@ -8,8 +8,9 @@
       v-for="sound in soundsStore.sounds[0]"
       :key="sound.id"
       class="sound-player"
+      :id="sound.id"
     >
-      <SoundPlayer :sound="sound" />
+      <SoundPlayer :sound="sound" :id="sound.id" />
     </div>
   </div>
 </template>
@@ -25,10 +26,6 @@ const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 
 const soundPlayers: Ref<HTMLElement | null> = ref(null);
-
-onMounted(() => {
-  updateHeight();
-});
 
 const scrollablePlaylistHeight = ref(0);
 const updateHeight = () => {
@@ -67,12 +64,65 @@ watch(
 
       if (soundPlayers.value === null) return;
       soundPlayers.value.scrollTo({
-        top: (36 + 100 * settingsStore.playerHeightFactor) * selectedSoundIndex,
+        top:
+          (36 + 100 * settingsStore.waveformHeightFactor) * selectedSoundIndex,
         behavior: 'smooth',
       });
     }
   }
 );
+
+onMounted(() => {
+  updateHeight();
+});
+
+const soundPlayersInViewport = ref<string[]>([]);
+const elementsObserved: HTMLElement[] = [];
+watch(
+  () => soundsStore.sounds[0].length,
+  () => {
+    console.log('sounds changed');
+    const options: IntersectionObserverInit = {
+      root: null,
+      rootMargin: '400px',
+      threshold: 0,
+    };
+
+    soundsStore.sounds[0].forEach((sound) => {
+      const element = document.getElementById(sound.id);
+      if (element && !elementsObserved.includes(element)) {
+        elementsObserved.push(element);
+        const observer = new IntersectionObserver(handleIntersection, options);
+        observer.observe(element);
+      }
+    });
+  }
+);
+
+const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      const foundSound = soundsStore.sounds[0].find(
+        (sound) => sound.id === entry.target.id
+      );
+
+      if (foundSound) {
+        foundSound.displayWaveform = true;
+      }
+    } else {
+      const foundSound = soundsStore.sounds[0].find(
+        (sound) => sound.id === entry.target.id
+      );
+
+      if (foundSound) {
+        foundSound.displayWaveform = false;
+      }
+    }
+  });
+};
+
+const isSoundPlayerInViewport = (id: string) =>
+  soundPlayersInViewport.value.includes(id);
 </script>
 
 <style scoped>

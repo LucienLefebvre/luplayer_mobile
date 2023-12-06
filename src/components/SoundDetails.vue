@@ -16,7 +16,7 @@
         <div class="soundName" :style="{ color: getWaveformColor() }">
           {{ sound.name }}
         </div>
-        <q-separator color="primary" class="separator" size="1px" />
+        <q-separator class="separator" size="1px" />
         <div class="row volume-container">
           <q-btn
             class="justify-center normalize-button"
@@ -39,28 +39,7 @@
             class="volume-slider"
           />
         </div>
-        <!-- <div class="row filter-container">
-          <q-btn
-            label="HPF"
-            @click="toggleHpf(sound)"
-            class="filter-button"
-            :color="getHpfButtonColor()"
-          />
-          <q-slider
-            v-model="sound.hpfFrequency"
-            :min="20"
-            :max="200"
-            class="filter-slider"
-            :label-value="sound.hpfFrequency + 'Hz'"
-            label-always
-            switch-label-side
-            @update:model-value="setHpfFrequency(sound, $event!)"
-            track-size="4px"
-            thumb-size="20px"
-            color="orange"
-          />
-        </div> -->
-        <q-separator color="primary" class="separator" size="1px" />
+        <q-separator class="separator" size="1px" />
 
         <div style="height: 10px"></div>
         <div ref="minimapWaveformView" style="width: 100%"></div>
@@ -105,7 +84,7 @@
           </div>
         </div>
 
-        <q-separator color="primary" class="separator" size="1px" />
+        <q-separator class="separator" size="1px" />
         <div class="play-pause">
           <q-btn
             :label="getPlayButtonLabel()"
@@ -139,7 +118,7 @@ import { useSettingsStore } from 'src/stores/settings-store';
 import { SoundModel, EnveloppePoint } from './models';
 import { Waveform } from 'src/composables/waveform';
 import { setEnveloppeGainValues } from 'src/composables/sound-controller';
-
+import { dbToGain } from 'src/composables/math-helpers';
 import {
   deleteInTime,
   deleteOutTime,
@@ -149,11 +128,8 @@ import {
   setOutTimeAtCurrentPosition,
   setTrimGain,
   normalizeSound,
-  toggleHpf,
-  setHpfFrequency,
   stopSound,
 } from 'src/composables/sound-controller';
-import { spritesheetAsset } from 'pixi.js';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -199,6 +175,8 @@ onMounted(() => {
   zoomable.setRemainingWaveformFillColor('orange');
   zoomable.setEnveloppePoints(sound!.enveloppePoints);
   zoomable.setShowEnveloppe(true);
+  zoomable.setShowEnveloppePoints(true);
+  zoomable.setShowEnveloppeLine(true);
 
   minimap.setMinimapRangeRectangleOpacity(0.2);
   minimap.showInTime = true;
@@ -209,6 +187,15 @@ onMounted(() => {
   minimap.setPlayedWaveformFillColor('orange');
   minimap.setRemainingWaveformFillColor('orange');
 
+  if (sound?.inTime) {
+    zoomable.setInTime(sound!.inTime);
+    minimap.setInTime(sound!.inTime);
+  }
+  if (sound?.outTime) {
+    zoomable.setOutTime(sound!.outTime);
+    minimap.setOutTime(sound!.outTime);
+  }
+
   if (sound?.waveformChunks) {
     minimap.setWaveformChunks(sound.waveformChunks);
     zoomable.setWaveformChunks(sound.waveformChunks);
@@ -218,6 +205,11 @@ onMounted(() => {
   zoomable.addEventListener('waveformDragEnd', () => {
     if (zoomable?.wasPlayingOnDragStart) {
       playSound(sound!, true);
+    }
+  });
+  zoomable.addEventListener('waveformDrag', () => {
+    if (zoomable?.wasPlayingOnDragStart) {
+      pauseSound(sound!);
     }
   });
 
@@ -276,13 +268,6 @@ function getWaveformColor() {
     return 'rgb(40, 134, 189)';
   }
 }
-function getHpfButtonColor() {
-  if (sound?.hpfEnabled) {
-    return 'green';
-  } else {
-    return 'var(--blueColor)';
-  }
-}
 
 function addEnveloppePointAtPlayPosition() {
   if (sound?.audioElement.currentTime) {
@@ -322,6 +307,16 @@ watch(
     } else {
       zoomable?.setOutTime(null);
       minimap?.setOutTime(null);
+    }
+  }
+);
+
+watch(
+  () => sound?.trimGain,
+  (newValue) => {
+    if (newValue) {
+      zoomable?.setVerticalZoomFactor(dbToGain(newValue));
+      minimap?.setVerticalZoomFactor(dbToGain(newValue));
     }
   }
 );

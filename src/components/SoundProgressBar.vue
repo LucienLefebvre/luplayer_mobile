@@ -1,76 +1,58 @@
 <template>
-  <canvas :width="canvasWidth()" class="progress-bar" ref="canvas"> </canvas>
+  <div ref="bar" class="progress-bar"></div>
 </template>
 
 <script setup lang="ts">
 import { PropType, onMounted, ref } from 'vue';
 import { SoundModel } from './models';
-import { useSoundsStore } from 'src/stores/sounds-store';
-const canvas = ref<HTMLCanvasElement | null>(null);
-var canvasCtx = null as CanvasRenderingContext2D | null;
+import Konva from 'konva';
 
-const soundsStore = useSoundsStore();
 const props = defineProps({
-  isMainToolbar: { type: Boolean, required: false, default: false },
+  sound: { type: Object as PropType<SoundModel | null> },
 });
+
+const bar = ref<HTMLDivElement | null>(null);
+let stage: Konva.Stage;
+let layer: Konva.Layer;
+let progressRect: Konva.Rect;
 
 const barColor = ref('orange');
 onMounted(() => {
-  if (canvas.value) {
-    canvasCtx = canvas.value.getContext('2d');
+  if (!bar.value) return;
+  stage = new Konva.Stage({
+    container: bar.value,
+    width: bar.value.clientWidth,
+    height: bar.value.clientHeight,
+  });
+  layer = new Konva.Layer();
+  stage.add(layer);
+  progressRect = new Konva.Rect({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: bar.value.clientHeight,
+    fill: barColor.value,
+  });
+  layer.add(progressRect);
+  const anim = new Konva.Animation(() => {
+    drawBar();
+  }, stage);
 
-    const animate = () => {
-      drawBar();
-      requestAnimationFrame(animate);
-    };
-    animate();
-  }
+  anim.start();
 });
 
 function drawBar() {
-  if (!canvasCtx) return;
-  if (soundsStore.selectedSound === null) return;
+  if (!props.sound) return;
+  const currentTime = props.sound.audioElement.currentTime;
+  const duration = props.sound.audioElement.duration;
+  const barWidth = (currentTime / duration) * stage!.width();
+  const barHeight = stage.height();
 
-  const barWidth =
-    (soundsStore.selectedSound.audioElement.currentTime /
-      soundsStore.selectedSound.audioElement.duration) *
-    canvasCtx.canvas.width;
-  const barHeight = canvasCtx.canvas.height;
+  progressRect.width(barWidth);
+  progressRect.height(barHeight);
+  progressRect.fill(barColor.value);
 
-  canvasCtx.clearRect(0, 0, canvasCtx.canvas.width, canvasCtx.canvas.height);
-  canvasCtx.fillStyle = barColor.value;
-
-  if (props.isMainToolbar) {
-    canvasCtx.fillRect(0, 0, barWidth, barHeight);
-  } else {
-    roundedRect(canvasCtx, 0, 0, barWidth, barHeight, 15);
-  }
-}
-
-function roundedRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number
-) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.arcTo(x + width, y, x + width, y + radius, radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
-  ctx.lineTo(x + radius, y + height);
-  ctx.arcTo(x, y + height, x, y + height - radius, radius);
-  ctx.lineTo(x, y + radius);
-  ctx.arcTo(x, y, x + radius, y, radius);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function canvasWidth() {
-  return canvas.value?.clientWidth ?? 0;
+  stage.draw();
 }
 
 function setBarColor(color: string) {

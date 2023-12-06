@@ -1,7 +1,14 @@
 <template>
   <div style="position: relative">
-    <div ref="minimapWaveformView" style="width: 100%"></div>
-    <div ref="waveformNew" class="waveform-view"></div>
+    <div
+      ref="waveformNew"
+      class="waveform-view"
+      v-show="sound.displayWaveform"
+    ></div>
+    <div
+      v-show="!sound.displayWaveform"
+      :style="{ height: getWaveformHeight() + 'px' }"
+    ></div>
   </div>
 </template>
 
@@ -41,7 +48,7 @@ onMounted(async () => {
 
   await waveform.calculateWaveformChunks().then((chunks) => {
     sound.value.waveformChunks = chunks;
-    waveform.setHeight(settingsStore.playerHeightFactor * 100);
+    waveform.setHeight(settingsStore.waveformHeightFactor * 100);
     waveform.setVerticalZoomFactor(settingsStore.waveformVerticalZoomFactor);
     waveform.showInTime = true;
     waveform.showOutTime = true;
@@ -49,14 +56,23 @@ onMounted(async () => {
     waveform.outTimeColor = 'yellow';
     waveform.isZoomable = false;
     waveform.waveformLayer.listening(false);
+    waveform.name = sound.value.name;
+    waveform.setEnveloppePoints(sound.value.enveloppePoints);
+    waveform.setShowEnveloppe(true);
+    waveform.setShowEnveloppeLine(false);
+    waveform.setShowEnveloppePoints(false);
+
     updateWaveformColor();
   });
 });
 
+function getWaveformHeight() {
+  return settingsStore.waveformHeightFactor * 100;
+}
 watch(
-  () => settingsStore.playerHeightFactor,
+  () => settingsStore.waveformHeightFactor,
   (newValue) => {
-    waveform?.setHeight(newValue * 100);
+    waveform?.setHeight(getWaveformHeight());
   }
 );
 
@@ -123,6 +139,15 @@ watch(
   (newValue) => {
     updateWaveformColor();
   }
+);
+
+watch(
+  () => sound.value.enveloppePoints,
+  (newValue) => {
+    console.log('enveloppePoints changed to ' + newValue);
+    waveform?.setEnveloppePoints(newValue);
+  },
+  { deep: true }
 );
 </script>
 

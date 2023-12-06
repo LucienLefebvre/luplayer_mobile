@@ -12,21 +12,20 @@
 <script setup lang="ts">
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from '../stores/settings-store';
-import { watch } from 'vue';
+
 import {
-  playSelectedSound,
-  stopSelectedSound,
   playButtonClicked,
+  getRemainingTime,
 } from 'src/composables/sound-controller';
 
 const soundsStore = useSoundsStore();
-const settingsStore = useSettingsStore();
 
 function buttonColor() {
-  if (soundsStore.selectedSound === null || undefined) return 'orange';
-  if (soundsStore.selectedSound.isPlaying) {
-    if (soundsStore.selectedSound?.remainingTime === undefined) return 'green';
-    if (soundsStore.selectedSound?.remainingTime < 5) {
+  const selectedSound = soundsStore.selectedSound;
+  if (selectedSound === null || undefined) return 'orange';
+  if (selectedSound.isPlaying) {
+    if (getRemainingTime(selectedSound) === undefined) return 'green';
+    else if (getRemainingTime(selectedSound) < 5) {
       return 'red';
     } else return 'green';
   } else {
@@ -42,19 +41,6 @@ function buttonLabel() {
     return 'play';
   }
 }
-
-watch(
-  () => soundsStore.selectedSoundVolume,
-  (value) => {
-    if (
-      value === -60 &&
-      soundsStore.selectedSound?.isPlaying &&
-      settingsStore.faderStop
-    ) {
-      stopSelectedSound();
-    }
-  }
-);
 </script>
 
 <style scoped>
