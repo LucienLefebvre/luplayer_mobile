@@ -73,15 +73,6 @@ const draggables = [
     list: soundsStore.sounds[1],
   },
 ];
-
-function dragOptions() {
-  return {
-    animation: 200,
-    group: 'description',
-    disabled: false,
-    ghostClass: 'ghost',
-  };
-}
 </script>
 
 <style scoped>

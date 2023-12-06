@@ -8,19 +8,27 @@
       transition: isTouchPanned ? 'none' : 'transform 0.5s',
       backgroundColor: getBackgroundColor(0.1),
     }"
+    @click="soundTouchUp(sound)"
+    @doubleClick="touchHold(sound)"
+    v-touch-hold="(e: TouchHold) => touchHold(sound)"
   >
-    <!--      v-touch-pan.mouse="moveSound"
-       @dblclick="soundDoubleClicked(sound)"
-          @touchend="soundTouchUp(sound)"
-    v-touch-hold="(e: TouchHold) => touchHold(e, sound)" -->
     <div class="column d-flex flex-center" style="width: 100%">
+      <q-circular-progress
+        v-if="!sound.waveformChunks"
+        indeterminate
+        rounded
+        :size="75 * settingsStore.playerHeightFactor + 'px'"
+        :style="{
+          height: settingsStore.playerHeightFactor * 100 + 'px',
+          color: getWaveformColor(),
+        }"
+      />
       <sound-waveform
-        v-show="settingsStore.playerHeightFactor > 0.1"
+        :v-if="sound.waveformChunks"
+        v-show="settingsStore.playerHeightFactor > 0.1 && sound.waveformChunks"
         ref="soundWaveforms"
         :sound="sound"
         style="width: 100%"
-        @click="soundTouchUp(sound)"
-        @long-touch="touchHold($event, sound)"
       />
 
       <div
@@ -57,9 +65,11 @@ import { useSettingsStore } from 'src/stores/settings-store';
 import SoundWaveform from './SoundWaveform.vue';
 import SoundProgressBar from './SoundProgressBar.vue';
 import {
-  playStopSound,
+  playOrStopSound,
   getSoundDurationLabel,
+  setSelectedSound,
 } from 'src/composables/sound-controller';
+import { Color } from 'pixi.js';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -118,13 +128,13 @@ function soundTouchUp(soundModel: SoundModel) {
 
 function soundClicked(sound: SoundModel) {
   if (!soundsStore.isReordering && soundsStore.playerMode === 'playlist') {
-    soundsStore.setSelectedSound(sound);
+    setSelectedSound(sound);
   } else if (soundsStore.playerMode === 'cart') {
-    playStopSound(sound);
+    playOrStopSound(sound);
   }
 }
 
-function touchHold(e: TouchHold, sound: SoundModel) {
+function touchHold(sound: SoundModel) {
   showEditWindow(sound);
 }
 

@@ -47,6 +47,8 @@ onMounted(async () => {
     waveform.showOutTime = true;
     waveform.inTimeColor = 'lightblue';
     waveform.outTimeColor = 'yellow';
+    waveform.isZoomable = false;
+    waveform.waveformLayer.listening(false);
     updateWaveformColor();
   });
 });

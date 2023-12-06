@@ -4,7 +4,7 @@
       :color="buttonColor()"
       :label="buttonLabel()"
       class="button"
-      @click="soundsStore.playButtonClicked"
+      @click="playButtonClicked"
     />
   </div>
 </template>
@@ -13,6 +13,11 @@
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from '../stores/settings-store';
 import { watch } from 'vue';
+import {
+  playSelectedSound,
+  stopSelectedSound,
+  playButtonClicked,
+} from 'src/composables/sound-controller';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -46,7 +51,7 @@ watch(
       soundsStore.selectedSound?.isPlaying &&
       settingsStore.faderStop
     ) {
-      soundsStore.stopSelectedSound();
+      stopSelectedSound();
     }
   }
 );

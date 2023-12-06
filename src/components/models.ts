@@ -27,9 +27,9 @@ export interface SoundModel {
   integratedLoudness: number | null;
 
   trimGain: number;
-  trimGainNode: GainNode;
-  volumeGainNode: GainNode;
-  enveloppeGainNode: GainNode;
+  trimGainNode: GainNode | null;
+  volumeGainNode: GainNode | null;
+  enveloppeGainNode: GainNode | null;
   // enveloppeGainWorkletNode: AudioWorkletNode;
 
   hpfEnabled: boolean;
@@ -48,7 +48,6 @@ export interface EnveloppePoint {
 
 export interface StereoAnalyserObject {
   splitter: ChannelSplitterNode;
-  stereoAnalyser: AnalyserNode;
   analysers: AnalyserNode[];
 }
 

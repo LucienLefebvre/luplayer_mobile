@@ -1,29 +1,31 @@
 import { SoundModel } from 'src/components/models';
 import { dbToGain, getMMSSfromS } from 'src/composables/math-helpers';
 import { calculateIntegratedLoudness } from './loudness-calculation';
-import { calculateWaveformChunks } from './waveform-display';
-import { time } from 'console';
+import { useSoundsStore } from 'src/stores/sounds-store';
+import { useSettingsStore } from 'src/stores/settings-store';
 
-export function playStopSound(sound: SoundModel, audioContext: AudioContext) {
-  if (sound.isPlaying) {
-    stopSound(sound);
-  } else {
-    sound.isCuePlayed = true;
-    playSound(sound, audioContext);
-  }
-}
+export function playSound(sound: SoundModel, isCuePlayed = false) {
+  const soundStore = useSoundsStore();
+  const audioContext = soundStore.audioContext;
+  if (audioContext === null) return;
 
-export function playSound(
-  sound: SoundModel,
-  audioContext: AudioContext,
-  isCuePlayed = false
-) {
+  sound.trimGainNode = audioContext.createGain();
+  sound.volumeGainNode = audioContext.createGain();
+  sound.enveloppeGainNode = audioContext.createGain();
+
+  sound.source.connect(sound.trimGainNode);
+  sound.trimGainNode.connect(sound.volumeGainNode);
+  sound.volumeGainNode.connect(sound.enveloppeGainNode);
+  sound.enveloppeGainNode.connect(soundStore.outputGainNode!);
+
+  sound.trimGainNode.gain.value = dbToGain(sound.trimGain);
+
   if (!isCuePlayed) {
     sound.audioElement.currentTime = sound.inTime ?? 0;
   }
 
   if ((sound.enveloppePoints, sound.enveloppePoints.length > 0)) {
-    setEnveloppeGainValues(sound, audioContext);
+    setEnveloppeGainValues(sound, useSoundsStore().audioContext!);
   }
 
   sound.isCuePlayed = isCuePlayed;
@@ -43,10 +45,133 @@ export function playSound(
   }
 
   sound.audioElement.addEventListener('ended', () => {
-    sound.enveloppeGainNode.gain.cancelScheduledValues(0);
+    sound.enveloppeGainNode!.gain.cancelScheduledValues(0);
     stopSound(sound);
     sound.isCuePlayed = false;
   });
+}
+
+export function pauseSound(sound: SoundModel) {
+  sound.audioElement.pause();
+  sound.isPlaying = false;
+
+  sound.trimGainNode?.disconnect();
+  sound.source?.disconnect();
+
+  clearTimeout(sound.timeOutId);
+}
+
+export function stopSound(sound: SoundModel) {
+  sound.audioElement.pause();
+  sound.audioElement.currentTime = sound.inTime ?? 0;
+  sound.isPlaying = false;
+
+  sound.trimGainNode?.disconnect();
+  sound.source?.disconnect();
+  clearTimeout(sound.timeOutId);
+}
+
+export function playOrStopSound(sound: SoundModel) {
+  if (sound.isPlaying) {
+    stopSound(sound);
+  } else {
+    sound.isCuePlayed = true;
+    playSound(sound);
+  }
+}
+
+export function playButtonClicked() {
+  const soundStore = useSoundsStore();
+  const selectedSound = soundStore.selectedSound;
+
+  if (selectedSound === null) return;
+
+  if (selectedSound.isPlaying) {
+    soundStore.stoppedByButtonClick = true;
+    stopSound(selectedSound);
+  } else {
+    playSelectedSound();
+  }
+}
+
+export function playSelectedSound() {
+  const selectedSound = useSoundsStore().selectedSound;
+
+  if (selectedSound) {
+    playSound(selectedSound);
+  }
+}
+
+export function stopSelectedSound() {
+  const selectedSound = useSoundsStore().selectedSound;
+
+  if (selectedSound) {
+    stopSound(selectedSound);
+  }
+}
+
+export function incrementSelectedSound() {
+  const soundStore = useSoundsStore();
+  if (soundStore.selectedSound === null) return;
+  const index = soundStore.sounds[0].indexOf(soundStore.selectedSound);
+  if (index < soundStore.sounds[0].length - 1) {
+    setSelectedSound(soundStore.sounds[0][index + 1]);
+  }
+}
+
+export function setSelectedSound(sound: SoundModel) {
+  const soundStore = useSoundsStore();
+  let isPlaying = false;
+  soundStore.sounds[0].forEach((sound) => {
+    if (sound.isPlaying) isPlaying = true;
+  });
+  if (!isPlaying) {
+    soundStore.sounds[0].forEach((sound) => (sound.isSelected = false));
+    sound.isSelected = true;
+    soundStore.selectedSound = sound;
+    resetSelectedSoundVolume();
+  }
+}
+
+export function registerEventListeners(sound: SoundModel) {
+  sound.audioElement.addEventListener('play', () => handlePlayEvent(sound));
+  sound.audioElement.addEventListener('pause', () => handlePauseEvent(sound));
+  sound.audioElement.addEventListener('timeupdate', () =>
+    handleTimeUpdateEvent(sound)
+  );
+}
+
+export function handlePlayEvent(sound: SoundModel) {
+  sound.isPlaying = true;
+}
+
+export function handlePauseEvent(sound: SoundModel) {
+  sound.enveloppeGainNode?.gain.cancelScheduledValues(0);
+  sound.isPlaying = false;
+  sound.volumeGainNode!.gain.value! = 1;
+  if (!getIsCuePlayed(sound)) {
+    resetSelectedSoundVolume();
+    if (Date.now() - sound.launchTime > useSettingsStore().falseStartTime) {
+      incrementSelectedSound();
+    } else if (sound.duration < 1) incrementSelectedSound();
+  }
+  sound.isCuePlayed = false;
+}
+
+export function handleTimeUpdateEvent(sound: SoundModel) {
+  const remainingTime =
+    sound.audioElement.duration - sound.audioElement.currentTime;
+  if (Number.isNaN(remainingTime)) {
+    sound.remainingTime = sound.audioElement.duration;
+  } else {
+    sound.remainingTime = remainingTime;
+  }
+  sound.progressIn0to1 =
+    sound.audioElement.currentTime / sound.audioElement.duration;
+}
+
+export function resetSelectedSoundVolume() {
+  useSoundsStore().selectedSoundVolume = 0.0;
 }
 
 export function setEnveloppeGainValues(
@@ -58,7 +183,7 @@ export function setEnveloppeGainValues(
   const ctxCurrentTime = audioContext.currentTime;
   const soundCurrentTime = sound.audioElement.currentTime;
 
-  sound.enveloppeGainNode.gain.setValueAtTime(
+  sound.enveloppeGainNode!.gain.setValueAtTime(
     dbToGain(getEnveloppeValueAtTime(sound, soundCurrentTime)),
     ctxCurrentTime
   );
@@ -68,31 +193,20 @@ export function setEnveloppeGainValues(
     const nextPoint = enveloppePoints[index + 1];
 
     if (nextPoint) {
-      sound.enveloppeGainNode.gain.exponentialRampToValueAtTime(
+      sound.enveloppeGainNode!.gain.exponentialRampToValueAtTime(
         dbToGain(nextPoint.gainDb),
         nextPoint.time + ctxCurrentTime - soundCurrentTime
       );
     } else {
-      sound.enveloppeGainNode.gain.setValueAtTime(gain, point.time);
+      sound.enveloppeGainNode!.gain.setValueAtTime(gain, point.time);
     }
   });
 }
 
-export function stopSound(sound: SoundModel) {
-  sound.audioElement.pause();
-  sound.audioElement.currentTime = sound.inTime ?? 0;
-  sound.isPlaying = false;
-  clearTimeout(sound.timeOutId);
-}
-
-export function pauseSound(sound: SoundModel) {
-  sound.audioElement.pause();
-  sound.isPlaying = false;
-  clearTimeout(sound.timeOutId);
-}
-
 export function setTrimGain(sound: SoundModel, gain: number) {
   sound.trimGain = gain;
+
+  if (sound.trimGainNode === null) return;
   sound.trimGainNode.gain.value = dbToGain(gain);
 }
 

@@ -9,7 +9,7 @@
       :icon="sound.isPlaying ? 'pause' : 'play_arrow'"
       class="left-buttons"
       size="sm"
-      @touchend="playStopSound(sound)"
+      @touchend="playOrStopSound(sound)"
     />
     <div class="sound-name">{{ sound.name }}</div>
     <div class="sound-duration">
@@ -31,7 +31,7 @@
 import { PropType, ref } from 'vue';
 import { SoundModel } from './models';
 import { useSoundsStore } from '../stores/sounds-store';
-import { playStopSound } from 'src/composables/sound-controller';
+import { playOrStopSound } from 'src/composables/sound-controller';
 import { getMMSSfromS } from 'src/composables/math-helpers';
 
 const soundsStore = useSoundsStore();

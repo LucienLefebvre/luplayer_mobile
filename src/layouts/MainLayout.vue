@@ -25,11 +25,12 @@
 </template>
 
 <script setup lang="ts">
-import MainToolBar from 'src/components/MainToolBar.vue';
 import { useWakeLock } from '@vueuse/core';
 import { onMounted, watch } from 'vue';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
+
+import MainToolBar from 'src/components/MainToolBar.vue';
 import SoundDetails from 'src/components/SoundDetails.vue';
 import ReorderPanel from 'src/components/ReorderPanel.vue';
 import SettingsPanel from 'src/components/SettingsPanel.vue';

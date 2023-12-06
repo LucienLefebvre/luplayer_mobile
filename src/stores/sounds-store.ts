@@ -8,15 +8,15 @@ import {
   EnveloppePoint,
 } from 'src/components/models';
 import {
-  playSound,
-  stopSound,
+  registerEventListeners,
+  setSelectedSound,
   normalizeSound,
-  getIsCuePlayed,
 } from 'src/composables/sound-controller';
 import {
   calculateIntegratedLoudness,
   calculateMomentaryLoudness,
 } from 'src/composables/loudness-calculation';
+import { normalize } from 'path';
 
 export const useSoundsStore = defineStore('soundsStore', {
   state: () => ({
@@ -42,82 +42,107 @@ export const useSoundsStore = defineStore('soundsStore', {
   }),
 
   actions: {
-    addSound(sound: SoundModel, soundArray = 0) {
-      sound = reactive(sound);
+    async initAudioContext() {
+      this.audioContext = new AudioContext();
+      this.sampleRate = this.audioContext.sampleRate;
 
-      this.registerEventListeners(sound);
-      this.sounds[soundArray].push(sound);
+      this.outputGainNode = this.audioContext.createGain();
+      this.outputLimiterNode = this.audioContext.createDynamicsCompressor();
+      this.outputAnalyserNodes = {
+        splitter: this.audioContext.createChannelSplitter(2),
+        analysers: [
+          this.audioContext.createAnalyser(),
+          this.audioContext.createAnalyser(),
+        ],
+      };
 
-      /* playSound(sound, this.audioContext!, false);
-      stopSound(sound); */
-
-      if (
-        this.sounds[soundArray].length === 1 &&
-        this.playerMode === 'playlist'
-      ) {
-        this.sounds[0][0].isSelected = true;
-      }
+      const analyser = this.outputAnalyserNodes;
+      this.outputGainNode.connect(this.outputLimiterNode);
+      this.outputLimiterNode.connect(analyser.splitter);
+      analyser.splitter.connect(analyser.analysers[0], 0);
+      analyser.splitter.connect(analyser.analysers[1], 1);
+      this.outputLimiterNode.connect(this.audioContext.destination);
     },
 
-    registerEventListeners(sound: SoundModel) {
-      sound.audioElement.addEventListener('play', () =>
-        this.handlePlayEvent(sound)
-      );
-      sound.audioElement.addEventListener('pause', () =>
-        this.handlePauseEvent(sound)
-      );
-      sound.audioElement.addEventListener('ended', () =>
-        this.handleEndedEvent(sound)
-      );
-      sound.audioElement.addEventListener('timeupdate', () =>
-        this.handleTimeUpdateEvent(sound)
-      );
-    },
+    loadSound(name: string, file: File) {
+      const audioElement = document.createElement('audio');
+      audioElement.preload = 'metadata';
+      const url = URL.createObjectURL(file);
+      audioElement.src = url;
 
-    handlePlayEvent(sound: SoundModel) {
-      sound.isPlaying = true;
-    },
+      audioElement.onloadedmetadata = async () => {
+        if (this.audioContext === null) {
+          this.initAudioContext();
+          if (this.audioContext === null) return;
+        }
 
-    handlePauseEvent(sound: SoundModel) {
-      sound.enveloppeGainNode.gain.cancelScheduledValues(0);
-      //console.log('pause event');
-      sound.isPlaying = false;
-      sound.volumeGainNode.gain.value = 1;
-      if (!getIsCuePlayed(sound)) {
-        this.resetSelectedSoundVolume();
-        if (Date.now() - sound.launchTime > this.settingsStore.falseStartTime) {
-          this.incrementSelectedSound();
-        } else if (sound.duration < 1) this.incrementSelectedSound();
-      }
-      sound.isCuePlayed = false;
-    },
+        const source = this.audioContext.createMediaElementSource(audioElement);
+        /*const trimGainNode = this.audioContext.createGain();
+        const volumeGainNode = this.audioContext.createGain();
+        const enveloppeGainNode = this.audioContext.createGain(); */
 
-    handleEndedEvent(sound: SoundModel) {
-      console.log('ended event');
-      /* sound.isPlaying = false;
-      sound.audioElement.currentTime = 0;
-      sound.remainingTime = sound.duration;
-      if (!getIsCuePlayed(sound)) {
-        this.incrementSelectedSound();
-        this.resetSelectedSoundVolume();
-      }
-      sound.isCuePlayed = false; */
-    },
+        /* source.connect(trimGainNode);
+        trimGainNode.connect(volumeGainNode);
+        volumeGainNode.connect(enveloppeGainNode);
+        enveloppeGainNode.connect(this.outputGainNode!); */
 
-    handleTimeUpdateEvent(sound: SoundModel) {
-      const remainingTime =
-        sound.audioElement.duration - sound.audioElement.currentTime;
-      if (Number.isNaN(remainingTime)) {
-        sound.remainingTime = sound.audioElement.duration;
-      } else {
-        sound.remainingTime = remainingTime;
-      }
-      sound.progressIn0to1 =
-        sound.audioElement.currentTime / sound.audioElement.duration;
+        const defaultEnveloppePoints = [
+          { time: 0, gainDb: 0 },
+          { time: audioElement.duration, gainDb: 0 },
+        ] as EnveloppePoint[];
+
+        let addedSound: SoundModel = {
+          id: uuidv4(),
+          file: file,
+          name: name,
+          audioElement: audioElement,
+          duration: audioElement.duration,
+          remainingTime: audioElement.duration,
+          progressIn0to1: 0,
+          isPlaying: false,
+          isSelected: false,
+          isCuePlayed: false,
+          url: url,
+          trimGain: 0.0,
+          source: source,
+          trimGainNode: null,
+          volumeGainNode: null,
+          enveloppeGainNode: null,
+          inTime: null,
+          outTime: null,
+          integratedLoudness: null,
+          hpfEnabled: false,
+          hpfFrequency: 80,
+          launchTime: 0,
+          waveformChunks: null,
+          enveloppePoints: defaultEnveloppePoints,
+        };
+
+        let arrayToAdd = 0;
+        if (this.playerMode === 'cart') {
+          arrayToAdd = this.sounds[0].length > this.sounds[1].length ? 1 : 0;
+        }
+
+        addedSound = reactive(addedSound);
+
+        registerEventListeners(addedSound);
+        this.sounds[arrayToAdd].push(addedSound);
+
+        if (this.sounds[0].length === 1 && this.playerMode === 'playlist') {
+          this.sounds[0][0].isSelected = true;
+        }
+
+        if (this.selectedSound === null && this.playerMode === 'playlist') {
+          setSelectedSound(addedSound);
+        }
+
+        if (this.settingsStore.autoNormalize) {
+          normalizeSound(addedSound, this.settingsStore.normalizationLuTarget);
+        }
+      };
     },
 
     deleteSound(sound: SoundModel) {
-      //search for the sound in the sounds arrays
       let array = -1;
       let index = this.sounds[0].indexOf(sound);
       if (index !== -1) {
@@ -135,188 +160,14 @@ export const useSoundsStore = defineStore('soundsStore', {
         if (sound.isSelected) {
           this.selectedSound = null;
           if (this.sounds[0].length > 0 && this.playerMode === 'playlist') {
-            this.setSelectedSound(this.sounds[0][0]);
+            setSelectedSound(this.sounds[0][0]);
           }
         }
-      }
-    },
-
-    setSelectedSound(sound: SoundModel) {
-      let isPlaying = false;
-      this.sounds[0].forEach((sound) => {
-        if (sound.isPlaying) isPlaying = true;
-      });
-      if (!isPlaying) {
-        this.sounds[0].forEach((sound) => (sound.isSelected = false));
-        sound.isSelected = true;
-        this.selectedSound = sound;
-        this.resetSelectedSoundVolume();
       }
     },
 
     setEditedSound(sound: SoundModel) {
       this.editedSound = sound;
-    },
-
-    loadSound(name: string, file: File) {
-      const uuid = uuidv4();
-      const audioElement = document.createElement('audio');
-      audioElement.preload = 'metadata';
-      const url = URL.createObjectURL(file);
-      audioElement.src = url;
-
-      audioElement.onloadedmetadata = async () => {
-        if (this.audioContext === null) {
-          this.initAudioContext();
-          if (this.audioContext === null) return;
-        }
-        const source = this.audioContext.createMediaElementSource(audioElement);
-        const trimGainNode = this.audioContext.createGain();
-        const volumeGainNode = this.audioContext.createGain();
-        const enveloppeGainNode = this.audioContext.createGain();
-        //const hpfNode = this.audioContext.createBiquadFilter();
-        source.connect(trimGainNode);
-        /* hpfNode.connect(trimGainNode);
-        hpfNode.type = 'highpass'; */
-        trimGainNode.connect(volumeGainNode);
-        volumeGainNode.connect(enveloppeGainNode);
-        if (this.outputGainNode === null) return;
-        enveloppeGainNode.connect(this.outputGainNode);
-
-        const defaultEnveloppePoints = [
-          { time: 0, gainDb: 0 },
-          { time: audioElement.duration, gainDb: 0 },
-        ] as EnveloppePoint[];
-
-        const addedSound: SoundModel = {
-          id: uuid,
-          file: file,
-          name: name,
-          audioElement: audioElement,
-          duration: audioElement.duration,
-          remainingTime: audioElement.duration,
-          progressIn0to1: 0,
-          isPlaying: false,
-          isSelected: false,
-          isCuePlayed: false,
-          url: url,
-          trimGain: 0.0,
-          source: source,
-          trimGainNode: trimGainNode,
-          volumeGainNode: volumeGainNode,
-          enveloppeGainNode: enveloppeGainNode,
-          inTime: null,
-          outTime: null,
-          integratedLoudness: null,
-          hpfEnabled: false,
-          hpfFrequency: 80,
-          //hpfNode: hpfNode,
-          launchTime: 0,
-          waveformChunks: null,
-          enveloppePoints: defaultEnveloppePoints,
-        };
-
-        if (this.settingsStore.autoNormalize) {
-          normalizeSound(addedSound, this.settingsStore.normalizationLuTarget);
-        }
-
-        if (this.playerMode === 'playlist') {
-          this.addSound(addedSound);
-        } else if (this.playerMode === 'cart') {
-          const firstArrayLength = this.sounds[0].length;
-          const secondArrayLength = this.sounds[1].length;
-          if (firstArrayLength === secondArrayLength) {
-            this.addSound(addedSound, 0);
-          } else if (firstArrayLength > secondArrayLength) {
-            this.addSound(addedSound, 1);
-          } else if (firstArrayLength < secondArrayLength) {
-            this.addSound(addedSound, 0);
-          }
-        }
-
-        if (this.selectedSound === null && this.playerMode === 'playlist') {
-          this.setSelectedSound(addedSound);
-        }
-      };
-    },
-
-    async initAudioContext() {
-      this.audioContext = new AudioContext();
-      this.sampleRate = this.audioContext.sampleRate;
-
-      this.outputGainNode = this.audioContext.createGain();
-      this.outputLimiterNode = this.audioContext.createDynamicsCompressor();
-      this.outputAnalyserNodes = {
-        splitter: this.audioContext.createChannelSplitter(2),
-        stereoAnalyser: this.audioContext.createAnalyser(),
-        analysers: [
-          this.audioContext.createAnalyser(),
-          this.audioContext.createAnalyser(),
-        ],
-      };
-
-      this.outputGainNode.connect(this.outputLimiterNode);
-      //this.outputLimiterNode.connect(this.outputAnalyserNodes.stereoAnalyser);
-      this.outputLimiterNode.connect(this.outputAnalyserNodes.splitter);
-      this.outputAnalyserNodes.splitter.connect(
-        this.outputAnalyserNodes.analysers[0],
-        0
-      );
-      this.outputAnalyserNodes.splitter.connect(
-        this.outputAnalyserNodes.analysers[1],
-        1
-      );
-      this.outputLimiterNode.connect(this.audioContext.destination);
-
-      /* calculateMomentaryLoudness(
-        this.outputAnalyserNodes.stereoAnalyser,
-        this.momentaryLoudness
-      ); */
-    },
-
-    playButtonClicked() {
-      if (this.selectedSound?.isPlaying) {
-        if (this.selectedSound === null) return;
-        this.stoppedByButtonClick = true;
-        stopSound(this.selectedSound);
-      } else {
-        this.playSelectedSound();
-      }
-    },
-
-    stopSelectedSound() {
-      if (this.selectedSound === null) return;
-      stopSound(this.selectedSound);
-    },
-
-    playSelectedSound() {
-      const selectedSound = this.selectedSound;
-      if (selectedSound === null) return;
-      playSound(selectedSound, this.audioContext!, false);
-    },
-
-    incrementSelectedSound() {
-      if (this.selectedSound === null) return;
-      const index = this.sounds[0].indexOf(this.selectedSound);
-      if (index < this.sounds[0].length - 1) {
-        this.setSelectedSound(this.sounds[0][index + 1]);
-      }
-    },
-
-    resetSelectedSoundVolume() {
-      this.selectedSoundVolume = 0.0;
-    },
-
-    //create a function to store the sound array in local storage
-    saveSounds() {
-      localStorage.setItem('sounds', JSON.stringify(this.sounds));
-    },
-
-    //create a function to load the sound array from local storage
-    loadSounds() {
-      if (localStorage.getItem('sounds')) {
-        this.sounds = JSON.parse(localStorage.getItem('sounds') || '[]');
-      }
     },
 
     initializeCartPlayer() {

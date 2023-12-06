@@ -22,7 +22,7 @@ export class Waveform {
   public eventTarget = new EventTarget();
 
   private stage: Konva.Stage;
-  private waveformLayer: Konva.Layer;
+  public waveformLayer: Konva.Layer;
   private waveformLayerBackground: Konva.Rect;
 
   private globalWaveformChunks: Float32Array;
@@ -149,7 +149,6 @@ export class Waveform {
       height: this.stage.height(),
       fill: 'transparent',
     });
-
     this.waveformLayer.add(this.waveformLayerBackground);
 
     this.stage.add(this.waveformLayer);
@@ -338,14 +337,15 @@ export class Waveform {
       }
     });
 
-    this.waveformLayer?.on('mousemove touchmove', (e) => {
-      if (e.evt.touches && e.evt.touches.length > 1) {
-        this.handleTouchPan(e);
-      } else if (this.isDragging) {
-        this.handleDrag();
-      }
-    });
-
+    if (this.isZoomable) {
+      this.waveformLayer?.on('mousemove touchmove', (e) => {
+        if (e.evt.touches && e.evt.touches.length > 1) {
+          this.handleTouchPan(e);
+        } else if (this.isDragging) {
+          this.handleDrag();
+        }
+      });
+    }
     this.waveformLayer?.on('wheel', (e) => {
       this.handleMouseWheel(e.evt);
     });
@@ -416,7 +416,7 @@ export class Waveform {
     );
     this.diplayWaveformChunks = wasmDisplayChunks;
     this.displayChunkSize =
-      this.diplayWaveformChunks.length / this.stage.width();
+      this.diplayWaveformChunks.length * (this.endTime - this.startTime);
   }
 
   private draw() {
@@ -439,7 +439,7 @@ export class Waveform {
     this.drawWaveform();
   }
 
-  private centerTimeRangeOnPlayPosition() {
+  public centerTimeRangeOnPlayPosition() {
     const playPosition = this.audioElement.currentTime;
 
     const visibleDuration = this.endTime - this.startTime;
@@ -513,6 +513,7 @@ export class Waveform {
     this.remainingLine.points(points.remainingPoints);
     this.waveformLayer.add(this.playedLine);
     this.waveformLayer.add(this.remainingLine);
+    this.waveformLayerBackground.moveToTop();
   }
 
   private createWaveformLines(): {
@@ -549,7 +550,7 @@ export class Waveform {
       }
     }
 
-    /* for (let i = width - 1; i > 0; i -= this.xResolution) {
+    for (let i = width - 1; i > 0; i -= this.xResolution) {
       let enveloppeMultiplier = 1;
       if (this.showEnvelope) {
         const time = this.xToTime(i);
@@ -564,7 +565,7 @@ export class Waveform {
       } else {
         remainingPoints.push(i, Number.isNaN(yValue) ? middleY : yValue);
       }
-    } */
+    }
     return { playedPoints, remainingPoints };
   }
 
@@ -751,6 +752,7 @@ export class Waveform {
   }
 
   private handleClick() {
+    console.log('click');
     if (this.isMinimap) {
       const clickX = this.stage.getPointerPosition()?.x ?? 0;
       const timeToSet = this.xToTime(clickX);
@@ -764,6 +766,7 @@ export class Waveform {
   }
   public setStartTime(newStartTime: number) {
     if (newStartTime < 0 || newStartTime > this.soundDuration) return;
+
     this.startTime = newStartTime;
     this.updateZoomFactor();
     this.updateWaveform();
@@ -788,6 +791,12 @@ export class Waveform {
     shouldEmit = true,
     updateZoomFactor = true
   ) {
+    if (
+      this.diplayWaveformChunks.length * (endTime - startTime) <
+      this.stage.width() / 2
+    )
+      return;
+
     this.startTime = startTime;
     this.endTime = endTime;
     if (updateZoomFactor) this.updateZoomFactor();
@@ -870,7 +879,6 @@ export class Waveform {
       );
 
       const zoomDirection = this.oldTimeDeltaX - timeDeltaX > 0 ? 'in' : 'out';
-      if (zoomDirection === 'in' && this.displayChunkSize < 0.1) return;
 
       const startTime = this.waveformDragStartTime - timeDeltaX / 2;
       const endTime = this.waveformDragEndTime + timeDeltaX / 2;
@@ -923,6 +931,7 @@ export class Waveform {
       const visibleEnd = playPosition + newVisibleDuration / 2;
 
       this.setStartEndTimes(visibleStart, visibleEnd, true, true);
+      console.log('displayChunkSize: ', this.displayChunkSize);
     } else {
       if (direction === 'out' && this.horizontalZoomFactor < 1.2) {
         this.setHorizontalZoomFactor(1);

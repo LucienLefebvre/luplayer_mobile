@@ -12,11 +12,11 @@
       />
     </div>
     <q-card class="soundDetailsBackground">
-      <div class="column q-pa-md justify-center">
+      <div class="column justify-center">
         <div class="soundName" :style="{ color: getWaveformColor() }">
           {{ sound.name }}
         </div>
-        <q-separator color="primary" class="separator" size="2px" />
+        <q-separator color="primary" class="separator" size="1px" />
         <div class="row volume-container">
           <q-btn
             class="justify-center normalize-button"
@@ -60,7 +60,7 @@
             color="orange"
           />
         </div> -->
-        <q-separator color="primary" class="separator" size="2px" />
+        <q-separator color="primary" class="separator" size="1px" />
 
         <div style="height: 10px"></div>
         <div ref="minimapWaveformView" style="width: 100%"></div>
@@ -105,16 +105,14 @@
           </div>
         </div>
 
-        <q-separator color="primary" class="separator" size="2px" />
-
-        <div style="height: 10px"></div>
+        <q-separator color="primary" class="separator" size="1px" />
         <div class="play-pause">
           <q-btn
             :label="getPlayButtonLabel()"
             color="green"
             @click="playButtonClicked()"
           />
-          <div style="height: 10px"></div>
+
           <q-btn
             label="delete"
             color="red"
@@ -175,7 +173,7 @@ const zoomableWaveformView = ref<HTMLDivElement | null>(null);
 onMounted(() => {
   if (!minimapWaveformView.value || !zoomableWaveformView.value) return;
 
-  zoomable = new Waveform(zoomableWaveformView.value, sound!.audioElement, 175);
+  zoomable = new Waveform(zoomableWaveformView.value, sound!.audioElement, 200);
 
   minimap = new Waveform(
     minimapWaveformView.value,
@@ -214,11 +212,12 @@ onMounted(() => {
   if (sound?.waveformChunks) {
     minimap.setWaveformChunks(sound.waveformChunks);
     zoomable.setWaveformChunks(sound.waveformChunks);
+    zoomable.centerTimeRangeOnPlayPosition();
   }
 
   zoomable.addEventListener('waveformDragEnd', () => {
     if (zoomable?.wasPlayingOnDragStart) {
-      playSound(sound!, soundsStore.audioContext!, true);
+      playSound(sound!, true);
     }
   });
 
@@ -229,7 +228,7 @@ onMounted(() => {
 
   minimap.addEventListener('click', () => {
     pauseSound(sound!);
-    playSound(sound!, soundsStore.audioContext!, true);
+    playSound(sound!, true);
   });
 });
 
@@ -256,7 +255,7 @@ function closeButtonClicked() {
 }
 function playButtonClicked() {
   if (sound?.audioElement.paused) {
-    playSound(sound, soundsStore.audioContext!, true);
+    playSound(sound, true);
   } else {
     pauseSound(sound!);
   }
@@ -351,6 +350,7 @@ watch(
 .volume-container {
   display: flex;
   justify-content: space-between;
+  padding: 10px;
   gap: 10px;
 }
 
@@ -394,17 +394,18 @@ watch(
 }
 
 .soundDetailsBackground {
-  border: 1px solid;
+  border: 2px solid;
   border-radius: 10px;
-
+  border-color: var(--blueColor);
   background-color: var(--bkgColor);
-  width: 90%;
+  width: 100%;
 }
 .play-pause {
   display: flex;
   flex-direction: row;
   justify-content: space-evenly;
   align-items: center;
+  padding: 10px;
 }
 .close-button {
   display: flex;
@@ -412,7 +413,7 @@ watch(
   align-items: center;
 }
 .separator {
-  margin-top: 20px;
-  margin-bottom: 20px;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 </style>

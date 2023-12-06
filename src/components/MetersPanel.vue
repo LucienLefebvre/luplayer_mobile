@@ -6,11 +6,11 @@
       class="metersStyle"
     />
 
-    <LuMeter
+    <!-- <LuMeter
       v-if="settingsStore.showLuMeter"
       :analyserNode="soundsStore.outputAnalyserNodes?.stereoAnalyser"
       class="metersStyle"
-    />
+    /> -->
   </div>
 </template>
 
