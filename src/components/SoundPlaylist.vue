@@ -93,7 +93,7 @@ watch(
       if (element && !elementsObserved.includes(element)) {
         elementsObserved.push(element);
         const observer = new IntersectionObserver(handleIntersection, options);
-        observer.observe(element);
+        //observer.observe(element);
       }
     });
   }

@@ -157,17 +157,9 @@ export class Waveform {
 
     this.playedLine = new Konva.Line();
     this.playedLine.closed(true);
-    this.playedLine.lineCap('round');
-    this.playedLine.tension(1);
-    this.playedLine.filters([Konva.Filters.Blur]);
-    this.playedLine.blurRadius(1);
 
     this.remainingLine = new Konva.Line();
     this.remainingLine.closed(true);
-    this.remainingLine.lineCap('round');
-    this.remainingLine.tension(1);
-    this.remainingLine.filters([Konva.Filters.Blur]);
-    this.remainingLine.blurRadius(1);
 
     this.soundDuration = audioElement.duration;
     this.startTime = 0;
@@ -470,8 +462,8 @@ export class Waveform {
     if (this.showInTime) this.drawInTime();
     if (this.showOutTime) this.drawOutTime();
 
-    //this.waveformLayer.batchDraw();
-    //this.waveformLayer.cache();
+    this.waveformLayer.batchDraw();
+    this.waveformLayer.cache();
 
     if (this.audioElement.paused) {
       this.waveformShouldBeRedrawn = false;
@@ -518,6 +510,63 @@ export class Waveform {
   }
 
   private createWaveformPoints(): {
+    playedPoints: number[];
+    remainingPoints: number[];
+  } {
+    const start = performance.now();
+
+    const width = this.stage.width();
+    const height = this.stage.height();
+    const ratio = this.verticalZoomFactor;
+    const middleY = height / 2;
+    const progressX = Math.floor(this.timeToX(this.audioElement.currentTime));
+
+    //this.waveformLayer.removeChildren();
+    //this.waveformLayer.add(this.waveformLayerBackground);
+
+    const playedPoints = [0, middleY];
+    const remainingPoints = [progressX, middleY];
+    for (let i = 0; i < width; i += this.xResolution) {
+      let enveloppeMultiplier = 1;
+      if (this.showEnveloppeOnWaveform) {
+        const time = this.xToTime(i);
+        const enveloppeValue = this.getEnveloppeValueAtTime(time);
+        enveloppeMultiplier = dbToGain(enveloppeValue);
+      }
+
+      const yValue =
+        middleY -
+        this.diplayWaveformChunks[i] * middleY * ratio * enveloppeMultiplier;
+      const checkedYValue = Number.isNaN(yValue) ? middleY : yValue;
+
+      if (i < progressX) {
+        playedPoints.push(i, checkedYValue);
+      } else {
+        remainingPoints.push(i, checkedYValue);
+      }
+    }
+    playedPoints.push(progressX, middleY);
+    remainingPoints.push(width, middleY);
+
+    for (let i = width; i >= 0; i -= this.xResolution) {
+      if (i < progressX) {
+        const yValue: number = height - playedPoints[2 * (i + 1) + 1];
+        const checkedYValue = Number.isNaN(yValue) ? middleY : yValue;
+        playedPoints.push(i, checkedYValue);
+      } else {
+        const yValue: number =
+          height - remainingPoints[2 * (i - progressX + 1) + 1];
+        const checkedYValue = Number.isNaN(yValue) ? middleY : yValue;
+        remainingPoints.push(i, checkedYValue);
+      }
+    }
+    const end = performance.now();
+    const duration = end - start;
+    //console.log('duration: ', duration);
+    return { playedPoints, remainingPoints };
+  }
+
+  /*   private createWaveformPoints(): {
     playedPoints: number[];
     remainingPoints: number[];
   } {
@@ -568,7 +617,7 @@ export class Waveform {
       }
     }
     return { playedPoints, remainingPoints };
-  }
+  } */
 
   private drawOutTime() {
     if (this.outTime === null) return;

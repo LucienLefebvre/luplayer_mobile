@@ -1,16 +1,13 @@
 <template>
   <div style="position: relative">
-    <div
-      ref="waveformNew"
-      class="waveform-view"
-      v-show="sound.displayWaveform"
-    ></div>
+    <div ref="waveformNew" class="waveform-view"></div>
     <div
       v-show="!sound.displayWaveform"
       :style="{ height: getWaveformHeight() + 'px' }"
     ></div>
   </div>
 </template>
+<!-- v-show="sound.displayWaveform" -->
 
 <script setup lang="ts">
 import { PropType, ref, onMounted, watch, Ref } from 'vue';
@@ -55,12 +52,12 @@ onMounted(async () => {
     waveform.inTimeColor = 'lightblue';
     waveform.outTimeColor = 'yellow';
     waveform.isZoomable = false;
-    waveform.waveformLayer.listening(false);
+    //waveform.waveformLayer.listening(false);
     waveform.name = sound.value.name;
-    waveform.setEnveloppePoints(sound.value.enveloppePoints);
-    waveform.setShowEnveloppe(true);
-    waveform.setShowEnveloppeLine(false);
-    waveform.setShowEnveloppePoints(false);
+    //waveform.setEnveloppePoints(sound.value.enveloppePoints);
+    //waveform.setShowEnveloppe(true);
+    //waveform.setShowEnveloppeLine(false);
+    //waveform.setShowEnveloppePoints(false);
 
     updateWaveformColor();
   });
@@ -145,7 +142,7 @@ watch(
   () => sound.value.enveloppePoints,
   (newValue) => {
     console.log('enveloppePoints changed to ' + newValue);
-    waveform?.setEnveloppePoints(newValue);
+    //waveform?.setEnveloppePoints(newValue);
   },
   { deep: true }
 );
