@@ -24,6 +24,7 @@
     "uuid": "^9.0.0",
     "vue": "^3.0.0",
     "vue-router": "^4.0.0",
+    "vue3-snackbar": "^2.2.0",
     "vue3-touch-events": "^4.1.2",
     "vuedraggable": "^4.1.0",
     "waveform-data": "^4.3.0"

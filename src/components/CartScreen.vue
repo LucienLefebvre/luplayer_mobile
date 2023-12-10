@@ -1,5 +1,4 @@
 <template>
-  <MetersPanel />
   <div
     class="scrollable-cart"
     :style="{ height: scrollablePlaylistHeight + 'px' }"
@@ -30,9 +29,6 @@
       </div>
     </div>
   </div>
-  <q-page-sticky position="bottom-right" :offset="[18, 18]">
-    <AddSoundButton />
-  </q-page-sticky>
 </template>
 
 <script setup lang="ts">
@@ -66,7 +62,7 @@ onMounted(() => {
 const scrollablePlaylistHeight = ref(0);
 const updateHeight = () => {
   console.log('updateHeight');
-  let heightToSubtract = 65;
+  let heightToSubtract = 115;
   const meterHeight = 31;
   if (settingsStore.showPeakMeter) {
     heightToSubtract += meterHeight;

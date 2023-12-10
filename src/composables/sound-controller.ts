@@ -4,9 +4,13 @@ import { calculateIntegratedLoudness } from './loudness-calculation';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 
-export function playSound(sound: SoundModel, isCuePlayed = false) {
-  console.log('playSound');
+export function playSound(
+  sound: SoundModel,
+  isCuePlayed: boolean,
+  fadeIn: boolean
+) {
   const soundsStore = useSoundsStore();
+  const settingsStore = useSettingsStore();
   const audioContext = soundsStore.audioContext;
   if (audioContext === null) return;
 
@@ -24,6 +28,13 @@ export function playSound(sound: SoundModel, isCuePlayed = false) {
   }
   if ((sound.enveloppePoints, sound.enveloppePoints.length > 0)) {
     setEnveloppeGainValues(sound, useSoundsStore().audioContext!);
+  }
+  if (fadeIn) {
+    sound.trimGainNode!.gain.setValueAtTime(0.01, audioContext.currentTime);
+    sound.trimGainNode!.gain.exponentialRampToValueAtTime(
+      dbToGain(sound.trimGain),
+      audioContext.currentTime + settingsStore.defaultFadeInTime / 1000
+    );
   }
 
   sound.isCuePlayed = isCuePlayed;
@@ -103,7 +114,7 @@ export function playOrStopSound(sound: SoundModel) {
     stopSound(sound);
   } else {
     sound.isCuePlayed = true;
-    playSound(sound);
+    playSound(sound, false, false);
   }
 }
 
@@ -125,7 +136,7 @@ export function playSelectedSound() {
   const selectedSound = useSoundsStore().selectedSound;
 
   if (selectedSound) {
-    playSound(selectedSound);
+    playSound(selectedSound, false, false);
   }
 }
 
@@ -135,6 +146,30 @@ export function stopSelectedSound() {
   if (selectedSound) {
     stopSound(selectedSound);
   }
+}
+
+export function playSoundWithFadeIn(sound: SoundModel) {
+  playSound(sound, false, true);
+}
+
+export function stopSoundWithFadeOut(sound: SoundModel) {
+  sound.trimGainNode!.gain.setValueAtTime(
+    dbToGain(sound.trimGain),
+    useSoundsStore().audioContext!.currentTime
+  );
+
+  const remainingTime = getRemainingTime(sound);
+  const rampTime = Math.min(
+    useSettingsStore().defaultFadeOutTime / 1000,
+    remainingTime
+  );
+  sound.trimGainNode!.gain.exponentialRampToValueAtTime(
+    0.01,
+    useSoundsStore().audioContext!.currentTime + rampTime
+  );
+  setTimeout(() => {
+    stopSound(sound);
+  }, useSettingsStore().defaultFadeOutTime);
 }
 
 export function incrementSelectedSound() {

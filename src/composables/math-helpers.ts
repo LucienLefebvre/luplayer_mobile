@@ -60,12 +60,12 @@ export function getMMSSfromS(seconds: number) {
   const remainingSeconds = seconds - minutes * 60;
   const minutesString = minutes < 10 ? '' + minutes : minutes;
   if (minutes < 1) {
-    return remainingSeconds.toFixed(0) + 's';
+    return remainingSeconds.toFixed(0) + "''";
   }
   const secondsString =
-    remainingSeconds < 10
+    Math.floor(remainingSeconds) < 10
       ? '0' + remainingSeconds.toFixed(0)
       : remainingSeconds.toFixed(0);
 
-  return minutesString + 'm' + secondsString;
+  return minutesString + "'" + secondsString + "''";
 }

@@ -13,7 +13,7 @@ export const useSettingsStore = defineStore('settingsStore', {
     peakMeterOrangeThreshold: 18.0 as number,
     peakMeterRedThreshold: 3.0 as number,
 
-    showLuMeter: true as boolean,
+    showLuMeter: false as boolean,
     normalizationLuTarget: 0.0 as number,
     autoNormalize: true as boolean,
 
@@ -27,6 +27,9 @@ export const useSettingsStore = defineStore('settingsStore', {
 
     waveformHeightFactor: 1 as number,
     soundNameHeightFactor: 1 as number,
+
+    defaultFadeInTime: 5000 as number,
+    defaultFadeOutTime: 5000 as number,
   }),
 
   actions: {

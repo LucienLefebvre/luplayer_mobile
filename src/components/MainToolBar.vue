@@ -54,17 +54,6 @@
         flat
         round
         dense
-        icon="low_priority"
-        @click="toggleReorder"
-        :style="{
-          color: soundsStore.isReordering ? 'red' : 'orange',
-        }"
-      />
-      <q-btn
-        class="q-mr-sm"
-        flat
-        round
-        dense
         icon="settings"
         style="color: orange"
         @click="toggleSettings"
@@ -93,12 +82,6 @@ function cartClicked() {
 function playlistClicked() {
   router.push('/playlist');
   soundsStore.playerMode = 'playlist';
-}
-
-function toggleReorder() {
-  if (soundsStore.sounds[0].length === 0 && soundsStore.sounds[1].length === 0)
-    return;
-  soundsStore.showReorderWindow = !soundsStore.showReorderWindow;
 }
 
 function toggleSettings() {

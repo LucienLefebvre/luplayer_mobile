@@ -190,7 +190,7 @@ export class Waveform {
     this.fillWaveform = true;
 
     this.showPlayHead = false;
-    this.playHeadWidth = 1;
+    this.playHeadWidth = 2;
 
     this.waveformStyle = 'line';
     this.xResolution = 1;
@@ -376,10 +376,17 @@ export class Waveform {
         response.arrayBuffer()
       );
       const audioBuffer = await new AudioContext().decodeAudioData(buffer);
-      const channelData = audioBuffer.getChannelData(0);
+      const leftChannelData = audioBuffer.getChannelData(0);
+      let rightChannelData;
+      if (audioBuffer.numberOfChannels > 1) {
+        rightChannelData = audioBuffer.getChannelData(1);
+      } else {
+        rightChannelData = leftChannelData;
+      }
 
       this.globalWaveformChunks = calculate_waveform_chunks(
-        channelData,
+        leftChannelData,
+        rightChannelData,
         WINDOW_SIZE
       );
     } catch (error) {
@@ -405,6 +412,7 @@ export class Waveform {
   }
 
   private async calculateYValueArrayFromChunks() {
+    const start = performance.now();
     const wasmDisplayChunks = calculate_y_value_array_from_chunks(
       this.globalWaveformChunks,
       this.startTime,
@@ -415,6 +423,9 @@ export class Waveform {
     this.diplayWaveformChunks = wasmDisplayChunks;
     this.displayChunkSize =
       this.diplayWaveformChunks.length * (this.endTime - this.startTime);
+    const end = performance.now();
+    const duration = end - start;
+    //console.log('duration: ', duration);
   }
 
   private draw() {
@@ -462,8 +473,8 @@ export class Waveform {
     if (this.showInTime) this.drawInTime();
     if (this.showOutTime) this.drawOutTime();
 
-    this.waveformLayer.batchDraw();
-    this.waveformLayer.cache();
+    //this.waveformLayer.batchDraw();
+    //this.waveformLayer.cache();
 
     if (this.audioElement.paused) {
       this.waveformShouldBeRedrawn = false;
@@ -521,8 +532,8 @@ export class Waveform {
     const middleY = height / 2;
     const progressX = Math.floor(this.timeToX(this.audioElement.currentTime));
 
-    //this.waveformLayer.removeChildren();
-    //this.waveformLayer.add(this.waveformLayerBackground);
+    this.waveformLayer.removeChildren();
+    this.waveformLayer.add(this.waveformLayerBackground);
 
     const playedPoints = [0, middleY];
     const remainingPoints = [progressX, middleY];
@@ -647,7 +658,7 @@ export class Waveform {
       : this.timeToX(this.audioElement.currentTime);
     const playHead = new Konva.Line({
       points: [progressX, 0, progressX, this.stage.height()],
-      stroke: 'black',
+      stroke: 'green',
       strokeWidth: this.playHeadWidth,
     });
     this.waveformLayer.add(playHead);
@@ -802,7 +813,7 @@ export class Waveform {
   }
 
   private handleClick() {
-    console.log('click');
+    //console.log('click');
     if (this.isMinimap) {
       const clickX = this.stage.getPointerPosition()?.x ?? 0;
       const timeToSet = this.xToTime(clickX);
@@ -982,7 +993,7 @@ export class Waveform {
       const visibleEnd = playPosition + newVisibleDuration / 2;
 
       this.setStartEndTimes(visibleStart, visibleEnd, true, true);
-      console.log('displayChunkSize: ', this.displayChunkSize);
+      //console.log('displayChunkSize: ', this.displayChunkSize);
     } else {
       if (direction === 'out' && this.horizontalZoomFactor < 1.2) {
         this.setHorizontalZoomFactor(1);

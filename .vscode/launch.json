@@ -7,9 +7,15 @@
     {
       "type": "chrome",
       "request": "launch",
-      "name": "Launch Chrome against localhost",
+      "name": "luplayer-web",
       "url": "http://localhost:9200",
-      "webRoot": "${workspaceFolder}"
+      // To properly reflect changes after HMR with Vite
+      "enableContentValidation": false,
+      "webRoot": "${workspaceFolder}/src",
+      // No need to configure sourcemap explicitly for vite.
+      "sourceMapPathOverrides": {
+        "webpack://package-name/./src/*": "${webRoot}/*"
+      }
     }
   ]
 }

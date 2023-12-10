@@ -29,7 +29,7 @@ const soundPlayers: Ref<HTMLElement | null> = ref(null);
 
 const scrollablePlaylistHeight = ref(0);
 const updateHeight = () => {
-  let heightToSubtract = 155;
+  let heightToSubtract = 205;
   const meterHeight = 31;
   if (settingsStore.showPeakMeter) {
     heightToSubtract += meterHeight;

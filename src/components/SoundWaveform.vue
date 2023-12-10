@@ -52,7 +52,7 @@ onMounted(async () => {
     waveform.inTimeColor = 'lightblue';
     waveform.outTimeColor = 'yellow';
     waveform.isZoomable = false;
-    //waveform.waveformLayer.listening(false);
+    waveform.waveformLayer.listening(false);
     waveform.name = sound.value.name;
     //waveform.setEnveloppePoints(sound.value.enveloppePoints);
     //waveform.setShowEnveloppe(true);

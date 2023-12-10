@@ -18,9 +18,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
+
 const soundsStore = useSoundsStore();
+
+const loadingDialog = ref(false);
 
 const fileInput = ref<HTMLInputElement | null>(null);
 function chooseFile() {
@@ -32,7 +35,7 @@ function chooseFile() {
 import soundFileUrl from '../assets/son.mp3';
 
 onMounted(async () => {
-  /* const response = await fetch(soundFileUrl);
+  /*   const response = await fetch(soundFileUrl);
   const blob = await response.blob();
   const file = new File([blob], 'son.mp3', { type: 'audio/mpeg' });
   soundsStore.loadSound(file.name, file); */

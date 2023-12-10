@@ -4,29 +4,34 @@
       <MainToolBar />
     </q-header>
     <q-page-container class="gradient">
-      <router-view />
+      <PlayListScreen />
     </q-page-container>
   </q-layout>
-  <q-dialog v-model="soundsStore.showEditWindow" class="centered-dialog">
-    <div class="column fit" style="align-items: center; width: 100%">
+  <q-dialog v-model="soundsStore.showEditWindow" full-width full-height>
+    <div class="column fit centered-content">
       <sound-details :sound="soundsStore.editedSound!" />
     </div>
   </q-dialog>
-  <q-dialog v-model="soundsStore.showReorderWindow" class="centered-dialog">
-    <div class="column fit" style="align-items: center; width: 100%">
+  <q-dialog v-model="soundsStore.showReorderWindow" full-width>
+    <div class="column fit centered-content">
       <ReorderPanel />
     </div>
   </q-dialog>
-  <q-dialog v-model="soundsStore.showSettingsWindow" class="centered-dialog">
-    <div class="column fit" style="align-items: center; width: 100%">
+  <q-dialog v-model="soundsStore.showSettingsWindow" full-width full-height>
+    <div class="column fit centered-content">
       <SettingsPanel />
+    </div>
+  </q-dialog>
+  <q-dialog v-model="soundsStore.showDeleteSoundWindow">
+    <div class="column fit centered-content">
+      <DeleteSoundDialog :sound="soundsStore.selectedSound" />
     </div>
   </q-dialog>
 </template>
 
 <script setup lang="ts">
 import { useWakeLock } from '@vueuse/core';
-import { onMounted, watch } from 'vue';
+import { onMounted, watch, computed, ref } from 'vue';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 
@@ -34,6 +39,8 @@ import MainToolBar from 'src/components/MainToolBar.vue';
 import SoundDetails from 'src/components/SoundDetails.vue';
 import ReorderPanel from 'src/components/ReorderPanel.vue';
 import SettingsPanel from 'src/components/SettingsPanel.vue';
+import DeleteSoundDialog from 'src/components/DeleteSoundDialog.vue';
+import PlayListScreen from 'src/components/PlayListScreen.vue';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -78,6 +85,13 @@ html {
 }
 body {
   background-color: rgb(50, 62, 68);
+}
+.centered-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  transform: translateY(-25px);
 }
 </style>
 <style scoped></style>

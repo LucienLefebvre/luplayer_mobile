@@ -16,6 +16,7 @@ import { useSettingsStore } from '../stores/settings-store';
 import {
   playButtonClicked,
   getRemainingTime,
+  getSoundDurationLabel,
 } from 'src/composables/sound-controller';
 
 const soundsStore = useSoundsStore();
@@ -36,7 +37,7 @@ function buttonColor() {
 function buttonLabel() {
   if (soundsStore.selectedSound === null || undefined) return 'play';
   if (soundsStore.selectedSound.isPlaying) {
-    return soundsStore.selectedSound?.remainingTime.toFixed(0);
+    return getSoundDurationLabel(soundsStore.selectedSound);
   } else {
     return 'play';
   }

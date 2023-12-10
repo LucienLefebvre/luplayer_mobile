@@ -4656,6 +4656,11 @@ through@^2.3.6:
   resolved "https://registry.npmjs.org/through/-/through-2.3.8.tgz"
   integrity sha512-w89qg7PI8wAdvX60bMDP+bFoD5Dvhm9oLheFp5O4a2QF0cSBGsBX4qZmadPMvVqlLJBBci+WqGGOAPvcDeNSVg==
 
+tiny-emitter@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.npmjs.org/tiny-emitter/-/tiny-emitter-2.1.0.tgz"
+  integrity sha512-NB6Dk1A9xgQPMoGqC5CVXn123gWyte215ONT5Pp5a0yt4nlEoO1ZWeCwpncaekPHXO60i47ihFnZPiRPjRMq4Q==
+
 tmp@^0.0.33:
   version "0.0.33"
   resolved "https://registry.npmjs.org/tmp/-/tmp-0.0.33.tgz"
@@ -4903,6 +4908,19 @@ vue-router@^4.0.0, vue-router@^4.0.12:
     "@vue/runtime-dom" "3.2.47"
     "@vue/server-renderer" "3.2.47"
     "@vue/shared" "3.2.47"
+
+vue3-icon@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.npmjs.org/vue3-icon/-/vue3-icon-2.1.0.tgz"
+  integrity sha512-cnFiGAEwzp/KQKody2Yj8cBDP4Kez0AUp5mDnp052FA1fECl8a9uYUKLaeRdH0JakmZ7Jfp3tdHbpBEWF9sgBA==
+
+vue3-snackbar@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.npmjs.org/vue3-snackbar/-/vue3-snackbar-2.2.0.tgz"
+  integrity sha512-x/J1NFdnDtg290LUbh8kN44RBgxUbSoVsqGu5PxAA/KzW/LK7W+KTbbRekAIehJ1c+Ep58neEtyFPbejnZyfZg==
+  dependencies:
+    tiny-emitter "^2.1.0"
+    vue3-icon "^2.1.0"
 
 vue3-touch-events@^4.1.2:
   version "4.1.2"

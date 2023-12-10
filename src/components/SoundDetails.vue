@@ -13,10 +13,10 @@
     </div>
     <q-card class="soundDetailsBackground">
       <div class="column justify-center">
-        <div class="soundName" :style="{ color: getWaveformColor() }">
+        <div class="soundName">
           {{ sound.name }}
         </div>
-        <q-separator class="separator" size="1px" />
+        <q-separator class="separator" size="1px" color="primary" />
         <div class="row volume-container">
           <q-btn
             class="justify-center normalize-button"
@@ -39,11 +39,11 @@
             class="volume-slider"
           />
         </div>
-        <q-separator class="separator" size="1px" />
+        <q-separator class="separator" size="1px" color="primary" />
 
         <div style="height: 10px"></div>
-        <div ref="minimapWaveformView" style="width: 100%"></div>
-        <div ref="zoomableWaveformView" style="width: 100%"></div>
+        <div ref="minimapWaveformView" class="waveform-container"></div>
+        <div ref="zoomableWaveformView" class="waveform-container"></div>
         <div style="height: 10px"></div>
         <div class="buttons-row">
           <div class="buttons-row-group">
@@ -84,12 +84,17 @@
           </div>
         </div>
 
-        <q-separator class="separator" size="1px" />
+        <q-separator class="separator" size="1px" color="primary" />
         <div class="play-pause">
           <q-btn
             :label="getPlayButtonLabel()"
             color="green"
             @click="playButtonClicked()"
+          />
+          <q-btn
+            :label="getPlayInOutButtonLabel()"
+            color="green"
+            @click="playInOutButtonClicked()"
           />
 
           <q-btn
@@ -184,6 +189,7 @@ onMounted(() => {
   minimap.inTimeColor = 'lightblue';
   minimap.outTimeColor = 'yellow';
   minimap.freezed = false;
+  minimap.showPlayHead = true;
   minimap.setPlayedWaveformFillColor('orange');
   minimap.setRemainingWaveformFillColor('orange');
 
@@ -204,7 +210,7 @@ onMounted(() => {
 
   zoomable.addEventListener('waveformDragEnd', () => {
     if (zoomable?.wasPlayingOnDragStart) {
-      playSound(sound!, true);
+      playSound(sound!, true, false);
     }
   });
   zoomable.addEventListener('waveformDrag', () => {
@@ -220,7 +226,7 @@ onMounted(() => {
 
   minimap.addEventListener('click', () => {
     pauseSound(sound!);
-    playSound(sound!, true);
+    playSound(sound!, true, false);
   });
 });
 
@@ -247,9 +253,16 @@ function closeButtonClicked() {
 }
 function playButtonClicked() {
   if (sound?.audioElement.paused) {
-    playSound(sound, true);
+    playSound(sound, true, false);
   } else {
     pauseSound(sound!);
+  }
+}
+function playInOutButtonClicked() {
+  if (sound?.audioElement.paused) {
+    playSound(sound, false, false);
+  } else {
+    stopSound(sound!);
   }
 }
 function getPlayButtonLabel() {
@@ -259,13 +272,12 @@ function getPlayButtonLabel() {
     return 'pause';
   }
 }
-function getWaveformColor() {
-  if (sound?.isPlaying) {
-    return 'green';
-  } else if (sound?.isSelected) {
-    return 'orange';
+
+function getPlayInOutButtonLabel() {
+  if (sound?.audioElement.paused) {
+    return 'play in-out';
   } else {
-    return 'rgb(40, 134, 189)';
+    return 'stop';
   }
 }
 
@@ -336,11 +348,12 @@ watch(
 .soundName {
   max-width: 100%;
   text-align: center;
-  font-size: 1rem;
+  font-size: 1.2rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   widows: 80%;
+  color: orange;
 }
 .volume-container {
   display: flex;
@@ -389,11 +402,12 @@ watch(
 }
 
 .soundDetailsBackground {
-  border: 2px solid;
+  /* border: 2px solid;
+  border-color: var(--blueColor); */
   border-radius: 10px;
-  border-color: var(--blueColor);
   background-color: var(--bkgColor);
   width: 100%;
+  padding: 10px;
 }
 .play-pause {
   display: flex;
@@ -410,5 +424,15 @@ watch(
 .separator {
   margin-top: 10px;
   margin-bottom: 10px;
+}
+.waveform-container {
+  width: 100%;
+  margin-top: 3px;
+  margin-bottom: 3px;
+  border: 1px solid;
+  border-color: orange;
+  border-radius: 10px;
+  box-shadow: 5px 5px 2px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 </style>

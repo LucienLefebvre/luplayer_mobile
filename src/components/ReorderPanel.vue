@@ -83,6 +83,7 @@ const draggables = [
   border-radius: 10px;
   overflow-y: auto;
   max-width: 100%;
+  width: 90vw;
 }
 .sound-list-item {
   padding-top: 5px;

@@ -92,10 +92,10 @@
           <div class="settings-label">Show peak meter</div>
           <q-toggle v-model="settingsStore.showPeakMeter" color="orange" />
         </div>
-        <div class="settings-row">
+        <!--         <div class="settings-row">
           <div class="settings-label">Show LU meter</div>
           <q-toggle v-model="settingsStore.showLuMeter" color="orange" />
-        </div>
+        </div> -->
         <div class="settings-row">
           <div class="settings-label">Peak meter orange threshold (-dbFS)</div>
 

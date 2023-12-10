@@ -478,7 +478,7 @@ export class Waveform {
     }
     const frameRedrawEndTime = performance.now();
     const frameRedrawDuration = frameRedrawEndTime - frameRedrawStartTime;
-    //console.log('frameRedrawDuration: ', frameRedrawDuration);
+    console.log('frameRedrawDuration: ', frameRedrawDuration);
     //console.log(this.name);
   }
 

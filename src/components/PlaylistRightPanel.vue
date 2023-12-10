@@ -1,5 +1,5 @@
 <template>
-  <div class="column q-py-sm fit justifi-center" style="min-height: inherit">
+  <div class="right-panel">
     <div class="row justify-center volumeLabel" style="height: 5%">
       {{ getVolumeLabelText() }}
     </div>
@@ -111,5 +111,12 @@ function faderTouchEnd() {
 .volumeLabel {
   font-size: 1rem;
   color: orange;
+}
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  width: 100%;
 }
 </style>

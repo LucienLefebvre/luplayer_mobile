@@ -12,33 +12,39 @@ import {
   setSelectedSound,
   normalizeSound,
 } from 'src/composables/sound-controller';
-import {
-  calculateIntegratedLoudness,
-  calculateMomentaryLoudness,
-} from 'src/composables/loudness-calculation';
-import { normalize } from 'path';
 
 export const useSoundsStore = defineStore('soundsStore', {
   state: () => ({
     settingsStore: useSettingsStore(),
+
     sounds: [[], []] as [SoundModel[], SoundModel[]],
+
+    loadingSounds: [] as File[],
+
     playerMode: 'playlist' as 'playlist' | 'cart',
+
     audioContext: null as AudioContext | null,
     outputGainNode: null as GainNode | null,
     outputLimiterNode: null as DynamicsCompressorNode | null,
     outputAnalyserNodes: null as StereoAnalyserObject | null,
+    sampleRate: 0 as number,
+
     selectedSound: null as SoundModel | null,
     editedSound: null as SoundModel | null,
+
     stoppedByButtonClick: false,
     isReordering: false,
+    faderTouchedDuringPlayback: false as boolean,
+
     showEditWindow: false as boolean,
     showReorderWindow: false as boolean,
     showSettingsWindow: false as boolean,
+    showDeleteSoundWindow: false as boolean,
+
     selectedSoundVolumeSliderValue: 0.0 as number,
     selectedSoundVolume: 0.0 as number,
+
     momentaryLoudness: { value: 0.0 as number },
-    faderTouchedDuringPlayback: false as boolean,
-    sampleRate: 0 as number,
   }),
 
   actions: {
