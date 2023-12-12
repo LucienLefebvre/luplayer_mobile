@@ -22,7 +22,6 @@
         }"
       />
       <sound-waveform
-        :v-if="sound.waveformChunks"
         v-show="
           settingsStore.waveformHeightFactor > 0.1 && sound.waveformChunks
         "
@@ -30,7 +29,6 @@
         :sound="sound"
         style="width: 100%"
       />
-
       <div
         class="bottom-row row"
         :style="{
@@ -168,13 +166,6 @@ watch(
     progressBar.value?.setBarColor(getBackgroundColor(0.2));
   }
 );
-
-watch(
-  () => sound.value.waveformChunks,
-  () => {
-    //showEditWindow(sound.value);
-  }
-);
 </script>
 
 <style scoped>
@@ -195,7 +186,6 @@ watch(
   width: 100%;
   max-width: 100%;
   font-size: 16px;
-
   gap: 5px;
 }
 .sound-progress-bar {

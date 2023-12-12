@@ -18,12 +18,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useQuasar } from 'quasar';
 import { useSoundsStore } from '../stores/sounds-store';
 
 const soundsStore = useSoundsStore();
-
-const loadingDialog = ref(false);
+const $q = useQuasar();
 
 const fileInput = ref<HTMLInputElement | null>(null);
 function chooseFile() {
@@ -35,10 +35,15 @@ function chooseFile() {
 import soundFileUrl from '../assets/son.mp3';
 
 onMounted(async () => {
-  /*   const response = await fetch(soundFileUrl);
+  /* const response = await fetch(soundFileUrl);
   const blob = await response.blob();
   const file = new File([blob], 'son.mp3', { type: 'audio/mpeg' });
-  soundsStore.loadSound(file.name, file); */
+  const audioElement = document.createElement('audio');
+  const url = URL.createObjectURL(file);
+  audioElement.src = url;
+  audioElement.preload = 'metadata';
+
+  soundsStore.loadSound(audioElement, file.name); */
 });
 
 function onFileChange(event: Event) {
@@ -63,7 +68,22 @@ function onFileChange(event: Event) {
       return;
     }
 
-    soundsStore.loadSound(input.files[i].name, input.files[i]);
+    const audioElement = document.createElement('audio');
+    const url = URL.createObjectURL(file);
+    audioElement.src = url;
+    audioElement.preload = 'metadata';
+
+    soundsStore.loadSound(audioElement, input.files[i].name);
+
+    audioElement.onerror = () => {
+      const errorString = `Could not load sound file : ${file.name}`;
+      $q.notify({
+        message: errorString,
+        color: 'red',
+        type: 'negative',
+        position: 'top',
+      });
+    };
   }
 }
 </script>

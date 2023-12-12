@@ -1,8 +1,11 @@
 import { SoundModel } from 'src/components/models';
 import { dbToGain, getMMSSfromS } from 'src/composables/math-helpers';
-import { calculateIntegratedLoudness } from './loudness-calculation';
+import init, {
+  calculate_r128_integrated_loudness,
+} from 'src/rust/waveform_process/pkg';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
+import { Notify } from 'quasar';
 
 export function playSound(
   sound: SoundModel,
@@ -30,10 +33,11 @@ export function playSound(
     setEnveloppeGainValues(sound, useSoundsStore().audioContext!);
   }
   if (fadeIn) {
+    const fadeTime = settingsStore.defaultFadeInTime / 1000;
     sound.trimGainNode!.gain.setValueAtTime(0.01, audioContext.currentTime);
     sound.trimGainNode!.gain.exponentialRampToValueAtTime(
       dbToGain(sound.trimGain),
-      audioContext.currentTime + settingsStore.defaultFadeInTime / 1000
+      audioContext.currentTime + fadeTime
     );
   }
 
@@ -43,7 +47,7 @@ export function playSound(
   sound.launchTime = Date.now();
   clearTimeout(sound.timeOutId);
 
-  if (sound.outTime !== null) {
+  if (sound.outTime !== null && !isCuePlayed) {
     const inTime = sound.inTime !== null ? sound.inTime : 0;
     const timeOutDuration = (sound.outTime - inTime) * 1000;
 
@@ -169,7 +173,7 @@ export function stopSoundWithFadeOut(sound: SoundModel) {
   );
   setTimeout(() => {
     stopSound(sound);
-  }, useSettingsStore().defaultFadeOutTime);
+  }, rampTime * 1000);
 }
 
 export function incrementSelectedSound() {
@@ -314,12 +318,22 @@ export function setName(sound: SoundModel, name: string) {
 }
 
 export async function normalizeSound(sound: SoundModel, targetValue: number) {
-  const startTime = performance.now();
   if (sound.integratedLoudness === null) {
-    calculateIntegratedLoudness(sound).then((loudness) => {
-      sound.integratedLoudness = loudness;
+    const buffer = await fetch(sound.audioElement.src).then((response) =>
+      response.arrayBuffer()
+    );
+    const audioBuffer = await new AudioContext().decodeAudioData(buffer);
+    const leftChannelData = audioBuffer.getChannelData(0);
+    const rightChannelData = audioBuffer.getChannelData(1);
+
+    init().then(() => {
+      const loudness = calculate_r128_integrated_loudness(
+        leftChannelData,
+        rightChannelData,
+        audioBuffer.sampleRate
+      );
+
       setTrimGain(sound, getTrimValueFromLoudness(loudness, targetValue));
-      const endTime = performance.now();
     });
   } else {
     setTrimGain(

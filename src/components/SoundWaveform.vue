@@ -1,6 +1,10 @@
 <template>
   <div style="position: relative">
-    <div ref="waveformNew" class="waveform-view"></div>
+    <div
+      ref="waveformNew"
+      class="waveform-view"
+      v-show="sound.displayWaveform"
+    ></div>
     <div
       v-show="!sound.displayWaveform"
       :style="{ height: getWaveformHeight() + 'px' }"
@@ -28,7 +32,7 @@ let waveform: Waveform;
 const waveformNew = ref<HTMLDivElement | null>(null);
 
 const emits = defineEmits(['click', 'doubleClick', 'long-touch']);
-
+const waveformVerticalZoom = 1.3;
 onMounted(async () => {
   if (!waveformNew.value) return;
   waveform = new Waveform(waveformNew.value, props.sound.audioElement);
@@ -46,7 +50,9 @@ onMounted(async () => {
   await waveform.calculateWaveformChunks().then((chunks) => {
     sound.value.waveformChunks = chunks;
     waveform.setHeight(settingsStore.waveformHeightFactor * 100);
-    waveform.setVerticalZoomFactor(settingsStore.waveformVerticalZoomFactor);
+    waveform?.setVerticalZoomFactor(
+      dbToGain(sound.value.trimGain) * waveformVerticalZoom
+    );
     waveform.showInTime = true;
     waveform.showOutTime = true;
     waveform.inTimeColor = 'lightblue';
@@ -54,10 +60,10 @@ onMounted(async () => {
     waveform.isZoomable = false;
     waveform.waveformLayer.listening(false);
     waveform.name = sound.value.name;
-    //waveform.setEnveloppePoints(sound.value.enveloppePoints);
-    //waveform.setShowEnveloppe(true);
-    //waveform.setShowEnveloppeLine(false);
-    //waveform.setShowEnveloppePoints(false);
+    waveform.setEnveloppePoints(sound.value.enveloppePoints);
+    waveform.setShowEnveloppe(true);
+    waveform.setShowEnveloppeLine(false);
+    waveform.setShowEnveloppePoints(false);
 
     updateWaveformColor();
   });
@@ -113,7 +119,9 @@ function updateWaveformColor() {
 watch(
   () => sound.value.trimGain,
   (newValue) => {
-    waveform?.setVerticalZoomFactor(dbToGain(newValue));
+    waveform?.setVerticalZoomFactor(
+      dbToGain(sound.value.trimGain) * waveformVerticalZoom
+    );
   }
 );
 
@@ -141,8 +149,8 @@ watch(
 watch(
   () => sound.value.enveloppePoints,
   (newValue) => {
-    console.log('enveloppePoints changed to ' + newValue);
-    //waveform?.setEnveloppePoints(newValue);
+    //console.log('enveloppePoints changed to ' + newValue);
+    waveform?.setEnveloppePoints(newValue);
   },
   { deep: true }
 );

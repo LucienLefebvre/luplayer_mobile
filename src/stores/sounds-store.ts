@@ -70,12 +70,7 @@ export const useSoundsStore = defineStore('soundsStore', {
       this.outputLimiterNode.connect(this.audioContext.destination);
     },
 
-    loadSound(name: string, file: File) {
-      const audioElement = document.createElement('audio');
-      audioElement.preload = 'metadata';
-      const url = URL.createObjectURL(file);
-      audioElement.src = url;
-
+    loadSound(audioElement: HTMLAudioElement, name: string) {
       audioElement.onloadedmetadata = async () => {
         if (this.audioContext === null) {
           this.initAudioContext();
@@ -89,7 +84,6 @@ export const useSoundsStore = defineStore('soundsStore', {
 
         let addedSound: SoundModel = {
           id: uuidv4(),
-          file: file,
           name: name,
           audioElement: audioElement,
           duration: audioElement.duration,
@@ -97,7 +91,6 @@ export const useSoundsStore = defineStore('soundsStore', {
           isPlaying: false,
           isSelected: false,
           isCuePlayed: false,
-          url: url,
           trimGain: 0.0,
           source: null,
           trimGainNode: null,
@@ -150,7 +143,7 @@ export const useSoundsStore = defineStore('soundsStore', {
         }
       }
 
-      if (!sound.isPlaying) {
+      if (sound.audioElement.paused) {
         this.showEditWindow = false;
         this.sounds[array].splice(index, 1);
         if (sound.isSelected) {

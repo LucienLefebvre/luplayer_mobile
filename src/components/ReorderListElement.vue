@@ -83,7 +83,7 @@ function getSoundDurationLabel() {
 .sound-name {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   overflow: hidden;
   width: 70%;
   max-width: 70%;

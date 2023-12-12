@@ -93,8 +93,6 @@ export class Waveform {
   public name: string;
 
   private showEnveloppeOnWaveform: boolean;
-  private showEnveloppePoints: boolean;
-  private showEnveloppeLine: boolean;
   private enveloppePointsLayer: Konva.Layer;
   private enveloppeLineLayer: Konva.Layer;
   private enveloppePoints: EnveloppePoint[];
@@ -114,6 +112,9 @@ export class Waveform {
   public enveloppeLineSize: number;
   public enveloppeMaxGainDb: number;
   public enveloppeMinGainDb: number;
+  public showLastClickedPoint: boolean;
+  public lastClickedPointColor: string;
+  public lastClickedPointIndex: number;
 
   public freezed: boolean;
 
@@ -221,8 +222,6 @@ export class Waveform {
     this.freezed = false;
 
     this.showEnveloppeOnWaveform = false;
-    this.showEnveloppePoints = false;
-    this.showEnveloppeLine = false;
     this.enveloppePointsLayer = new Konva.Layer();
     this.enveloppeLineLayer = new Konva.Layer();
     this.enveloppePoints = [] as EnveloppePoint[];
@@ -242,6 +241,9 @@ export class Waveform {
     this.enveloppePointsValueTextBackground = new Konva.Rect();
     this.enveloppeDragTimeoutID = null;
     this.enveloppePointsNormRange = new NormalizableRange(-60, 0, 15);
+    this.showLastClickedPoint = false;
+    this.lastClickedPointColor = 'yellow';
+    this.lastClickedPointIndex = -1;
     this.enveloppePointsValueLayer.add(this.enveloppePointsValueTextBackground);
     this.enveloppePointsValueLayer.add(this.enveloppePointsValueText);
     this.stage.add(this.enveloppePointsValueLayer);
@@ -940,8 +942,6 @@ export class Waveform {
         this.soundDuration
       );
 
-      const zoomDirection = this.oldTimeDeltaX - timeDeltaX > 0 ? 'in' : 'out';
-
       const startTime = this.waveformDragStartTime - timeDeltaX / 2;
       const endTime = this.waveformDragEndTime + timeDeltaX / 2;
 
@@ -1170,6 +1170,10 @@ export class Waveform {
         return this.getEnveloppeCirculeDragBoundFunc(pos, i);
       });
 
+      dragCircle.on('click tap', () => {
+        this.handleEnveloppeCircleClick(dragCircle);
+      });
+
       dragCircle.on('dragmove', () => {
         this.handleEnveloppeCircleDragMove(dragCircle);
       });
@@ -1218,6 +1222,12 @@ export class Waveform {
     };
   }
 
+  private handleEnveloppeCircleClick(dragCircle: Konva.Circle) {
+    const index = this.enveloppePointsDragCircles.indexOf(dragCircle);
+    this.lastClickedPointIndex = index;
+    this.updateEnveloppePoints();
+  }
+
   private handleEnveloppeCircleDoubleCkick(dragCircle: Konva.Circle) {
     const index = this.enveloppePointsDragCircles.indexOf(dragCircle);
 
@@ -1241,6 +1251,7 @@ export class Waveform {
       time: newTime,
       gainDb: newGainDb,
     };
+    this.lastClickedPointIndex = index;
 
     this.enveloppePoints.sort((a, b) => a.time - b.time);
     this.updateEnveloppePoints();
@@ -1257,23 +1268,25 @@ export class Waveform {
   ) {
     const text = this.enveloppePointsValueText;
     this.enveloppePointsValueLayer.visible(true);
+    text.fontSize(20);
     text.text(`${newGainDb.toFixed(1)}dB`);
     text.fill('white');
+    text.verticalAlign('middle');
 
-    const textX = dragCircle.x() - text.width() / 2;
-    const textY = dragCircle.y() - 25;
+    const textX = this.stage.width() / 2 - text.width() / 2;
+    const textY = 2;
     text.x(textX);
     text.y(textY);
 
     const background = this.enveloppePointsValueTextBackground;
-    background.x(textX - 2);
+    background.x(textX - 4);
     background.y(textY - 2);
-    background.width(text.width() + 4);
+    background.width(text.width() + 8);
     background.height(text.height() + 4);
     background.fill('red');
-    background.opacity(0.5);
-    background.stroke('black');
-    background.strokeWidth(1);
+    background.opacity(0.3);
+    /*  background.stroke('black');
+    background.strokeWidth(1); */
     background.cornerRadius(5);
 
     if (this.enveloppeDragTimeoutID !== null) {
@@ -1308,7 +1321,20 @@ export class Waveform {
       ]);
     }
 
+    if (this.showLastClickedPoint && this.lastClickedPointIndex >= 0) {
+      this.updateLastClickedEnveloppePoint();
+    }
     this.updateWaveform();
+  }
+  private updateLastClickedEnveloppePoint() {
+    this.enveloppePointsDisplayCircles.forEach((circle) => {
+      circle.fill(this.enveloppePointsDisplayCircleFillColor);
+    });
+    const lastPoint =
+      this.enveloppePointsDisplayCircles[this.lastClickedPointIndex];
+    if (lastPoint) {
+      lastPoint.fill(this.lastClickedPointColor);
+    }
   }
 
   public getEnveloppeValueAtTime(time: number) {

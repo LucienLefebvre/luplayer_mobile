@@ -9,6 +9,7 @@
       :key="sound.id"
       class="sound-player"
       :id="sound.id"
+      ref="soundPlayerRefs"
     >
       <SoundPlayer :sound="sound" :id="sound.id" />
     </div>
@@ -88,12 +89,13 @@ watch(
       threshold: 0,
     };
 
+    const observer = new IntersectionObserver(handleIntersection, options);
+
     soundsStore.sounds[0].forEach((sound) => {
       const element = document.getElementById(sound.id);
       if (element && !elementsObserved.includes(element)) {
         elementsObserved.push(element);
-        const observer = new IntersectionObserver(handleIntersection, options);
-        //observer.observe(element);
+        observer.observe(element);
       }
     });
   }
@@ -120,9 +122,6 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
     }
   });
 };
-
-const isSoundPlayerInViewport = (id: string) =>
-  soundPlayersInViewport.value.includes(id);
 </script>
 
 <style scoped>

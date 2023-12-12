@@ -42,9 +42,7 @@
         <q-separator class="separator" size="1px" color="primary" />
 
         <div style="height: 10px"></div>
-        <div ref="minimapWaveformView" class="waveform-container"></div>
-        <div ref="zoomableWaveformView" class="waveform-container"></div>
-        <div style="height: 10px"></div>
+
         <div class="buttons-row">
           <div class="buttons-row-group">
             <q-btn
@@ -74,11 +72,23 @@
               size="sm"
             />
           </div>
+        </div>
+        <div style="height: 10px"></div>
+        <div ref="minimapWaveformView" class="waveform-container"></div>
+        <div ref="zoomableWaveformView" class="waveform-container"></div>
+        <div style="height: 10px"></div>
+        <div class="buttons-row">
           <div class="buttons-row-group">
             <q-btn
               label="point"
               @click="addEnveloppePointAtPlayPosition()"
               class="set-mark-button"
+              size="sm"
+            />
+            <q-btn
+              icon="delete"
+              @click="deleteLastClickedPoint()"
+              class="delete-mark-button"
               size="sm"
             />
           </div>
@@ -182,6 +192,7 @@ onMounted(() => {
   zoomable.setShowEnveloppe(true);
   zoomable.setShowEnveloppePoints(true);
   zoomable.setShowEnveloppeLine(true);
+  zoomable.showLastClickedPoint = true;
 
   minimap.setMinimapRangeRectangleOpacity(0.2);
   minimap.showInTime = true;
@@ -252,21 +263,21 @@ function closeButtonClicked() {
   soundsStore.showEditWindow = false;
 }
 function playButtonClicked() {
-  if (sound?.audioElement.paused) {
-    playSound(sound, true, false);
+  if (!sound?.isPlaying) {
+    playSound(sound!, true, false);
   } else {
     pauseSound(sound!);
   }
 }
 function playInOutButtonClicked() {
-  if (sound?.audioElement.paused) {
-    playSound(sound, false, false);
+  if (!sound?.isPlaying) {
+    playSound(sound!, false, false);
   } else {
     stopSound(sound!);
   }
 }
 function getPlayButtonLabel() {
-  if (sound?.audioElement.paused) {
+  if (!sound?.isPlaying) {
     return 'play';
   } else {
     return 'pause';
@@ -274,7 +285,7 @@ function getPlayButtonLabel() {
 }
 
 function getPlayInOutButtonLabel() {
-  if (sound?.audioElement.paused) {
+  if (!sound?.isPlaying) {
     return 'play in-out';
   } else {
     return 'stop';
@@ -297,6 +308,19 @@ function addEnveloppePointAtPlayPosition() {
     zoomable?.setEnveloppePoints(sound.enveloppePoints);
   }
   setEnveloppeGainValues(sound!, soundsStore.audioContext!);
+}
+
+function deleteLastClickedPoint() {
+  if (zoomable) {
+    const index = zoomable.lastClickedPointIndex;
+    if (index < 1) return;
+    if (index === sound!.enveloppePoints.length - 1) return;
+    sound!.enveloppePoints.splice(index, 1);
+    zoomable.lastClickedPointIndex = -1;
+    zoomable.setEnveloppePoints(sound!.enveloppePoints);
+
+    setEnveloppeGainValues(sound!, soundsStore.audioContext!);
+  }
 }
 watch(
   () => sound?.inTime,

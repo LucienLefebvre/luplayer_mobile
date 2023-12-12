@@ -3,8 +3,6 @@ import Konva from 'konva';
 
 export interface SoundModel {
   id: string;
-  url: string;
-  file: File;
   name: string;
 
   isPlaying: boolean;
