@@ -58,9 +58,9 @@ watch(
 watch(
   () => soundsStore.selectedSound,
   () => {
-    if (settingsStore.autoScroll) {
+    if (settingsStore.autoScroll && soundsStore.selectedSound) {
       const selectedSoundIndex = soundsStore.sounds[0].indexOf(
-        soundsStore.selectedSound!
+        soundsStore.selectedSound
       );
 
       if (soundPlayers.value === null) return;
@@ -77,7 +77,6 @@ onMounted(() => {
   updateHeight();
 });
 
-const soundPlayersInViewport = ref<string[]>([]);
 const elementsObserved: HTMLElement[] = [];
 watch(
   () => soundsStore.sounds[0].length,

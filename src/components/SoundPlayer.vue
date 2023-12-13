@@ -72,6 +72,7 @@ import {
   setSelectedSound,
   getRemainingTime,
 } from 'src/composables/sound-controller';
+import { getCssVar, colors } from 'quasar';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -89,24 +90,32 @@ function getWaveformColor() {
     if (getRemainingTime(sound.value) < 5) return 'red';
     else return 'green';
   } else if (sound.value.isSelected && soundsStore.playerMode === 'playlist') {
-    return 'orange';
+    return getCssVar('secondary') ?? 'orange';
   } else {
-    return 'rgb(40, 134, 189)';
+    return sound.value.color ?? 'blue';
   }
+}
+function getColorFromRGB(
+  rgbColor: { r: number; g: number; b: number },
+  opacity: number
+) {
+  const hexColor = colors.rgbToHex(rgbColor);
+  return colors.changeAlpha(hexColor, opacity);
 }
 
 function getBackgroundColor(opacity: number) {
   let color;
   if (sound.value.isPlaying) {
-    if (getRemainingTime(sound.value) < 5) {
-      color = 'rgba(255, 0, 0, ' + opacity + ')';
-    } else {
-      color = 'rgba(93, 175, 77 , ' + opacity + ')';
-    }
+    const rgbColor =
+      getRemainingTime(sound.value) < 5
+        ? { r: 255, g: 0, b: 0 }
+        : { r: 93, g: 175, b: 77 };
+    color = getColorFromRGB(rgbColor, opacity);
   } else if (sound.value.isSelected && soundsStore.playerMode === 'playlist') {
-    color = 'rgba(247, 151, 0 , ' + opacity + ')';
+    const rgbColor = { r: 247, g: 151, b: 0 };
+    color = getColorFromRGB(rgbColor, opacity);
   } else {
-    color = 'rgb(40, 134, 189, ' + opacity + ')';
+    color = colors.changeAlpha(sound.value.color, opacity);
   }
   backgroundColor.value = color;
   return color;

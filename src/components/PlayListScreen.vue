@@ -1,32 +1,34 @@
 <template>
-  <MetersPanel
-    v-if="settingsStore.showLuMeter || settingsStore.showPeakMeter"
-  />
-  <PlaylistToolBar />
-  <div class="row">
-    <div class="rightPanel" v-if="settingsStore.faderIsOtherSide">
-      <PlaylistRightPanel />
+  <div>
+    <MetersPanel
+      v-if="settingsStore.showLuMeter || settingsStore.showPeakMeter"
+    />
+    <PlaylistToolBar />
+    <div class="row">
+      <div class="rightPanel" v-if="settingsStore.faderIsOtherSide">
+        <PlaylistRightPanel />
+      </div>
+      <div
+        v-if="soundsStore.playerMode === 'playlist'"
+        class="column"
+        style="min-width: 85%; max-width: 85%"
+      >
+        <SoundPlayList />
+      </div>
+      <div
+        v-if="soundsStore.playerMode === 'cart'"
+        class="column"
+        style="min-width: 85%; max-width: 85%"
+      >
+        <CartScreen />
+      </div>
+      <div class="rightPanel" v-if="!settingsStore.faderIsOtherSide">
+        <PlaylistRightPanel />
+      </div>
     </div>
-    <div
-      v-if="soundsStore.playerMode === 'playlist'"
-      class="column"
-      style="min-width: 85%; max-width: 85%"
-    >
-      <SoundPlayList />
-    </div>
-    <div
-      v-if="soundsStore.playerMode === 'cart'"
-      class="column"
-      style="min-width: 85%; max-width: 85%"
-    >
-      <CartScreen />
-    </div>
-    <div class="rightPanel" v-if="!settingsStore.faderIsOtherSide">
-      <PlaylistRightPanel />
-    </div>
-  </div>
 
-  <PlaylistFooter v-if="soundsStore.playerMode === 'playlist'" />
+    <PlaylistFooter v-if="soundsStore.playerMode === 'playlist'" />
+  </div>
 </template>
 
 <script setup lang="ts">

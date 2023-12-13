@@ -4,7 +4,8 @@
       <MainToolBar />
     </q-header>
     <q-page-container class="gradient">
-      <PlayListScreen />
+      <SettingsPanel v-show="soundsStore.showSettingsWindow" />
+      <PlayListScreen v-show="!soundsStore.showSettingsWindow" />
     </q-page-container>
   </q-layout>
   <q-dialog v-model="soundsStore.showEditWindow" full-width full-height>
@@ -17,11 +18,11 @@
       <ReorderPanel />
     </div>
   </q-dialog>
-  <q-dialog v-model="soundsStore.showSettingsWindow" full-width full-height>
+  <!--   <q-dialog v-model="soundsStore.showSettingsWindow" maximized>
     <div class="column fit centered-content">
       <SettingsPanel />
     </div>
-  </q-dialog>
+  </q-dialog> -->
   <q-dialog v-model="soundsStore.showDeleteSoundWindow">
     <div class="column fit centered-content">
       <DeleteSoundDialog :sound="soundsStore.selectedSound" />
@@ -31,7 +32,7 @@
 
 <script setup lang="ts">
 import { useWakeLock } from '@vueuse/core';
-import { onMounted, watch, computed, ref } from 'vue';
+import { onMounted, watch } from 'vue';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 

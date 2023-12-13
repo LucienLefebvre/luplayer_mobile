@@ -45,7 +45,7 @@ function drawBar() {
   if (!props.sound) return;
   const currentTime = props.sound.audioElement.currentTime;
   const duration = props.sound.audioElement.duration;
-  const barWidth = (currentTime / duration) * stage!.width();
+  const barWidth = (currentTime / duration) * stage.width();
   const barHeight = stage.height();
 
   progressRect.width(barWidth);

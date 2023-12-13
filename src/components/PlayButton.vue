@@ -11,8 +11,6 @@
 
 <script setup lang="ts">
 import { useSoundsStore } from '../stores/sounds-store';
-import { useSettingsStore } from '../stores/settings-store';
-
 import {
   playButtonClicked,
   getRemainingTime,

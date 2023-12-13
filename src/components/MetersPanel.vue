@@ -5,12 +5,6 @@
       :analyserObject="soundsStore.outputAnalyserNodes"
       class="metersStyle"
     />
-
-    <!-- <LuMeter
-      v-if="settingsStore.showLuMeter"
-      :analyserNode="soundsStore.outputAnalyserNodes?.stereoAnalyser"
-      class="metersStyle"
-    /> -->
   </div>
 </template>
 
@@ -18,7 +12,6 @@
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from '../stores/settings-store';
 import PeakMeter from './PeakMeter.vue';
-import LuMeter from './LuMeter.vue';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();

@@ -5,7 +5,6 @@ import init, {
 } from 'src/rust/waveform_process/pkg';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
-import { Notify } from 'quasar';
 
 export function playSound(
   sound: SoundModel,
@@ -18,24 +17,24 @@ export function playSound(
   if (audioContext === null) return;
 
   initSoundAudio(sound, audioContext, soundsStore);
+  if (!sound.trimGainNode || !sound.volumeGainNode || !sound.enveloppeGainNode)
+    return;
 
-  sound.trimGainNode!.gain.value = dbToGain(sound.trimGain);
+  sound.trimGainNode.gain.value = dbToGain(sound.trimGain);
 
   if (!isCuePlayed) {
     sound.audioElement.currentTime = sound.inTime ?? 0;
   }
   if (soundsStore.selectedSound === sound) {
-    sound.volumeGainNode!.gain.value = dbToGain(
-      soundsStore.selectedSoundVolume
-    );
+    sound.volumeGainNode.gain.value = dbToGain(soundsStore.selectedSoundVolume);
   }
   if ((sound.enveloppePoints, sound.enveloppePoints.length > 0)) {
-    setEnveloppeGainValues(sound, useSoundsStore().audioContext!);
+    setEnveloppeGainValues(sound);
   }
   if (fadeIn) {
     const fadeTime = settingsStore.defaultFadeInTime / 1000;
-    sound.trimGainNode!.gain.setValueAtTime(0.01, audioContext.currentTime);
-    sound.trimGainNode!.gain.exponentialRampToValueAtTime(
+    sound.trimGainNode.gain.setValueAtTime(0.01, audioContext.currentTime);
+    sound.trimGainNode.gain.exponentialRampToValueAtTime(
       dbToGain(sound.trimGain),
       audioContext.currentTime + fadeTime
     );
@@ -58,7 +57,9 @@ export function playSound(
   }
 
   sound.audioElement.addEventListener('ended', () => {
-    sound.enveloppeGainNode!.gain.cancelScheduledValues(0);
+    if (!sound.enveloppeGainNode) return;
+
+    sound.enveloppeGainNode.gain.cancelScheduledValues(0);
     stopSound(sound);
     sound.isCuePlayed = false;
   });
@@ -69,6 +70,7 @@ function initSoundAudio(
   audioContext: AudioContext,
   soundsStore: ReturnType<typeof useSoundsStore>
 ) {
+  if (soundsStore.outputGainNode === null) return;
   if (sound.source === null) {
     sound.source = audioContext.createMediaElementSource(sound.audioElement);
   }
@@ -80,7 +82,7 @@ function initSoundAudio(
   sound.source.connect(sound.trimGainNode);
   sound.trimGainNode.connect(sound.volumeGainNode);
   sound.volumeGainNode.connect(sound.enveloppeGainNode);
-  sound.enveloppeGainNode.connect(soundsStore.outputGainNode!);
+  sound.enveloppeGainNode.connect(soundsStore.outputGainNode);
 }
 
 export function pauseSound(sound: SoundModel) {
@@ -117,8 +119,7 @@ export function playOrStopSound(sound: SoundModel) {
   if (sound.isPlaying) {
     stopSound(sound);
   } else {
-    sound.isCuePlayed = true;
-    playSound(sound, false, false);
+    playSound(sound, true, false);
   }
 }
 
@@ -157,9 +158,12 @@ export function playSoundWithFadeIn(sound: SoundModel) {
 }
 
 export function stopSoundWithFadeOut(sound: SoundModel) {
-  sound.trimGainNode!.gain.setValueAtTime(
+  if (!sound.trimGainNode) return;
+  const audioContext = useSoundsStore().audioContext;
+  if (audioContext === null) return;
+  sound.trimGainNode.gain.setValueAtTime(
     dbToGain(sound.trimGain),
-    useSoundsStore().audioContext!.currentTime
+    audioContext.currentTime
   );
 
   const remainingTime = getRemainingTime(sound);
@@ -167,9 +171,9 @@ export function stopSoundWithFadeOut(sound: SoundModel) {
     useSettingsStore().defaultFadeOutTime / 1000,
     remainingTime
   );
-  sound.trimGainNode!.gain.exponentialRampToValueAtTime(
+  sound.trimGainNode.gain.exponentialRampToValueAtTime(
     0.01,
-    useSoundsStore().audioContext!.currentTime + rampTime
+    audioContext.currentTime + rampTime
   );
   setTimeout(() => {
     stopSound(sound);
@@ -207,7 +211,7 @@ export function setSelectedSoundVolume(volume: number) {
   if (selectedSound === null) return;
   if (selectedSound.volumeGainNode === null) return;
 
-  selectedSound.volumeGainNode!.gain.value = dbToGain(volume);
+  selectedSound.volumeGainNode.gain.value = dbToGain(volume);
 }
 
 export function registerEventListeners(sound: SoundModel) {
@@ -223,9 +227,7 @@ export function handlePlayEvent(sound: SoundModel) {
 }
 
 export function handlePauseEvent(sound: SoundModel) {
-  //sound.enveloppeGainNode?.gain.cancelScheduledValues(0);
   sound.isPlaying = false;
-  // sound.volumeGainNode!.gain.value! = 1;
   if (!getIsCuePlayed(sound)) {
     resetSelectedSoundVolume();
     if (Date.now() - sound.launchTime > useSettingsStore().falseStartTime) {
@@ -251,18 +253,18 @@ export function resetSelectedSoundVolume() {
   useSoundsStore().selectedSoundVolume = 0.0;
 }
 
-export function setEnveloppeGainValues(
-  sound: SoundModel,
-  audioContext: AudioContext
-) {
+export function setEnveloppeGainValues(sound: SoundModel) {
+  const soundStore = useSoundsStore();
+  const audioContext = soundStore.audioContext;
+  if (audioContext === null) return;
+  if (sound.enveloppeGainNode === null) return;
+
   const enveloppePoints = sound.enveloppePoints;
 
   const ctxCurrentTime = audioContext.currentTime;
   const soundCurrentTime = sound.audioElement.currentTime;
 
-  if (sound.enveloppeGainNode === null) return;
-
-  sound.enveloppeGainNode!.gain.setValueAtTime(
+  sound.enveloppeGainNode.gain.setValueAtTime(
     dbToGain(getEnveloppeValueAtTime(sound, soundCurrentTime)),
     ctxCurrentTime
   );
@@ -271,13 +273,14 @@ export function setEnveloppeGainValues(
     const gain = dbToGain(point.gainDb);
     const nextPoint = enveloppePoints[index + 1];
 
+    if (sound.enveloppeGainNode === null) return;
     if (nextPoint) {
-      sound.enveloppeGainNode!.gain.exponentialRampToValueAtTime(
+      sound.enveloppeGainNode.gain.exponentialRampToValueAtTime(
         dbToGain(nextPoint.gainDb),
         nextPoint.time + ctxCurrentTime - soundCurrentTime
       );
     } else {
-      sound.enveloppeGainNode!.gain.setValueAtTime(gain, point.time);
+      sound.enveloppeGainNode.gain.setValueAtTime(gain, point.time);
     }
   });
 }
@@ -324,12 +327,15 @@ export async function normalizeSound(sound: SoundModel, targetValue: number) {
     );
     const audioBuffer = await new AudioContext().decodeAudioData(buffer);
     const leftChannelData = audioBuffer.getChannelData(0);
-    const rightChannelData = audioBuffer.getChannelData(1);
+    let rightChannelData = null as Float32Array | null;
+    if (audioBuffer.numberOfChannels > 1) {
+      rightChannelData = audioBuffer.getChannelData(1);
+    }
 
     init().then(() => {
       const loudness = calculate_r128_integrated_loudness(
         leftChannelData,
-        rightChannelData,
+        rightChannelData === null ? leftChannelData : rightChannelData,
         audioBuffer.sampleRate
       );
 
@@ -387,4 +393,8 @@ export function getEnveloppeValueAtTime(sound: SoundModel, time: number) {
     }
   }
   return 0;
+}
+
+export function getSoundColor(sound: SoundModel) {
+  return sound.color;
 }

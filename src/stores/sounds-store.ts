@@ -12,6 +12,7 @@ import {
   setSelectedSound,
   normalizeSound,
 } from 'src/composables/sound-controller';
+import { getCssVar } from 'quasar';
 
 export const useSoundsStore = defineStore('soundsStore', {
   state: () => ({
@@ -86,11 +87,13 @@ export const useSoundsStore = defineStore('soundsStore', {
           id: uuidv4(),
           name: name,
           audioElement: audioElement,
+          color: getCssVar('primary') ?? '#000000',
           duration: audioElement.duration,
           remainingTime: audioElement.duration,
           isPlaying: false,
           isSelected: false,
           isCuePlayed: false,
+          hasBeenCuePlayed: false,
           trimGain: 0.0,
           source: null,
           trimGainNode: null,

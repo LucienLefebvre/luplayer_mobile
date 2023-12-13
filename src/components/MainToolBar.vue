@@ -74,18 +74,15 @@ onMounted(() => {
   playlistClicked();
 });
 function cartClicked() {
-  router.push('/cart');
   soundsStore.initializeCartPlayer();
   soundsStore.playerMode = 'cart';
 }
 
 function playlistClicked() {
-  router.push('/playlist');
   soundsStore.playerMode = 'playlist';
 }
 
 function toggleSettings() {
-  console.log('toggleSettings');
   soundsStore.showSettingsWindow = !soundsStore.showSettingsWindow;
 }
 </script>

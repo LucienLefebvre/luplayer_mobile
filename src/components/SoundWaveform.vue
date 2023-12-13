@@ -1,27 +1,21 @@
 <template>
   <div style="position: relative">
-    <div
-      ref="waveformNew"
-      class="waveform-view"
-      v-show="sound.displayWaveform"
-    ></div>
-    <div
+    <div ref="waveformNew" class="waveform-view"></div>
+    <!--     <div
       v-show="!sound.displayWaveform"
       :style="{ height: getWaveformHeight() + 'px' }"
-    ></div>
+    ></div> -->
   </div>
 </template>
-<!-- v-show="sound.displayWaveform" -->
 
 <script setup lang="ts">
-import { PropType, ref, onMounted, watch, Ref } from 'vue';
+import { PropType, ref, onMounted, watch } from 'vue';
 import { useSettingsStore } from '../stores/settings-store';
 import { SoundModel } from './models';
 import { Waveform } from 'src/composables/waveform';
 import { dbToGain } from 'src/composables/math-helpers';
-import { useSoundsStore } from 'src/stores/sounds-store';
+import { getCssVar } from 'quasar';
 
-const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 const props = defineProps({
   sound: { type: Object as PropType<SoundModel>, required: true },
@@ -74,7 +68,7 @@ function getWaveformHeight() {
 }
 watch(
   () => settingsStore.waveformHeightFactor,
-  (newValue) => {
+  () => {
     waveform?.setHeight(getWaveformHeight());
   }
 );
@@ -107,21 +101,20 @@ watch(
     }
   }
 );
+
 function updateWaveformColor() {
   if (!sound.value.waveformChunks) return;
   if (sound.value.isSelected) {
-    waveform?.setRemainingWaveformFillColor('orange');
+    waveform?.setRemainingWaveformFillColor(getCssVar('secondary') ?? 'orange');
   } else {
-    waveform?.setRemainingWaveformFillColor('rgb(40, 134, 189)');
+    waveform?.setRemainingWaveformFillColor(sound.value.color);
   }
 }
 
 watch(
   () => sound.value.trimGain,
   (newValue) => {
-    waveform?.setVerticalZoomFactor(
-      dbToGain(sound.value.trimGain) * waveformVerticalZoom
-    );
+    waveform?.setVerticalZoomFactor(dbToGain(newValue) * waveformVerticalZoom);
   }
 );
 
@@ -141,7 +134,7 @@ watch(
 
 watch(
   () => sound.value.isPlaying,
-  (newValue) => {
+  () => {
     updateWaveformColor();
   }
 );

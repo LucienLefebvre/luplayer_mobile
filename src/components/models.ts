@@ -1,16 +1,17 @@
-import { PeaksInstance } from 'peaks.js';
 import Konva from 'konva';
 
 export interface SoundModel {
   id: string;
   name: string;
 
+  color: string;
+
   isPlaying: boolean;
   isSelected: boolean;
   isCuePlayed: boolean;
+  hasBeenCuePlayed: boolean;
 
   audioElement: HTMLAudioElement;
-  peak?: PeaksInstance;
   source: MediaElementAudioSourceNode | null;
 
   duration: number;
@@ -63,4 +64,10 @@ export interface WaveformParams {
 export enum playerMode {
   PLAYLIST = 'playlist',
   CART = 'cart',
+}
+
+export interface MeterBar {
+  green: Konva.Rect;
+  orange: Konva.Rect;
+  red: Konva.Rect;
 }

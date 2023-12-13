@@ -10,16 +10,9 @@
 </template>
 
 <script setup lang="ts">
-import { PropType, onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
-import { scaleTo0to1 } from '../composables/math-helpers';
 import { NormalizableRange } from 'src/composables/normalizable-range';
-const props = defineProps({
-  analyserNode: {
-    type: Object as PropType<AnalyserNode | null | undefined>,
-    required: true,
-  },
-});
 
 const soundsStore = useSoundsStore();
 

@@ -2,7 +2,7 @@
   <div class="column sound-details">
     <div class="close-button">
       <q-btn
-        @click="closeButtonClicked()"
+        @click="closeButtonClicked(sound)"
         icon="close"
         color="white"
         flat
@@ -13,9 +13,29 @@
     </div>
     <q-card class="soundDetailsBackground">
       <div class="column justify-center">
-        <div class="soundName">
+        <!-- <div class="soundName">
           {{ sound.name }}
-        </div>
+        </div> -->
+        <q-btn
+          :label="sound.name"
+          :style="{
+            'background-color': getSoundColor(sound),
+            'text-color': getCssVar('secondary') ?? 'orange',
+          }"
+          @click="nameButtonClicked()"
+        />
+
+        <q-dialog v-model="showNameColorDialog">
+          <div class="name-color-dialog">
+            <q-input v-model="sound.name" style="color: orange" />
+            <q-color
+              v-model="sound.color"
+              no-header
+              no-footer
+              default-view="palette"
+            />
+          </div>
+        </q-dialog>
         <q-separator class="separator" size="1px" color="primary" />
         <div class="row volume-container">
           <q-btn
@@ -81,13 +101,13 @@
           <div class="buttons-row-group">
             <q-btn
               label="point"
-              @click="addEnveloppePointAtPlayPosition()"
+              @click="addEnveloppePointAtPlayPosition(sound)"
               class="set-mark-button"
               size="sm"
             />
             <q-btn
               icon="delete"
-              @click="deleteLastClickedPoint()"
+              @click="deleteLastClickedPoint(sound)"
               class="delete-mark-button"
               size="sm"
             />
@@ -97,14 +117,14 @@
         <q-separator class="separator" size="1px" color="primary" />
         <div class="play-pause">
           <q-btn
-            :label="getPlayButtonLabel()"
+            :label="getPlayButtonLabel(sound)"
             color="green"
-            @click="playButtonClicked()"
+            @click="playButtonClicked(sound)"
           />
           <q-btn
-            :label="getPlayInOutButtonLabel()"
+            :label="getPlayInOutButtonLabel(sound)"
             color="green"
-            @click="playInOutButtonClicked()"
+            @click="playInOutButtonClicked(sound)"
           />
 
           <q-btn
@@ -119,15 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  PropType,
-  ref,
-  onMounted,
-  Ref,
-  watch,
-  onUnmounted,
-  onBeforeUnmount,
-} from 'vue';
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import { SoundModel, EnveloppePoint } from './models';
@@ -144,16 +156,14 @@ import {
   setTrimGain,
   normalizeSound,
   stopSound,
+  getSoundColor,
 } from 'src/composables/sound-controller';
+import { getCssVar } from 'quasar';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 
-const props = defineProps({
-  sound: { type: Object as PropType<SoundModel>, required: false },
-});
-
-const sound = soundsStore.editedSound;
+const sound = soundsStore.editedSound as SoundModel;
 
 let minimap: Waveform | null = null;
 const minimapWaveformView = ref<HTMLDivElement | null>(null);
@@ -163,12 +173,13 @@ const zoomableWaveformView = ref<HTMLDivElement | null>(null);
 
 onMounted(() => {
   if (!minimapWaveformView.value || !zoomableWaveformView.value) return;
+  if (!sound) return;
 
-  zoomable = new Waveform(zoomableWaveformView.value, sound!.audioElement, 200);
+  zoomable = new Waveform(zoomableWaveformView.value, sound.audioElement, 200);
 
   minimap = new Waveform(
     minimapWaveformView.value,
-    sound!.audioElement,
+    sound.audioElement,
     30,
     true,
     zoomable
@@ -188,7 +199,7 @@ onMounted(() => {
   zoomable.showHorizontalLine = true;
   zoomable.setPlayedWaveformFillColor('orange');
   zoomable.setRemainingWaveformFillColor('orange');
-  zoomable.setEnveloppePoints(sound!.enveloppePoints);
+  zoomable.setEnveloppePoints(sound.enveloppePoints);
   zoomable.setShowEnveloppe(true);
   zoomable.setShowEnveloppePoints(true);
   zoomable.setShowEnveloppeLine(true);
@@ -204,40 +215,41 @@ onMounted(() => {
   minimap.setPlayedWaveformFillColor('orange');
   minimap.setRemainingWaveformFillColor('orange');
 
-  if (sound?.inTime) {
-    zoomable.setInTime(sound!.inTime);
-    minimap.setInTime(sound!.inTime);
+  if (sound.inTime) {
+    zoomable.setInTime(sound.inTime);
+    minimap.setInTime(sound.inTime);
   }
-  if (sound?.outTime) {
-    zoomable.setOutTime(sound!.outTime);
-    minimap.setOutTime(sound!.outTime);
+  if (sound.outTime) {
+    zoomable.setOutTime(sound.outTime);
+    minimap.setOutTime(sound.outTime);
   }
 
-  if (sound?.waveformChunks) {
+  if (sound.waveformChunks) {
     minimap.setWaveformChunks(sound.waveformChunks);
     zoomable.setWaveformChunks(sound.waveformChunks);
     zoomable.centerTimeRangeOnPlayPosition();
   }
 
   zoomable.addEventListener('waveformDragEnd', () => {
-    if (zoomable?.wasPlayingOnDragStart) {
-      playSound(sound!, true, false);
+    if (zoomable && zoomable.wasPlayingOnDragStart) {
+      playSound(sound, true, false);
     }
   });
   zoomable.addEventListener('waveformDrag', () => {
-    if (zoomable?.wasPlayingOnDragStart) {
-      pauseSound(sound!);
+    if (zoomable && zoomable.wasPlayingOnDragStart) {
+      pauseSound(sound);
     }
   });
 
   zoomable.addEventListener('enveloppePointsChanged', () => {
-    sound!.enveloppePoints = zoomable!.getEnveloppePoints();
-    setEnveloppeGainValues(sound!, soundsStore.audioContext!);
+    if (!zoomable) return;
+    sound.enveloppePoints = zoomable.getEnveloppePoints();
+    setEnveloppeGainValues(sound);
   });
 
   minimap.addEventListener('click', () => {
-    pauseSound(sound!);
-    playSound(sound!, true, false);
+    pauseSound(sound);
+    playSound(sound, true, false);
   });
 });
 
@@ -257,44 +269,54 @@ onBeforeUnmount(() => {
   }
 });
 
-function closeButtonClicked() {
-  if (sound?.isCuePlayed) stopSound(sound!);
-
+function closeButtonClicked(sound: SoundModel) {
+  if (sound.isCuePlayed) stopSound(sound);
+  if (sound.hasBeenCuePlayed) {
+    sound.hasBeenCuePlayed = false;
+    sound.audioElement.currentTime = sound.inTime ?? 0;
+  }
   soundsStore.showEditWindow = false;
 }
-function playButtonClicked() {
-  if (!sound?.isPlaying) {
-    playSound(sound!, true, false);
+
+const showNameColorDialog = ref(false);
+function nameButtonClicked() {
+  showNameColorDialog.value = true;
+}
+
+function playButtonClicked(sound: SoundModel) {
+  if (!sound.isPlaying) {
+    playSound(sound, true, false);
+    sound.hasBeenCuePlayed = true;
   } else {
-    pauseSound(sound!);
+    pauseSound(sound);
   }
 }
-function playInOutButtonClicked() {
-  if (!sound?.isPlaying) {
-    playSound(sound!, false, false);
+function playInOutButtonClicked(sound: SoundModel) {
+  if (!sound.isPlaying) {
+    playSound(sound, false, false);
   } else {
-    stopSound(sound!);
+    stopSound(sound);
   }
 }
-function getPlayButtonLabel() {
-  if (!sound?.isPlaying) {
+function getPlayButtonLabel(sound: SoundModel) {
+  if (!sound.isPlaying) {
     return 'play';
   } else {
     return 'pause';
   }
 }
 
-function getPlayInOutButtonLabel() {
-  if (!sound?.isPlaying) {
+function getPlayInOutButtonLabel(sound: SoundModel) {
+  if (!sound.isPlaying) {
     return 'play in-out';
   } else {
     return 'stop';
   }
 }
 
-function addEnveloppePointAtPlayPosition() {
-  if (sound?.audioElement.currentTime) {
-    const gainDb = zoomable!.getEnveloppeValueAtTime(
+function addEnveloppePointAtPlayPosition(sound: SoundModel) {
+  if (zoomable && sound.audioElement.currentTime) {
+    const gainDb = zoomable.getEnveloppeValueAtTime(
       sound.audioElement.currentTime
     );
     const point = {
@@ -305,21 +327,21 @@ function addEnveloppePointAtPlayPosition() {
     sound.enveloppePoints = sound.enveloppePoints.sort(
       (a, b) => a.time - b.time
     );
-    zoomable?.setEnveloppePoints(sound.enveloppePoints);
+    zoomable.setEnveloppePoints(sound.enveloppePoints);
   }
-  setEnveloppeGainValues(sound!, soundsStore.audioContext!);
+  setEnveloppeGainValues(sound);
 }
 
-function deleteLastClickedPoint() {
+function deleteLastClickedPoint(sound: SoundModel) {
   if (zoomable) {
     const index = zoomable.lastClickedPointIndex;
     if (index < 1) return;
-    if (index === sound!.enveloppePoints.length - 1) return;
-    sound!.enveloppePoints.splice(index, 1);
+    if (index === sound.enveloppePoints.length - 1) return;
+    sound.enveloppePoints.splice(index, 1);
     zoomable.lastClickedPointIndex = -1;
-    zoomable.setEnveloppePoints(sound!.enveloppePoints);
+    zoomable.setEnveloppePoints(sound.enveloppePoints);
 
-    setEnveloppeGainValues(sound!, soundsStore.audioContext!);
+    setEnveloppeGainValues(sound);
   }
 }
 watch(
@@ -369,15 +391,12 @@ watch(
 .row {
   margin-bottom: 20px;
 }
-.soundName {
-  max-width: 100%;
-  text-align: center;
-  font-size: 1.2rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  widows: 80%;
-  color: orange;
+.name-color-dialog {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  background-color: var(--bkgColor);
 }
 .volume-container {
   display: flex;

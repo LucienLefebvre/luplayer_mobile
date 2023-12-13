@@ -1,6 +1,6 @@
 <template>
   <div class="column settings-panel">
-    <div class="close-button">
+    <!--    <div class="close-button">
       <q-btn
         @click="soundsStore.showSettingsWindow = false"
         icon="close"
@@ -11,121 +11,114 @@
         size="20px"
       />
     </div>
-    <q-card class="card-class">
-      <div class="settings-panel">
-        <div class="settings-row">
-          <div class="settings-label">Keep screen awake</div>
-          <q-toggle v-model="settingsStore.keepScreenAwake" color="orange" />
-        </div>
-        <div class="settings-row">
-          <div class="settings-label">Waveform size</div>
-          <q-slider
-            style="height: 100%; width: 60%"
-            v-model="settingsStore.waveformHeightFactor"
-            :min="0"
-            :max="2"
-            :step="0.01"
-            color="orange"
-          />
-        </div>
-        <div class="settings-row">
-          <div class="settings-label">Sound name size</div>
-          <q-slider
-            style="height: 100%; width: 60%"
-            v-model="settingsStore.soundNameHeightFactor"
-            :min="0.5"
-            :max="2"
-            :step="0.01"
-            color="orange"
-          />
-        </div>
-        <div class="settings-row">
-          <div class="settings-label">Auto scroll to selected sound</div>
-          <q-toggle v-model="settingsStore.autoScroll" color="orange" />
-        </div>
-        <q-separator class="separator" size="1px" />
-        <div class="settings-row">
-          <div class="settings-label">Invert fader side</div>
-          <q-toggle v-model="settingsStore.faderIsOtherSide" color="orange" />
-        </div>
-        <div class="settings-row">
-          <div class="settings-label">Fader curve</div>
-          <q-slider
-            style="height: 100%; width: 60%"
-            v-model="settingsStore.faderSkewFactor"
-            :min="1.01"
-            :max="10"
-            :step="0.01"
-            color="orange"
-          />
-        </div>
-        <div class="settings-row">
-          <div class="settings-label">Fader stop</div>
-          <q-toggle v-model="settingsStore.faderStop" color="orange" />
-        </div>
-        <q-separator class="separator" size="1px" />
-        <div class="settings-row">
-          <div class="settings-label">Auto normalize</div>
-          <q-toggle
-            v-model="settingsStore.autoNormalize"
-            color="orange"
-            type="number"
-          />
-        </div>
-        <div class="settings-row">
-          <div class="settings-label">Normalization target (LU)</div>
+    <q-card class="card-class"> -->
+    <div class="settings-panel">
+      <div class="settings-part-name">Display</div>
 
-          <q-input
-            v-model="settingsStore.normalizationLuTarget"
-            type="number"
-            input-class="text-center text-orange"
-            style="
-              width: 50px;
-              color: orange;
-              background-color: var(--bkgColor);
-            "
-            borderless
-          />
-        </div>
-        <q-separator class="separator" size="1px" />
-        <div class="settings-row">
-          <div class="settings-label">Show peak meter</div>
-          <q-toggle v-model="settingsStore.showPeakMeter" color="orange" />
-        </div>
-        <!--         <div class="settings-row">
+      <div class="settings-row">
+        <div class="settings-label">Keep screen awake</div>
+        <q-toggle v-model="settingsStore.keepScreenAwake" color="orange" />
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Waveform size</div>
+        <q-slider
+          style="height: 100%; width: 60%"
+          v-model="settingsStore.waveformHeightFactor"
+          :min="0"
+          :max="2"
+          :step="0.01"
+          color="orange"
+        />
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Sound name size</div>
+        <q-slider
+          style="height: 100%; width: 60%"
+          v-model="settingsStore.soundNameHeightFactor"
+          :min="0.5"
+          :max="2"
+          :step="0.01"
+          color="orange"
+        />
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Auto scroll to selected sound</div>
+        <q-toggle v-model="settingsStore.autoScroll" color="orange" />
+      </div>
+      <q-separator class="separator" size="1px" color="primary" />
+      <div class="settings-part-name">Fader</div>
+      <div class="settings-row">
+        <div class="settings-label">Invert fader side</div>
+        <q-toggle v-model="settingsStore.faderIsOtherSide" color="orange" />
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Fader curve</div>
+        <q-slider
+          style="height: 100%; width: 60%"
+          v-model="settingsStore.faderSkewFactor"
+          :min="1.01"
+          :max="10"
+          :step="0.01"
+          color="orange"
+        />
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Fader stop</div>
+        <q-toggle v-model="settingsStore.faderStop" color="orange" />
+      </div>
+      <q-separator class="separator" size="1px" color="primary" />
+      <div class="settings-part-name">Normalization</div>
+      <div class="settings-row">
+        <div class="settings-label">Auto normalize</div>
+        <q-toggle
+          v-model="settingsStore.autoNormalize"
+          color="orange"
+          type="number"
+        />
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Normalization target (LU)</div>
+
+        <q-input
+          v-model="settingsStore.normalizationLuTarget"
+          type="number"
+          input-class="text-center text-orange"
+          style="width: 50px; color: orange; background-color: var(--bkgColor)"
+          borderless
+        />
+      </div>
+      <q-separator class="separator" size="1px" color="primary" />
+      <div class="settings-part-name">Meter</div>
+      <div class="settings-row">
+        <div class="settings-label">Show peak meter</div>
+        <q-toggle v-model="settingsStore.showPeakMeter" color="orange" />
+      </div>
+      <!--         <div class="settings-row">
           <div class="settings-label">Show LU meter</div>
           <q-toggle v-model="settingsStore.showLuMeter" color="orange" />
         </div> -->
-        <div class="settings-row">
-          <div class="settings-label">Peak meter orange threshold (-dbFS)</div>
+      <div class="settings-row">
+        <div class="settings-label">Peak meter orange threshold (-dbFS)</div>
 
-          <q-input
-            v-model="settingsStore.peakMeterOrangeThreshold"
-            type="number"
-            input-class="text-center text-orange"
-            style="
-              width: 50px;
-              color: orange;
-              background-color: var(--bkgColor);
-            "
-          />
-        </div>
-        <div class="settings-row">
-          <div class="settings-label">Peak meter red threshold (-dbFS)</div>
-
-          <q-input
-            v-model="settingsStore.peakMeterRedThreshold"
-            type="number"
-            input-class="text-center text-orange"
-            style="
-              width: 50px;
-              color: orange;
-              background-color: var(--bkgColor);
-            "
-          />
-        </div>
+        <q-input
+          v-model="settingsStore.peakMeterOrangeThreshold"
+          type="number"
+          input-class="text-center text-orange"
+          style="width: 50px; color: orange; background-color: var(--bkgColor)"
+        />
       </div>
-    </q-card>
+      <div class="settings-row">
+        <div class="settings-label">Peak meter red threshold (-dbFS)</div>
+
+        <q-input
+          v-model="settingsStore.peakMeterRedThreshold"
+          type="number"
+          input-class="text-center text-orange"
+          style="width: 50px; color: orange; background-color: var(--bkgColor)"
+        />
+      </div>
+    </div>
+    <!--     </q-card> -->
   </div>
 </template>
 
@@ -143,28 +136,28 @@ watchEffect(() => {
 
 watch(
   () => settingsStore.normalizationLuTarget,
-  (newValue: any) => {
-    settingsStore.normalizationLuTarget = parseFloat(newValue);
+  (newValue: number) => {
+    settingsStore.normalizationLuTarget = newValue;
   }
 );
 
 watch(
   () => settingsStore.peakMeterOrangeThreshold,
-  (newValue: any) => {
-    settingsStore.peakMeterOrangeThreshold = parseFloat(newValue);
+  (newValue: number) => {
+    settingsStore.peakMeterOrangeThreshold = newValue;
   }
 );
 
 watch(
   () => settingsStore.peakMeterRedThreshold,
-  (newValue: any) => {
-    settingsStore.peakMeterRedThreshold = parseFloat(newValue);
+  (newValue: number) => {
+    settingsStore.peakMeterRedThreshold = newValue;
   }
 );
 </script>
 
 <style scoped>
-.close-button {
+/* .close-button {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -172,15 +165,22 @@ watch(
 .card-class {
   background-color: var(--bkgColor);
   padding: 5px;
-  border-radius: 10px;
   overflow-y: auto;
   max-width: 100%;
   width: 100%;
-  border: 2px solid var(--blueColor);
-}
+
+   border: 2px solid var(--blueColor);
+  border-radius: 10px;
+} */
+
 .settings-panel {
   display: flex;
   flex-direction: column;
+  padding: 5px;
+}
+.settings-part-name {
+  font-size: 17px;
+  color: var(--blueColor);
 }
 .settings-row {
   display: flex;
@@ -197,8 +197,8 @@ watch(
   padding-right: 10px;
 }
 .separator {
+  margin: 40px;
   margin-top: 5px;
   margin-bottom: 5px;
-  color: var(--blueColor);
 }
 </style>

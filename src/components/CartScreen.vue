@@ -36,8 +36,6 @@ import draggable from 'vuedraggable';
 import SoundPlayer from './SoundPlayer.vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
-import MetersPanel from './MetersPanel.vue';
-import AddSoundButton from './AddSoundButton.vue';
 import { ref, onMounted, watch } from 'vue';
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();

@@ -27,10 +27,9 @@
 </template>
 
 <script setup lang="ts">
-import { watch, onMounted, ref } from 'vue';
+import { watch, onMounted } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
-import { dbToGain } from '../composables/math-helpers';
 import { NormalizableRange } from 'src/composables/normalizable-range';
 import AddSoundButton from './AddSoundButton.vue';
 import {
