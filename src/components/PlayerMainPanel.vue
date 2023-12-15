@@ -8,26 +8,32 @@
       <div class="rightPanel" v-if="settingsStore.faderIsOtherSide">
         <PlaylistRightPanel />
       </div>
-      <div
-        v-if="soundsStore.playerMode === 'playlist'"
-        class="column"
-        style="min-width: 85%; max-width: 85%"
-      >
+      <div v-if="soundsStore.playerMode === 'playlist'" class="playlist">
         <SoundPlayList />
       </div>
       <div
         v-if="soundsStore.playerMode === 'cart'"
-        class="column"
         style="min-width: 85%; max-width: 85%"
       >
-        <CartScreen />
+        <SoundCart />
+      </div>
+      <div
+        v-if="soundsStore.playerMode === 'playlistAndCart'"
+        style="min-width: 85%; max-width: 85%"
+      >
+        <SoundPlaylistAndCart />
       </div>
       <div class="rightPanel" v-if="!settingsStore.faderIsOtherSide">
         <PlaylistRightPanel />
       </div>
     </div>
 
-    <PlaylistFooter v-if="soundsStore.playerMode === 'playlist'" />
+    <PlaylistFooter
+      v-if="
+        soundsStore.playerMode === 'playlist' ||
+        soundsStore.playerMode === 'playlistAndCart'
+      "
+    />
   </div>
 </template>
 
@@ -40,7 +46,8 @@ import PlaylistToolBar from './PlaylistToolBar.vue';
 import PlaylistRightPanel from './PlaylistRightPanel.vue';
 import SoundPlayList from './SoundPlayList.vue';
 import MetersPanel from './MetersPanel.vue';
-import CartScreen from './CartScreen.vue';
+import SoundCart from './SoundCart.vue';
+import SoundPlaylistAndCart from './SoundPlaylistAndCart.vue';
 
 const settingsStore = useSettingsStore();
 const soundsStore = useSoundsStore();
@@ -51,5 +58,9 @@ const soundsStore = useSoundsStore();
   width: 15%;
   justify-content: center;
   align-items: center;
+}
+.playlist {
+  min-width: 85%;
+  max-width: 85%;
 }
 </style>

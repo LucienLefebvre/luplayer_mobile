@@ -8,6 +8,7 @@ import init, {
 } from 'src/rust/waveform_process/pkg';
 import { dbToGain } from './math-helpers';
 import { NormalizableRange } from './normalizable-range';
+import { useThrottledRefHistory } from '@vueuse/core';
 
 const WINDOW_SIZE = 64;
 const TOUCH_MOUSE_CLICK_TIME = 200;
@@ -19,6 +20,7 @@ export class Waveform {
 
   public eventTarget = new EventTarget();
 
+  private anim: Konva.Animation;
   private stage: Konva.Stage;
   public waveformLayer: Konva.Layer;
   private waveformLayerBackground: Konva.Rect;
@@ -38,7 +40,7 @@ export class Waveform {
   private startTime: number;
   private endTime: number;
 
-  private waveformShouldBeRedrawn: boolean;
+  //private waveformShouldBeRedrawn: boolean;
 
   public isPlayPositionAlwaysOnCenter: boolean;
   public isDraggable: boolean;
@@ -92,6 +94,7 @@ export class Waveform {
   public name: string;
 
   private showEnveloppeOnWaveform: boolean;
+  //private shouldRecalculateWaveformEnveloppe: boolean;
   private enveloppePointsLayer: Konva.Layer;
   private enveloppeLineLayer: Konva.Layer;
   private enveloppePoints: EnveloppePoint[];
@@ -140,7 +143,6 @@ export class Waveform {
     this.diplayWaveformChunks = new Float32Array(0);
     this.displayChunkSize = 0;
     this.waveformCalculated = false;
-    this.waveformShouldBeRedrawn = false;
 
     this.waveformLayer = new Konva.Layer({});
 
@@ -221,6 +223,7 @@ export class Waveform {
     this.freezed = false;
 
     this.showEnveloppeOnWaveform = false;
+    //this.shouldRecalculateWaveformEnveloppe = false;
     this.enveloppePointsLayer = new Konva.Layer();
     this.enveloppeLineLayer = new Konva.Layer();
     this.enveloppePoints = [] as EnveloppePoint[];
@@ -255,6 +258,9 @@ export class Waveform {
     this.registerMouseEvents();
     this.initializeResizeObserver();
 
+    this.anim = new Konva.Animation(() => {
+      this.draw();
+    }, this.waveformLayer);
     init().then(() => {
       this.launchAnimation();
     });
@@ -270,12 +276,16 @@ export class Waveform {
     resizeObserver.observe(this.waveformView);
   }
 
-  public async launchAnimation() {
-    const anim = new Konva.Animation(() => {
-      this.draw();
-    }, this.waveformLayer);
+  public launchAnimation() {
+    if (!this.anim.isRunning()) {
+      this.anim.start();
+    }
+  }
 
-    anim.start();
+  public stopAnimation() {
+    if (this.anim.isRunning() && !this.isDragging) {
+      this.anim.stop();
+    }
   }
 
   public addEventListener(
@@ -296,7 +306,7 @@ export class Waveform {
 
   public handleAudioElementUpdate() {
     if (this.isPlayPositionAlwaysOnCenter) this.centerTimeRangeOnPlayPosition();
-    this.waveformShouldBeRedrawn = true;
+    this.launchAnimation();
   }
   private registerEventsListeners() {
     this.audioElement.addEventListener('play', () => {
@@ -391,7 +401,7 @@ export class Waveform {
     }
 
     this.waveformCalculated = true;
-    this.waveformShouldBeRedrawn = true;
+    this.launchAnimation();
     this.calculateYValueArrayFromChunks();
 
     const event = new CustomEvent('waveformChunksCalculated');
@@ -404,31 +414,45 @@ export class Waveform {
     this.globalWaveformChunks = waveformChunks;
 
     this.waveformCalculated = true;
-    this.waveformShouldBeRedrawn = true;
+    this.launchAnimation();
     this.calculateYValueArrayFromChunks();
   }
 
   private async calculateYValueArrayFromChunks() {
-    //const start = performance.now();
+    const start = performance.now();
+    const waveformEnveloppeMultipliers = new Float32Array(this.stage.width());
+    waveformEnveloppeMultipliers.fill(1);
+    if (this.showEnveloppeOnWaveform) {
+      this.recalculateWaveformEnveloppe(waveformEnveloppeMultipliers);
+    }
     const wasmDisplayChunks = calculate_y_value_array_from_chunks(
       this.globalWaveformChunks,
+      waveformEnveloppeMultipliers,
       this.startTime,
       this.endTime,
       this.soundDuration,
       this.stage.width()
     );
+
     this.diplayWaveformChunks = wasmDisplayChunks;
     this.displayChunkSize =
       this.diplayWaveformChunks.length * (this.endTime - this.startTime);
-    //const end = performance.now();
-    //const duration = end - start;
+    const end = performance.now();
+    const duration = end - start;
+
     //console.log('duration: ', duration);
   }
 
+  public recalculateWaveformEnveloppe(mutlipliers: Float32Array) {
+    for (let i = 0; i < this.stage.width(); i += this.xResolution) {
+      const time = this.xToTime(i);
+      const enveloppeValue = this.getEnveloppeValueAtTime(time);
+      mutlipliers[i] = dbToGain(enveloppeValue);
+    }
+  }
   private draw() {
     if (
       !this.waveformCalculated ||
-      !this.waveformShouldBeRedrawn ||
       this.diplayWaveformChunks === null ||
       this.freezed
     ) {
@@ -469,12 +493,12 @@ export class Waveform {
     if (this.showPlayHead) this.drawPlayHead();
     if (this.showInTime) this.drawInTime();
     if (this.showOutTime) this.drawOutTime();
-
+    if (this.enveloppePointsLayer.isVisible()) this.updateEnveloppePoints();
     //this.waveformLayer.batchDraw();
     //this.waveformLayer.cache();
 
     if (this.audioElement.paused) {
-      this.waveformShouldBeRedrawn = false;
+      this.stopAnimation();
     }
     //const frameRedrawEndTime = performance.now();
     //const frameRedrawDuration = frameRedrawEndTime - frameRedrawStartTime;
@@ -521,7 +545,7 @@ export class Waveform {
     playedPoints: number[];
     remainingPoints: number[];
   } {
-    //const start = performance.now();
+    const start = performance.now();
 
     const width = this.stage.width();
     const height = this.stage.height();
@@ -535,16 +559,7 @@ export class Waveform {
     const playedPoints = [0, middleY];
     const remainingPoints = [progressX, middleY];
     for (let i = 0; i < width; i += this.xResolution) {
-      let enveloppeMultiplier = 1;
-      if (this.showEnveloppeOnWaveform) {
-        const time = this.xToTime(i);
-        const enveloppeValue = this.getEnveloppeValueAtTime(time);
-        enveloppeMultiplier = dbToGain(enveloppeValue);
-      }
-
-      const yValue =
-        middleY -
-        this.diplayWaveformChunks[i] * middleY * ratio * enveloppeMultiplier;
+      const yValue = middleY - this.diplayWaveformChunks[i] * middleY * ratio;
       const checkedYValue = Number.isNaN(yValue) ? middleY : yValue;
 
       if (i < progressX) {
@@ -568,8 +583,8 @@ export class Waveform {
         remainingPoints.push(i, checkedYValue);
       }
     }
-    //const end = performance.now();
-    //const duration = end - start;
+    const end = performance.now();
+    const duration = end - start;
     //console.log('duration: ', duration);
     return { playedPoints, remainingPoints };
   }
@@ -734,9 +749,9 @@ export class Waveform {
   }
 
   public updateWaveform() {
-    if (this.freezed) return;
+    //if (this.freezed) return;
     this.calculateYValueArrayFromChunks().then(() => {
-      this.waveformShouldBeRedrawn = true;
+      this.launchAnimation();
     });
   }
 
@@ -812,8 +827,7 @@ export class Waveform {
     this.endTime = endTime;
     if (updateZoomFactor) this.updateZoomFactor();
 
-    if (this.showEnveloppeOnWaveform) this.updateEnveloppePoints();
-
+    this.updateWaveform();
     if (shouldEmit) {
       const event = new CustomEvent('waveformStartEndTimesChanged');
       this.eventTarget.dispatchEvent(event);
@@ -1085,6 +1099,7 @@ export class Waveform {
     this.createEnveloppesPointsLines();
 
     this.updateEnveloppePoints();
+    this.updateWaveform();
   }
 
   private createEnveloppePointsCircles() {
@@ -1198,7 +1213,7 @@ export class Waveform {
 
     this.enveloppePoints.sort((a, b) => a.time - b.time);
     this.updateEnveloppePoints();
-
+    this.updateWaveform();
     const event = new CustomEvent('enveloppePointsChanged');
     this.eventTarget.dispatchEvent(event);
 
@@ -1267,7 +1282,8 @@ export class Waveform {
     if (this.showLastClickedPoint && this.lastClickedPointIndex >= 0) {
       this.updateLastClickedEnveloppePoint();
     }
-    this.updateWaveform();
+
+    //this.updateWaveform();
   }
   private updateLastClickedEnveloppePoint() {
     this.enveloppePointsDisplayCircles.forEach((circle) => {

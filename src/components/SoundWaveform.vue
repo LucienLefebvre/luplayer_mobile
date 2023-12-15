@@ -15,6 +15,11 @@ import { SoundModel } from './models';
 import { Waveform } from 'src/composables/waveform';
 import { dbToGain } from 'src/composables/math-helpers';
 import { getCssVar } from 'quasar';
+import {
+  isCartSound,
+  isPlaylistActiveSound,
+} from 'src/composables/sound-controller';
+import { useSoundsStore } from 'src/stores/sounds-store';
 
 const settingsStore = useSettingsStore();
 const props = defineProps({
@@ -26,7 +31,7 @@ let waveform: Waveform;
 const waveformNew = ref<HTMLDivElement | null>(null);
 
 const emits = defineEmits(['click', 'doubleClick', 'long-touch']);
-const waveformVerticalZoom = 1.3;
+
 onMounted(async () => {
   if (!waveformNew.value) return;
   waveform = new Waveform(waveformNew.value, props.sound.audioElement);
@@ -43,9 +48,9 @@ onMounted(async () => {
 
   await waveform.calculateWaveformChunks().then((chunks) => {
     sound.value.waveformChunks = chunks;
-    waveform.setHeight(settingsStore.waveformHeightFactor * 100);
+    waveform.setHeight(getWaveformHeight());
     waveform?.setVerticalZoomFactor(
-      dbToGain(sound.value.trimGain) * waveformVerticalZoom
+      dbToGain(sound.value.trimDb) * settingsStore.waveformVerticalZoomFactor
     );
     waveform.showInTime = true;
     waveform.showOutTime = true;
@@ -55,7 +60,7 @@ onMounted(async () => {
     waveform.waveformLayer.listening(false);
     waveform.name = sound.value.name;
     waveform.setEnveloppePoints(sound.value.enveloppePoints);
-    waveform.setShowEnveloppe(true);
+    waveform.setShowEnveloppe(false);
     waveform.setShowEnveloppeLine(false);
     waveform.setShowEnveloppePoints(false);
 
@@ -64,10 +69,22 @@ onMounted(async () => {
 });
 
 function getWaveformHeight() {
-  return settingsStore.waveformHeightFactor * 100;
+  if (!settingsStore.cartIsDifferentHeightThanPlaylist) {
+    return settingsStore.playlistWaveformHeightFactor * 100;
+  } else if (isCartSound(sound.value)) {
+    return settingsStore.cartWaveformHeightFactor * 100;
+  } else {
+    return settingsStore.playlistWaveformHeightFactor * 100;
+  }
 }
 watch(
-  () => settingsStore.waveformHeightFactor,
+  () => settingsStore.playlistWaveformHeightFactor,
+  () => {
+    waveform?.setHeight(getWaveformHeight());
+  }
+);
+watch(
+  () => settingsStore.cartWaveformHeightFactor,
   () => {
     waveform?.setHeight(getWaveformHeight());
   }
@@ -75,6 +92,13 @@ watch(
 
 watch(
   () => sound.value.isSelected,
+  () => {
+    updateWaveformColor();
+  }
+);
+
+watch(
+  () => sound.value.isPlaylistActiveSound,
   () => {
     updateWaveformColor();
   }
@@ -104,7 +128,7 @@ watch(
 
 function updateWaveformColor() {
   if (!sound.value.waveformChunks) return;
-  if (sound.value.isSelected) {
+  if (isPlaylistActiveSound(sound.value)) {
     waveform?.setRemainingWaveformFillColor(getCssVar('secondary') ?? 'orange');
   } else {
     waveform?.setRemainingWaveformFillColor(sound.value.color);
@@ -112,9 +136,11 @@ function updateWaveformColor() {
 }
 
 watch(
-  () => sound.value.trimGain,
+  () => sound.value.trimDb,
   (newValue) => {
-    waveform?.setVerticalZoomFactor(dbToGain(newValue) * waveformVerticalZoom);
+    waveform?.setVerticalZoomFactor(
+      dbToGain(newValue) * settingsStore.waveformVerticalZoomFactor
+    );
   }
 );
 
@@ -142,7 +168,7 @@ watch(
 watch(
   () => sound.value.enveloppePoints,
   (newValue) => {
-    //console.log('enveloppePoints changed to ' + newValue);
+    waveform.setShowEnveloppe(true);
     waveform?.setEnveloppePoints(newValue);
   },
   { deep: true }

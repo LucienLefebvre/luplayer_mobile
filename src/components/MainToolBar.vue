@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="toolbar">
     <q-toolbar class="bg-accent">
       <div style="display: flex; align-items: center">
         <img
@@ -43,13 +43,28 @@
             }"
           >
             <q-item-section>
-              <q-item-label class="listLabel"> Cart</q-item-label>
+              <q-item-label class="listLabel">Cart</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item
+            clickable
+            v-close-popup
+            @click="playlistAndCartClicked()"
+            :style="{
+              'background-color':
+                soundsStore.playerMode === 'playlistAndCart'
+                  ? 'orange'
+                  : 'var(--bkgColor)',
+            }"
+          >
+            <q-item-section>
+              <q-item-label class="listLabel">Both</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
       </q-btn-dropdown>
 
-      <q-btn
+      <!-- <q-btn
         class="q-mr-sm"
         flat
         round
@@ -57,7 +72,16 @@
         icon="settings"
         style="color: orange"
         @click="toggleSettings"
-      />
+      /> -->
+      <q-btn-dropdown
+        flat
+        round
+        dense
+        icon="settings"
+        style="color: orange"
+        transition-duration="100"
+        ><settings-panel />
+      </q-btn-dropdown>
     </q-toolbar>
   </div>
 </template>
@@ -66,6 +90,7 @@
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSoundsStore } from '../stores/sounds-store';
+import SettingsPanel from './SettingsPanel.vue';
 
 const soundsStore = useSoundsStore();
 const router = useRouter();
@@ -74,12 +99,15 @@ onMounted(() => {
   playlistClicked();
 });
 function cartClicked() {
-  soundsStore.initializeCartPlayer();
-  soundsStore.playerMode = 'cart';
+  soundsStore.initializeCartMode();
 }
 
 function playlistClicked() {
-  soundsStore.playerMode = 'playlist';
+  soundsStore.initializePlaylistMode();
+}
+
+function playlistAndCartClicked() {
+  soundsStore.initializePlaylistAndCartMode();
 }
 
 function toggleSettings() {
@@ -88,6 +116,9 @@ function toggleSettings() {
 </script>
 
 <style scoped>
+.toolbar {
+  border-bottom: 2px solid orange;
+}
 .listLabel {
   color: var(--blueColor);
   font-size: 17px;

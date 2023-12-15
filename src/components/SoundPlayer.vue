@@ -1,67 +1,73 @@
 <template>
-  <q-card
-    class="soundBackground shadow-10"
-    style="width: 100%"
-    :style="{
-      borderColor: getWaveformColor(),
-      backgroundColor: getBackgroundColor(0.1),
-    }"
-    @click="soundTouchUp(sound)"
-    @doubleClick="touchHold(sound)"
-    v-touch-hold="(e: TouchHold) => touchHold(sound)"
-  >
-    <div class="column d-flex flex-center" style="width: 100%">
-      <q-circular-progress
-        v-if="!sound.waveformChunks"
-        indeterminate
-        rounded
-        :size="75 * settingsStore.waveformHeightFactor + 'px'"
-        :style="{
-          height: settingsStore.waveformHeightFactor * 100 + 'px',
-          color: getWaveformColor(),
-        }"
-      />
-      <sound-waveform
-        v-show="
-          settingsStore.waveformHeightFactor > 0.1 && sound.waveformChunks
-        "
-        ref="soundWaveforms"
-        :sound="sound"
-        style="width: 100%"
-      />
-      <div
-        class="bottom-row row"
-        :style="{
-          color: getWaveformColor(),
-          fontSize: settingsStore.soundNameHeightFactor * 20 + 'px',
-        }"
-        ref="soundPlayer"
-      >
-        <sound-progress-bar
-          :sound="sound"
+  <div class="player-container">
+    <q-card
+      class="soundBackground shadow-10"
+      :style="{
+        width: '100%',
+        borderColor: isSelectedSound(sound) ? 'yellow' : getWaveformColor(),
+
+        borderWidth: '2px',
+        backgroundColor: getBackgroundColor(0.1),
+      }"
+      @click="soundTouchUp(sound)"
+      @contextmenu.prevent
+      ref="playerCard"
+    >
+      <!--   v-touch-hold="(e: TouchHold) => touchHold(sound)" -->
+      <div class="column d-flex flex-center" style="width: 100%">
+        <q-circular-progress
+          v-if="!sound.waveformChunks"
+          indeterminate
+          rounded
+          :size="75 * settingsStore.playlistWaveformHeightFactor + 'px'"
           :style="{
-            width: '100%',
-            height: '100%',
+            height: settingsStore.playlistWaveformHeightFactor * 100 + 'px',
+            color: getWaveformColor(),
           }"
-          class="sound-progress-bar"
-          ref="progressBar"
         />
-        <div v-if="soundsStore.playerMode === 'playlist'" class="sound-index">
-          {{ getSoundIndex() }}
-        </div>
-        <div class="sound-name">{{ props.sound.name }}</div>
-        <div class="sound-duration">
-          {{ getSoundDurationLabel($props.sound) }}
+        <sound-waveform
+          v-show="
+            settingsStore.playlistWaveformHeightFactor > 0.1 &&
+            sound.waveformChunks
+          "
+          ref="soundWaveforms"
+          :sound="sound"
+          style="width: 100%"
+        />
+        <div
+          class="bottom-row row"
+          :style="{
+            color: getWaveformColor(),
+            fontSize: getSoundNameHeight() + 'px',
+            userSelect: 'none',
+          }"
+          ref="soundPlayer"
+        >
+          <sound-progress-bar
+            :sound="sound"
+            :style="{
+              width: '100%',
+              height: '100%',
+            }"
+            class="sound-progress-bar"
+            ref="progressBar"
+          />
+          <div v-if="isPlaylistSound(sound)" class="sound-index">
+            {{ getSoundIndex() }}
+          </div>
+          <div class="sound-name">{{ props.sound.name }}</div>
+          <div class="sound-duration">
+            {{ getSoundDurationLabel($props.sound) }}
+          </div>
         </div>
       </div>
-    </div>
-  </q-card>
+    </q-card>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { PropType, ref, onMounted, Ref, watch } from 'vue';
 import { SoundModel } from './models';
-import { TouchHold } from 'quasar';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import SoundWaveform from './SoundWaveform.vue';
@@ -71,9 +77,16 @@ import {
   getSoundDurationLabel,
   setSelectedSound,
   getRemainingTime,
+  findSoundArray,
+  isCartSound,
+  isPlaylistSound,
+  isPlaylistActiveSound,
+  setPlaylistActiveSound,
+  isSelectedSound,
 } from 'src/composables/sound-controller';
-import { getCssVar, colors } from 'quasar';
-
+import { getCssVar, colors, is } from 'quasar';
+import { onLongPress } from '@vueuse/core';
+import { settings } from 'cluster';
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 
@@ -89,7 +102,7 @@ function getWaveformColor() {
   if (sound.value.isPlaying) {
     if (getRemainingTime(sound.value) < 5) return 'red';
     else return 'green';
-  } else if (sound.value.isSelected && soundsStore.playerMode === 'playlist') {
+  } else if (isPlaylistActiveSound(sound.value)) {
     return getCssVar('secondary') ?? 'orange';
   } else {
     return sound.value.color ?? 'blue';
@@ -111,7 +124,10 @@ function getBackgroundColor(opacity: number) {
         ? { r: 255, g: 0, b: 0 }
         : { r: 93, g: 175, b: 77 };
     color = getColorFromRGB(rgbColor, opacity);
-  } else if (sound.value.isSelected && soundsStore.playerMode === 'playlist') {
+  } else if (
+    isPlaylistActiveSound(sound.value) &&
+    isPlaylistSound(sound.value)
+  ) {
     const rgbColor = { r: 247, g: 151, b: 0 };
     color = getColorFromRGB(rgbColor, opacity);
   } else {
@@ -138,16 +154,32 @@ function soundTouchUp(soundModel: SoundModel) {
 }
 
 function soundClicked(sound: SoundModel) {
-  if (!soundsStore.isReordering && soundsStore.playerMode === 'playlist') {
-    setSelectedSound(sound);
-  } else if (soundsStore.playerMode === 'cart') {
-    playOrStopSound(sound);
+  if (isCartSound(sound)) {
+    playOrStopSound(sound, false);
+  } else if (isPlaylistSound(sound)) {
+    setPlaylistActiveSound(sound, true);
   }
 }
 
-function touchHold(sound: SoundModel) {
-  showEditWindow(sound);
+const playerCard = ref<HTMLElement | null>(null);
+const longPressed = ref(false);
+
+function onLongPressCallback(e: PointerEvent) {
+  if (!soundsStore.isReordering) {
+    longPressed.value = true;
+    setSelectedSound(props.sound);
+  }
 }
+
+function reset() {
+  longPressed.value = false;
+}
+
+onLongPress(playerCard, onLongPressCallback, { delay: 800 });
+
+const touchHold = ($e: Event, sound: SoundModel) => {
+  $e.preventDefault();
+};
 
 function showEditWindow(sound: SoundModel) {
   soundsStore.editedSound = sound;
@@ -156,7 +188,9 @@ function showEditWindow(sound: SoundModel) {
 }
 
 function getSoundIndex() {
-  return soundsStore.sounds[0].indexOf(sound.value) + 1;
+  const array = findSoundArray(sound.value);
+  if (array === null) return 0;
+  return array.indexOf(sound.value) + 1;
 }
 
 const soundPlayer: Ref<HTMLElement | null> = ref(null);
@@ -175,9 +209,54 @@ watch(
     progressBar.value?.setBarColor(getBackgroundColor(0.2));
   }
 );
+
+function getWaveformHeight() {
+  if (!settingsStore.cartIsDifferentHeightThanPlaylist) {
+    return settingsStore.playlistWaveformHeightFactor * 100;
+  } else {
+    return isCartSound(sound.value)
+      ? settingsStore.cartWaveformHeightFactor * 100
+      : settingsStore.playlistWaveformHeightFactor * 100;
+  }
+}
+
+function getSoundNameHeight() {
+  if (!settingsStore.cartIsDifferentHeightThanPlaylist) {
+    return settingsStore.playlistSoundNameHeightFactor * 20;
+  } else {
+    return isCartSound(sound.value)
+      ? settingsStore.cartSoundNameHeightFactor * 20
+      : settingsStore.playlistSoundNameHeightFactor * 20;
+  }
+}
+
+function shouldShowWaveform() {
+  if (!settingsStore.cartIsDifferentHeightThanPlaylist) {
+    return (
+      settingsStore.playlistWaveformHeightFactor > 0.1 &&
+      sound.value.waveformChunks
+    );
+  } else {
+    return (
+      (isCartSound(sound.value)
+        ? settingsStore.cartWaveformHeightFactor
+        : settingsStore.playlistWaveformHeightFactor) > 0.1 &&
+      sound.value.waveformChunks
+    );
+  }
+}
 </script>
 
 <style scoped>
+.player-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+
+  align-items: center;
+}
 .soundBackground {
   border: 1px solid;
   border-radius: 10px;

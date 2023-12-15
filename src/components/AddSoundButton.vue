@@ -1,11 +1,45 @@
 <template>
   <div>
     <q-btn
+      v-if="soundsStore.playerMode !== 'playlistAndCart'"
       fab
       icon="add"
-      :color="soundsStore.playerMode === 'playlist' ? 'blue' : 'orange'"
+      :color="soundsStore.playerMode === 'playlist' ? 'primary' : 'orange'"
       @click="chooseFile"
     />
+    <q-fab
+      v-if="soundsStore.playerMode === 'playlistAndCart'"
+      fab
+      icon="add"
+      color="primary"
+      direction="up"
+      text-color="secondary"
+    >
+      <q-fab-action
+        color="primary"
+        text-color="secondary"
+        @click="
+          {
+            soundsStore.arrayToAddSound = 'playlist';
+            chooseFile();
+          }
+        "
+        icon="splitscreen"
+        style="transform: rotate(90)"
+      />
+      <q-fab-action
+        color="primary"
+        text-color="secondary"
+        @click="
+          {
+            soundsStore.arrayToAddSound = 'cart';
+            chooseFile();
+          }
+        "
+        icon="window"
+        style="transform: rotate(90)"
+      />
+    </q-fab>
   </div>
   <input
     ref="fileInput"
@@ -35,7 +69,7 @@ function chooseFile() {
 import soundFileUrl from '../assets/son.mp3';
 
 onMounted(async () => {
-  const response = await fetch(soundFileUrl);
+  /*  const response = await fetch(soundFileUrl);
   const blob = await response.blob();
   const file = new File([blob], 'son.mp3', { type: 'audio/mpeg' });
   const audioElement = document.createElement('audio');
@@ -43,7 +77,7 @@ onMounted(async () => {
   audioElement.src = url;
   audioElement.preload = 'metadata';
 
-  soundsStore.loadSound(audioElement, file.name);
+  soundsStore.loadSound(audioElement, file.name); */
 });
 
 function onFileChange(event: Event) {

@@ -20,7 +20,7 @@ import {
 const soundsStore = useSoundsStore();
 
 function buttonColor() {
-  const selectedSound = soundsStore.selectedSound;
+  const selectedSound = soundsStore.playlistActiveSound;
   if (selectedSound === null || undefined) return 'orange';
   if (selectedSound.isPlaying) {
     if (getRemainingTime(selectedSound) === undefined) return 'green';
@@ -33,9 +33,9 @@ function buttonColor() {
 }
 
 function buttonLabel() {
-  if (soundsStore.selectedSound === null || undefined) return 'play';
-  if (soundsStore.selectedSound.isPlaying) {
-    return getSoundDurationLabel(soundsStore.selectedSound);
+  if (soundsStore.playlistActiveSound === null || undefined) return 'play';
+  if (soundsStore.playlistActiveSound.isPlaying) {
+    return getSoundDurationLabel(soundsStore.playlistActiveSound);
   } else {
     return 'play';
   }

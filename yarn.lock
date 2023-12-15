@@ -1518,6 +1518,11 @@
     "@types/mime" "*"
     "@types/node" "*"
 
+"@types/sortablejs@^1.15.7":
+  version "1.15.7"
+  resolved "https://registry.npmjs.org/@types/sortablejs/-/sortablejs-1.15.7.tgz"
+  integrity sha512-PvgWCx1Lbgm88FdQ6S7OGvLIjWS66mudKPlfdrWil0TjsO5zmoZmzoKiiwRShs1dwPgrlkr0N4ewuy0/+QUXYQ==
+
 "@types/trusted-types@^2.0.2":
   version "2.0.3"
   resolved "https://registry.npmjs.org/@types/trusted-types/-/trusted-types-2.0.3.tgz"
@@ -4443,6 +4448,11 @@ slice-ansi@^4.0.0:
     ansi-styles "^4.0.0"
     astral-regex "^2.0.0"
     is-fullwidth-code-point "^3.0.0"
+
+sortablejs@^1.15.1:
+  version "1.15.1"
+  resolved "https://registry.npmjs.org/sortablejs/-/sortablejs-1.15.1.tgz"
+  integrity sha512-P5Cjvb0UG1ZVNiDPj/n4V+DinttXG6K8n7vM/HQf0C25K3YKQTQY6fsr/sEGsJGpQ9exmPxluHxKBc0mLKU1lQ==
 
 sortablejs@1.14.0:
   version "1.14.0"

@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <SoundProgressBar :sound="soundsStore.selectedSound ?? null" />
+    <SoundProgressBar :sound="soundsStore.playlistActiveSound ?? null" />
     <PlayButton class="button" />
   </div>
 </template>

@@ -32,6 +32,7 @@ pub fn calculate_waveform_chunks(left_channel_data: Vec<f32>, right_channel_data
  #[wasm_bindgen]
  pub fn calculate_y_value_array_from_chunks(
     global_waveform_chunks: Vec<f32>,
+    multipliers: Vec<f32>,
     start_time: f32,
     end_time: f32,
     sound_duration: f32,
@@ -65,7 +66,7 @@ pub fn calculate_waveform_chunks(left_channel_data: Vec<f32>, right_channel_data
     let end = start + display_chunk_size as usize;
     let current_chunk = &clipped_waveform_chunks[start..end];
 
-    let max_value = current_chunk.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+    let max_value = current_chunk.iter().copied().fold(f32::NEG_INFINITY, f32::max) * multipliers[i];
     let actual_value = if max_value.is_finite() { max_value } else { last_max };
 
     chunks.push(actual_value);

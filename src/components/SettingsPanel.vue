@@ -23,7 +23,7 @@
         <div class="settings-label">Waveform size</div>
         <q-slider
           style="height: 100%; width: 60%"
-          v-model="settingsStore.waveformHeightFactor"
+          v-model="settingsStore.playlistWaveformHeightFactor"
           :min="0"
           :max="2"
           :step="0.01"
@@ -34,7 +34,42 @@
         <div class="settings-label">Sound name size</div>
         <q-slider
           style="height: 100%; width: 60%"
-          v-model="settingsStore.soundNameHeightFactor"
+          v-model="settingsStore.playlistSoundNameHeightFactor"
+          :min="0.5"
+          :max="2"
+          :step="0.01"
+          color="orange"
+        />
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Independant sounds size</div>
+        <q-toggle
+          v-model="settingsStore.cartIsDifferentHeightThanPlaylist"
+          color="orange"
+        />
+      </div>
+      <div
+        class="settings-row"
+        v-show="settingsStore.cartIsDifferentHeightThanPlaylist"
+      >
+        <div class="settings-label">Cart waveform size</div>
+        <q-slider
+          style="height: 100%; width: 60%"
+          v-model="settingsStore.cartWaveformHeightFactor"
+          :min="0"
+          :max="2"
+          :step="0.01"
+          color="orange"
+        />
+      </div>
+      <div
+        class="settings-row"
+        v-show="settingsStore.cartIsDifferentHeightThanPlaylist"
+      >
+        <div class="settings-label">Cart name size</div>
+        <q-slider
+          style="height: 100%; width: 60%"
+          v-model="settingsStore.cartSoundNameHeightFactor"
           :min="0.5"
           :max="2"
           :step="0.01"
@@ -125,10 +160,8 @@
 <script setup lang="ts">
 import { watch, watchEffect } from 'vue';
 import { useSettingsStore } from 'src/stores/settings-store';
-import { useSoundsStore } from 'src/stores/sounds-store';
 
 const settingsStore = useSettingsStore();
-const soundsStore = useSoundsStore();
 
 watchEffect(() => {
   settingsStore.saveSettings();
@@ -157,23 +190,8 @@ watch(
 </script>
 
 <style scoped>
-/* .close-button {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.card-class {
-  background-color: var(--bkgColor);
-  padding: 5px;
-  overflow-y: auto;
-  max-width: 100%;
-  width: 100%;
-
-   border: 2px solid var(--blueColor);
-  border-radius: 10px;
-} */
-
 .settings-panel {
+  background-color: var(--bkgColor);
   display: flex;
   flex-direction: column;
   padding: 5px;
@@ -190,7 +208,6 @@ watch(
   padding: 2px;
   font-size: 15px;
   color: orange;
-
   max-width: 100%;
 }
 .settings-label {

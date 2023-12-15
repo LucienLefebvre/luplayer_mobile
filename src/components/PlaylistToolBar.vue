@@ -1,10 +1,38 @@
 <template>
   <div class="playlist-toolbar">
-    <q-btn icon="vertical_align_top" class="icon" @click="upButtonClicked" />
-    <q-btn icon="low_priority" class="icon" @click="reorderButtonClicked" />
-    <q-btn icon="edit" class="icon" @click="editButtonClicked" />
-    <q-btn icon="delete" class="icon" @click="deleteButtonClicked" />
-    <q-btn class="icon" @click="fadeButtonClicked">
+    <q-btn
+      flat
+      icon="skip_previous"
+      class="icon"
+      @click="previousButtonClicked"
+      size="sm"
+      v-show="soundsStore.playerMode === 'playlist' || 'playlistAndCart'"
+    />
+    <q-btn
+      icon="vertical_align_top"
+      class="icon"
+      @click="upButtonClicked"
+      size="sm"
+      v-show="soundsStore.playerMode === 'playlist' || 'playlistAndCart'"
+    />
+    <q-btn
+      icon="skip_next"
+      class="icon"
+      @click="nextButtonClicked"
+      size="sm"
+      v-show="soundsStore.playerMode === 'playlist' || 'playlistAndCart'"
+    />
+    <q-btn
+      icon="low_priority"
+      :class="getReorderButtonClass()"
+      @click="reorderButtonClicked()"
+      @contextmenu.prevent
+      size="sm"
+      ref="reorderButton"
+    />
+    <q-btn icon="edit" class="icon" @click="editButtonClicked" size="sm" />
+    <q-btn icon="delete" class="icon" @click="deleteButtonClicked" size="sm" />
+    <q-btn class="icon" @click="fadeButtonClicked" size="sm">
       <svg
         width="24"
         height="24"
@@ -19,27 +47,75 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import {
   playSoundWithFadeIn,
+  setPlaylistActiveSound,
   setSelectedSound,
   stopSoundWithFadeOut,
 } from 'src/composables/sound-controller';
 import { useSoundsStore } from '../stores/sounds-store';
+import { onLongPress } from '@vueuse/core';
 
 const soundsStore = useSoundsStore();
 
+function nextButtonClicked() {
+  if (soundsStore.playlistActiveSound === null) return;
+  if (soundsStore.playlistActiveSound.isPlaying) return;
+  const index = soundsStore.playlistSounds.indexOf(
+    soundsStore.playlistActiveSound
+  );
+  if (index === soundsStore.playlistSounds.length - 1) return;
+  setPlaylistActiveSound(soundsStore.playlistSounds[index + 1], true);
+}
+
+function previousButtonClicked() {
+  if (soundsStore.playlistActiveSound === null) return;
+  if (soundsStore.playlistActiveSound.isPlaying) return;
+  const index = soundsStore.playlistSounds.indexOf(
+    soundsStore.playlistActiveSound
+  );
+  if (index === 0) return;
+  setPlaylistActiveSound(soundsStore.playlistSounds[index - 1], true);
+}
 function upButtonClicked() {
-  if (soundsStore.selectedSound === null) return;
-  if (soundsStore.selectedSound.isPlaying) return;
-  if (soundsStore.sounds[0][0]) {
-    setSelectedSound(soundsStore.sounds[0][0]);
+  if (soundsStore.playlistActiveSound === null) return;
+  if (soundsStore.playlistActiveSound.isPlaying) return;
+  if (soundsStore.playlistSounds[0]) {
+    setPlaylistActiveSound(soundsStore.playlistSounds[0], true);
   }
 }
 
-function reorderButtonClicked() {
-  if (soundsStore.sounds[0].length === 0 && soundsStore.sounds[1].length === 0)
+const reorderButton = ref<HTMLElement | null>(null);
+const longPressedHook = ref(false);
+function onLongPressCallbackHook(e: PointerEvent) {
+  longPressedHook.value = true;
+  soundsStore.isReordering = true;
+  soundsStore.reorderLocked = true;
+}
+onLongPress(reorderButton, onLongPressCallbackHook, {
+  modifiers: {
+    prevent: true,
+  },
+});
+
+function reorderButtonClicked(longTouch = false) {
+  soundsStore.isReordering = !soundsStore.isReordering;
+  if (!soundsStore.isReordering) soundsStore.reorderLocked = false;
+  //if (longTouch) soundsStore.reorderLocked = true;
+  /* if (
+    soundsStore.playlistSounds.length === 0 &&
+    soundsStore.cartSounds0.length === 0 &&
+    soundsStore.cartSounds1.length === 0
+  )
     return;
-  soundsStore.showReorderWindow = !soundsStore.showReorderWindow;
+  soundsStore.showReorderWindow = !soundsStore.showReorderWindow; */
+}
+
+function getReorderButtonClass() {
+  if (soundsStore.reorderLocked) return 'alt-alt-icon';
+  else if (soundsStore.isReordering) return 'alt-icon';
+  else return 'icon';
 }
 
 function editButtonClicked() {
@@ -79,6 +155,7 @@ function fadeButtonClicked() {
 <style scoped>
 .playlist-toolbar {
   background-color: var(--darkColor);
+  border-top: 2px solid orange;
   border-bottom: 2px solid orange;
 
   display: flex;
@@ -91,5 +168,13 @@ function fadeButtonClicked() {
 .icon {
   color: orange;
   background-color: var(--blueColor);
+}
+.alt-icon {
+  color: var(--blueColor);
+  background-color: orange;
+}
+.alt-alt-icon {
+  color: var(--blueColor);
+  background-color: red;
 }
 </style>

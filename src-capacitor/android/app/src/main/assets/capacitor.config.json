@@ -3,8 +3,5 @@
   "appName": "Luplayer-web",
   "bundledWebRuntime": false,
   "npmClient": "yarn",
-  "webDir": "www",
-  "server": {
-    "url": "http://192.168.0.12:9500"
-  }
+  "webDir": "www"
 }

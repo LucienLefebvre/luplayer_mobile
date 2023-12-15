@@ -4,14 +4,16 @@
     :style="{ height: scrollablePlaylistHeight + 'px' }"
     ref="soundPlayers"
   >
-    <div
-      v-for="sound in soundsStore.sounds[0]"
-      :key="sound.id"
-      class="sound-player"
-      :id="sound.id"
-      ref="soundPlayerRefs"
-    >
-      <SoundPlayer :sound="sound" :id="sound.id" />
+    <div id="listElements">
+      <div
+        v-for="sound in soundsStore.playlistSounds"
+        :key="sound.id"
+        class="sound-player"
+        :id="sound.id"
+        ref="soundPlayerRefs"
+      >
+        <SoundPlayer :sound="sound" :id="sound.id" />
+      </div>
     </div>
   </div>
 </template>
@@ -20,7 +22,7 @@
 import { watch, ref, onMounted, Ref } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
-
+import Sortable from 'sortablejs';
 import SoundPlayer from './SoundPlayer.vue';
 
 const soundsStore = useSoundsStore();
@@ -37,6 +39,9 @@ const updateHeight = () => {
   }
   if (settingsStore.showLuMeter) {
     heightToSubtract += meterHeight;
+  }
+  if (soundsStore.playerMode === 'playlistAndCart') {
+    heightToSubtract += settingsStore.playlistAndCartCartSize;
   }
   scrollablePlaylistHeight.value = window.innerHeight - heightToSubtract;
 };
@@ -56,83 +61,93 @@ watch(
 );
 
 watch(
-  () => soundsStore.selectedSound,
+  () => soundsStore.playlistActiveSound,
   () => {
-    if (settingsStore.autoScroll && soundsStore.selectedSound) {
-      const selectedSoundIndex = soundsStore.sounds[0].indexOf(
-        soundsStore.selectedSound
+    if (settingsStore.autoScroll && soundsStore.playlistActiveSound) {
+      const selectedSoundIndex = soundsStore.playlistSounds.indexOf(
+        soundsStore.playlistActiveSound
       );
 
       if (soundPlayers.value === null) return;
       soundPlayers.value.scrollTo({
         top:
-          (36 + 100 * settingsStore.waveformHeightFactor) * selectedSoundIndex,
+          (36 + 100 * settingsStore.playlistWaveformHeightFactor) *
+          selectedSoundIndex,
         behavior: 'smooth',
       });
     }
   }
 );
 
-onMounted(() => {
-  updateHeight();
-});
-
-const elementsObserved: HTMLElement[] = [];
 watch(
-  () => soundsStore.sounds[0].length,
+  () => settingsStore.playlistAndCartCartSize,
   () => {
-    console.log('sounds changed');
-    const options: IntersectionObserverInit = {
-      root: null,
-      rootMargin: '400px',
-      threshold: 0,
-    };
-
-    const observer = new IntersectionObserver(handleIntersection, options);
-
-    soundsStore.sounds[0].forEach((sound) => {
-      const element = document.getElementById(sound.id);
-      if (element && !elementsObserved.includes(element)) {
-        elementsObserved.push(element);
-        observer.observe(element);
-      }
-    });
+    updateHeight();
   }
 );
 
-const handleIntersection = (entries: IntersectionObserverEntry[]) => {
-  entries.forEach((entry) => {
-    if (entry.isIntersecting) {
-      const foundSound = soundsStore.sounds[0].find(
-        (sound) => sound.id === entry.target.id
-      );
+let elements: HTMLElement | null = null;
+let sortable: Sortable;
 
-      if (foundSound) {
-        foundSound.displayWaveform = true;
-      }
-    } else {
-      const foundSound = soundsStore.sounds[0].find(
-        (sound) => sound.id === entry.target.id
-      );
+onMounted(() => {
+  elements = document.getElementById('listElements');
+  if (!elements) return;
 
-      if (foundSound) {
-        foundSound.displayWaveform = false;
-      }
-    }
+  console.log('elements0', elements);
+  sortable = Sortable.create(elements!, {
+    animation: 150,
+    ghostClass: 'ghost',
+    dragClass: 'dragging',
+    group: { name: 'shared' },
+    sort: true,
+    onEnd: (evt) => {
+      dragEnd(evt);
+    },
   });
-};
+  sortable.option('disabled', !soundsStore.isReordering);
+});
+
+function dragEnd(evt: Sortable.SortableEvent) {
+  const oldIndex = evt.oldIndex;
+  const newIndex = evt.newIndex;
+
+  if (oldIndex === newIndex) return;
+  if (oldIndex === undefined || newIndex === undefined) return;
+  soundsStore.playlistSounds.splice(
+    newIndex,
+    0,
+    soundsStore.playlistSounds.splice(oldIndex, 1)[0]
+  );
+
+  if (soundsStore.reorderLocked) return;
+  if (soundsStore.isReordering) {
+    soundsStore.isReordering = false;
+  }
+}
+
+watch(
+  () => soundsStore.isReordering,
+  () => {
+    if (!sortable) return;
+    sortable.option('disabled', !soundsStore.isReordering);
+  }
+);
+
+onMounted(() => {
+  updateHeight();
+});
 </script>
 
 <style scoped>
 .scrollable-playlist {
-  height: calc(100vh - 224px);
+  /*   height: calc(100vh - 224px); */
   overflow-y: auto;
   gap: 10px;
 }
 .sound-player {
   padding-top: 2px;
   padding-bottom: 5px;
-  padding-left: 3px;
+
   margin: 3px;
   font-size: 15px;
 }

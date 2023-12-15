@@ -4,8 +4,7 @@
       <MainToolBar />
     </q-header>
     <q-page-container class="gradient">
-      <SettingsPanel v-show="soundsStore.showSettingsWindow" />
-      <PlayListScreen v-show="!soundsStore.showSettingsWindow" />
+      <PlayerMainPanel />
     </q-page-container>
   </q-layout>
   <q-dialog v-model="soundsStore.showEditWindow" full-width full-height>
@@ -41,7 +40,7 @@ import SoundDetails from 'src/components/SoundDetails.vue';
 import ReorderPanel from 'src/components/ReorderPanel.vue';
 import SettingsPanel from 'src/components/SettingsPanel.vue';
 import DeleteSoundDialog from 'src/components/DeleteSoundDialog.vue';
-import PlayListScreen from 'src/components/PlayListScreen.vue';
+import PlayerMainPanel from 'src/components/PlayerMainPanel.vue';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -53,7 +52,7 @@ onMounted(() => {
 });
 
 watch(
-  () => soundsStore.sounds[0].length,
+  () => soundsStore.playlistSounds.length,
   (newValue) => {
     if (newValue === 0) {
       soundsStore.showReorderWindow = false;

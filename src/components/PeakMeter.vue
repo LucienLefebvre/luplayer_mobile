@@ -1,12 +1,5 @@
 <template>
   <div ref="peakMeter"></div>
-  <!--     <canvas
-      :height="canvasHeight() / 2"
-      :width="canvasWidth()"
-      ref="canvas"
-      @click="resetPeakHold"
-    >
-    </canvas> -->
 </template>
 
 <script setup lang="ts">
@@ -17,15 +10,11 @@ import { gainToDb, dbToGain } from '../composables/math-helpers';
 import { MeterBar, StereoAnalyserObject } from './models';
 import { NormalizableRange } from 'src/composables/normalizable-range';
 import Konva from 'konva';
-import { FastLayer } from 'konva/lib/FastLayer';
-import { getCssVar } from 'quasar';
 const analyser = ref<StereoAnalyserObject | null>(null);
 
 const settingsStore = useSettingsStore();
 const soundsStore = useSoundsStore();
 
-const canvas = ref<HTMLCanvasElement | null>(null);
-var canvasCtx = null as CanvasRenderingContext2D | null;
 var peakValue = [0, 0] as number[];
 var previousPeakValue = [0, 0] as number[];
 var peakHoldValue = 0 as number;
@@ -33,14 +22,20 @@ var peakHoldTimeOutHasBeenSet = false as boolean;
 
 const dbLinesToDraw = [-40, -30, -20, -10] as number[];
 const range = -60 as number;
-const roundRectRadius = 5 as number;
 
-const normRange = new NormalizableRange(-60, 0, 5);
+const normRange = new NormalizableRange(-60, 0, 2);
+const rangedRedThreshold = normRange.logScaleTo0to1(
+  -settingsStore.peakMeterRedThreshold
+);
+const rangeOrangeThreshold = normRange.logScaleTo0to1(
+  -settingsStore.peakMeterOrangeThreshold
+);
 
 const peakMeter = ref<HTMLDivElement | null>(null);
 let stage: Konva.Stage;
 
 let meterBarLayer: Konva.Layer;
+let backgroundMeterBars: MeterBar;
 const meterBars: MeterBar[] = [];
 let peakHoldText: Konva.Text;
 let peakHoldLine: Konva.Line;
@@ -50,15 +45,6 @@ const graduationTexts: Konva.Text[] = [];
 const graduationLayer = new Konva.Layer();
 
 onMounted(() => {
-  /*   if (canvas.value) {
-    canvasCtx = canvas.value.getContext('2d');
-    const animate = () => {
-      drawMeter();
-      requestAnimationFrame(animate);
-    };
-    //animate();
-    window.addEventListener('resize', setCanvasSize);
-  } */
   /////General
   if (!peakMeter.value) return;
   stage = new Konva.Stage({
@@ -66,11 +52,16 @@ onMounted(() => {
     width: peakMeter.value.clientWidth,
     height: peakMeter.value.clientHeight,
   });
-
+  console.log('onMounted');
   /////Bars
   meterBarLayer = new Konva.Layer();
   stage.add(meterBarLayer);
 
+  const background: MeterBar = {
+    red: meterBarRectBuilder('red', 0.2, 0),
+    orange: meterBarRectBuilder('orange', 0.2, 0),
+    green: meterBarRectBuilder('green', 0.2, 0),
+  };
   const left: MeterBar = {
     red: meterBarRectBuilder('red'),
     orange: meterBarRectBuilder('orange'),
@@ -81,6 +72,7 @@ onMounted(() => {
     orange: meterBarRectBuilder('orange'),
     green: meterBarRectBuilder('green'),
   };
+  backgroundMeterBars = background;
   meterBars.push(left);
   meterBars.push(right);
 
@@ -129,28 +121,37 @@ onMounted(() => {
   stage.add(graduationLayer);
   ////Animation
   const anim = new Konva.Animation(() => {
+    if (!settingsStore.showPeakMeter) return;
+    const startTime = performance.now();
     draw();
+    const endTime = performance.now();
+    const time = endTime - startTime;
+    //console.log(time);
   }, meterBarLayer);
   anim.start();
 });
 
-function meterBarRectBuilder(color: string): Konva.Rect {
+function meterBarRectBuilder(
+  color: string,
+  opacity = 1,
+  cornerRadius = 5
+): Konva.Rect {
   const bar = new Konva.Rect({
     x: 0,
     y: 0,
     width: 0,
     height: stage.height() / 2,
     fill: color,
-    cornerRadius: 5,
+    cornerRadius: cornerRadius,
+    opacity: opacity,
   });
   meterBarLayer.add(bar);
   return bar;
 }
 function draw() {
   if (!peakMeter.value) return;
-  const meterWidth = peakMeter.value.clientWidth;
-  const meterHeight = peakMeter.value.clientHeight;
 
+  drawBackgroundBars();
   drawBar(0);
   drawBar(1);
   drawPeakHoldText();
@@ -188,13 +189,13 @@ function drawBar(channelToDraw: number) {
     meterWidth *
     Math.min(
       normRange.logScaleTo0to1(gainToDb(peakValue[channelToDraw])),
-      normRange.logScaleTo0to1(-settingsStore.peakMeterRedThreshold)
+      rangedRedThreshold
     );
   const barGreenX =
     meterWidth *
     Math.min(
       normRange.logScaleTo0to1(gainToDb(peakValue[channelToDraw])),
-      normRange.logScaleTo0to1(-settingsStore.peakMeterOrangeThreshold)
+      rangeOrangeThreshold
     );
   meterBars[channelToDraw].red.width(barX);
   meterBars[channelToDraw].orange.width(barOrangeX);
@@ -207,6 +208,26 @@ function drawBar(channelToDraw: number) {
   meterBars[channelToDraw].green.height(barHeight);
 }
 
+function drawBackgroundBars() {
+  const meterWidth = stage.width();
+  const meterHeight = stage.height();
+
+  const redWidth = meterWidth - meterWidth * rangedRedThreshold;
+  backgroundMeterBars.red.width(redWidth);
+  backgroundMeterBars.red.x(meterWidth - redWidth);
+
+  const orangeWidth = meterWidth - meterWidth * rangeOrangeThreshold;
+  backgroundMeterBars.orange.width(orangeWidth);
+  backgroundMeterBars.orange.x(meterWidth - orangeWidth);
+
+  const greenWidth = meterWidth * rangeOrangeThreshold;
+  backgroundMeterBars.green.width(greenWidth);
+  backgroundMeterBars.green.x(0);
+
+  backgroundMeterBars.red.height(meterHeight);
+  backgroundMeterBars.orange.height(meterHeight);
+  backgroundMeterBars.green.height(meterHeight);
+}
 function drawPeakHoldText() {
   const peakHoldDbValue = gainToDb(peakHoldValue);
   const text =
@@ -243,56 +264,6 @@ function drawPeakHoldLine() {
   peakHoldLine.points([x, 0, x, stage.height()]);
   peakHoldLine.stroke(color);
 }
-/* function drawBar(channelToDraw: number) {
-  // text
-  canvasCtx.fillStyle = 'white';
-  canvasCtx.font = canvasHeight() * 0.6 + 'px Arial';
-  canvasCtx.textAlign = 'left';
-  canvasCtx.textBaseline = 'middle';
-  const peakHoldDbValue = gainToDb(peakHoldValue);
-  const text =
-    peakHoldDbValue > range ? `${Math.round(peakHoldDbValue)}dBfs` : '-inf';
-  canvasCtx.fillText(text, 0, canvasHeight() / 2);
-} */
-
-function drawColorBar(
-  width: number,
-  ypos: number,
-  height: number,
-  color: string
-) {
-  if (!canvasCtx) return;
-
-  canvasCtx.strokeStyle = color;
-  canvasCtx.fillStyle = color;
-  canvasCtx.beginPath();
-  canvasCtx.roundRect(0, ypos, width, height, roundRectRadius);
-  canvasCtx.stroke();
-  canvasCtx.fill();
-}
-
-function drawDbLines(db: number, color: string, drawText = false) {
-  if (!canvasCtx) return;
-
-  const meterWidth = canvasCtx.canvas.width;
-
-  const x = meterWidth * normRange.logScaleTo0to1(db);
-
-  canvasCtx.strokeStyle = color;
-  canvasCtx.beginPath();
-  canvasCtx.moveTo(x, 0);
-  canvasCtx.lineTo(x, canvasCtx.canvas.height);
-  canvasCtx.stroke();
-
-  if (drawText) {
-    canvasCtx.fillStyle = color;
-    canvasCtx.font = canvasHeight() * 0.5 + 'px Arial';
-    canvasCtx.textAlign = 'left';
-    canvasCtx.textBaseline = 'middle';
-    const text = `${Math.round(db)}`;
-    canvasCtx.fillText(text, x, canvasHeight() / 2);
-  }
-}
 
 function setPeakHoldTimeOut() {
   if (!peakHoldTimeOutHasBeenSet) {
@@ -304,21 +275,6 @@ function setPeakHoldTimeOut() {
 function resetPeakHold() {
   peakHoldValue = peakValue[0]; //TODO change
   peakHoldTimeOutHasBeenSet = false;
-}
-
-function canvasWidth() {
-  return canvas.value?.clientWidth ?? 0;
-}
-
-function canvasHeight() {
-  return canvas.value?.clientHeight ?? 0;
-}
-
-function setCanvasSize() {
-  if (canvas.value) {
-    canvas.value.width = canvasWidth();
-    canvas.value.height = canvasHeight();
-  }
 }
 
 watch(

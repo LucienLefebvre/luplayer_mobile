@@ -17,7 +17,7 @@
         track-size="8px"
         @update:model-value="sliderValueChanged($event!)"
         @pan="faderTouchStart"
-        @change="faderTouchEnd"
+        @change="faderTouchEnd()"
       />
     </div>
     <div class="row justify-center q-pa-sm" style="height: 10%; width: 100%">
@@ -33,8 +33,10 @@ import { useSettingsStore } from 'src/stores/settings-store';
 import { NormalizableRange } from 'src/composables/normalizable-range';
 import AddSoundButton from './AddSoundButton.vue';
 import {
+  isPlaylistSound,
   setSelectedSoundVolume,
-  stopSelectedSound,
+  stopPlaylistActiveSound,
+  stopSound,
 } from 'src/composables/sound-controller';
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -54,6 +56,15 @@ watch(
       const newSliderValue = normRange.logScaleTo0to1(newValue);
       soundsStore.selectedSoundVolumeSliderValue = newSliderValue;
     }
+
+    if (
+      soundsStore.selectedSound &&
+      newValue === -60 &&
+      settingsStore.faderStop
+    ) {
+      stopSound(soundsStore.selectedSound);
+      soundsStore.faderTouchedDuringPlayback = true;
+    }
   }
 );
 
@@ -61,20 +72,6 @@ watch(
   () => settingsStore.faderSkewFactor,
   (newValue: number) => {
     normRange.skew = newValue;
-  }
-);
-
-watch(
-  () => soundsStore.selectedSoundVolume,
-  (value) => {
-    if (
-      value === -60 &&
-      soundsStore.selectedSound?.isPlaying &&
-      settingsStore.faderStop
-    ) {
-      stopSelectedSound();
-      soundsStore.faderTouchedDuringPlayback = true;
-    }
   }
 );
 
@@ -87,10 +84,13 @@ function getVolumeLabelText() {
   return Math.round(soundsStore.selectedSoundVolume * 10) / 10 + 'dB';
 }
 
-function faderTouchStart() {
-  if (soundsStore.selectedSound === null) return;
-  if (soundsStore.selectedSound.isPlaying) {
-    soundsStore.faderTouchedDuringPlayback = true;
+function faderTouchStart(phase: any) {
+  if (phase === 'start') {
+    if (soundsStore.selectedSound === null) return;
+    if (soundsStore.selectedSound.isPlaying) {
+      soundsStore.faderTouchedDuringPlayback = true;
+    }
+    soundsStore.faderIsTouched = true;
   }
 }
 
@@ -103,6 +103,7 @@ function faderTouchEnd() {
     soundsStore.selectedSoundVolume = 0;
   }
   soundsStore.faderTouchedDuringPlayback = false;
+  soundsStore.faderIsTouched = false;
 }
 </script>
 

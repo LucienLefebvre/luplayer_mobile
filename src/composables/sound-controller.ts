@@ -1,10 +1,11 @@
 import { SoundModel } from 'src/components/models';
-import { dbToGain, getMMSSfromS } from 'src/composables/math-helpers';
+import { dbToGain, gainToDb, getMMSSfromS } from 'src/composables/math-helpers';
 import init, {
   calculate_r128_integrated_loudness,
 } from 'src/rust/waveform_process/pkg';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
+import SoundProgressBar from 'src/components/SoundProgressBar.vue';
 
 export function playSound(
   sound: SoundModel,
@@ -20,7 +21,7 @@ export function playSound(
   if (!sound.trimGainNode || !sound.volumeGainNode || !sound.enveloppeGainNode)
     return;
 
-  sound.trimGainNode.gain.value = dbToGain(sound.trimGain);
+  sound.trimGainNode.gain.value = dbToGain(sound.trimDb);
 
   if (!isCuePlayed) {
     sound.audioElement.currentTime = sound.inTime ?? 0;
@@ -35,13 +36,14 @@ export function playSound(
     const fadeTime = settingsStore.defaultFadeInTime / 1000;
     sound.trimGainNode.gain.setValueAtTime(0.01, audioContext.currentTime);
     sound.trimGainNode.gain.exponentialRampToValueAtTime(
-      dbToGain(sound.trimGain),
+      dbToGain(sound.trimDb),
       audioContext.currentTime + fadeTime
     );
   }
 
   sound.isCuePlayed = isCuePlayed;
   sound.audioElement.play();
+
   sound.isPlaying = true;
   sound.launchTime = Date.now();
   clearTimeout(sound.timeOutId);
@@ -89,9 +91,8 @@ export function pauseSound(sound: SoundModel) {
   console.log('pauseSound');
   sound.audioElement.pause();
   sound.isPlaying = false;
-
+  sound.volumeDb = 0;
   disconnectAndRemoveNodes(sound);
-  useSoundsStore().faderTouchedDuringPlayback = false;
   clearTimeout(sound.timeOutId);
 }
 
@@ -100,9 +101,8 @@ export function stopSound(sound: SoundModel) {
   sound.audioElement.pause();
   sound.audioElement.currentTime = sound.inTime ?? 0;
   sound.isPlaying = false;
-
+  sound.volumeDb = 0;
   disconnectAndRemoveNodes(sound);
-  useSoundsStore().faderTouchedDuringPlayback = false;
   clearTimeout(sound.timeOutId);
 }
 
@@ -115,17 +115,17 @@ export function disconnectAndRemoveNodes(sound: SoundModel) {
   sound.enveloppeGainNode = null;
 }
 
-export function playOrStopSound(sound: SoundModel) {
+export function playOrStopSound(sound: SoundModel, isCuePlayed = true) {
   if (sound.isPlaying) {
     stopSound(sound);
   } else {
-    playSound(sound, true, false);
+    playSound(sound, isCuePlayed, false);
   }
 }
 
 export function playButtonClicked() {
   const soundStore = useSoundsStore();
-  const selectedSound = soundStore.selectedSound;
+  const selectedSound = soundStore.playlistActiveSound;
 
   if (selectedSound === null) return;
 
@@ -138,18 +138,18 @@ export function playButtonClicked() {
 }
 
 export function playSelectedSound() {
-  const selectedSound = useSoundsStore().selectedSound;
+  const selectedSound = useSoundsStore().playlistActiveSound;
 
   if (selectedSound) {
     playSound(selectedSound, false, false);
   }
 }
 
-export function stopSelectedSound() {
-  const selectedSound = useSoundsStore().selectedSound;
+export function stopPlaylistActiveSound() {
+  const activeSound = useSoundsStore().playlistActiveSound;
 
-  if (selectedSound) {
-    stopSound(selectedSound);
+  if (activeSound) {
+    stopSound(activeSound);
   }
 }
 
@@ -162,7 +162,7 @@ export function stopSoundWithFadeOut(sound: SoundModel) {
   const audioContext = useSoundsStore().audioContext;
   if (audioContext === null) return;
   sound.trimGainNode.gain.setValueAtTime(
-    dbToGain(sound.trimGain),
+    dbToGain(sound.trimDb),
     audioContext.currentTime
   );
 
@@ -180,27 +180,56 @@ export function stopSoundWithFadeOut(sound: SoundModel) {
   }, rampTime * 1000);
 }
 
-export function incrementSelectedSound() {
+export function incrementPlaylistActiveSound() {
   const soundStore = useSoundsStore();
-  if (soundStore.selectedSound === null) return;
-  const index = soundStore.sounds[0].indexOf(soundStore.selectedSound);
-  if (index < soundStore.sounds[0].length - 1) {
-    setSelectedSound(soundStore.sounds[0][index + 1]);
+  if (soundStore.playlistActiveSound === null) return;
+  const index = soundStore.playlistSounds.indexOf(
+    soundStore.playlistActiveSound
+  );
+  if (index < soundStore.playlistSounds.length - 1) {
+    const soundTarget = soundStore.playlistSounds[index + 1];
+    setPlaylistActiveSound(soundTarget);
+    if (isPlaylistSound(soundStore.selectedSound)) {
+      setSelectedSound(soundTarget);
+    }
   }
 }
 
+export function findSoundArray(sound: SoundModel): SoundModel[] | null {
+  const soundStore = useSoundsStore();
+  let array = null;
+  if (soundStore.playlistSounds.includes(sound)) {
+    array = soundStore.playlistSounds;
+  } else if (soundStore.cartSounds0.includes(sound)) {
+    array = soundStore.cartSounds0;
+  } else if (soundStore.cartSounds1.includes(sound)) {
+    array = soundStore.cartSounds1;
+  }
+  return array;
+}
 export function setSelectedSound(sound: SoundModel) {
   const soundStore = useSoundsStore();
-  let isPlaying = false;
-  soundStore.sounds[0].forEach((sound) => {
-    if (sound.isPlaying) isPlaying = true;
+
+  soundStore.playlistSounds.forEach((s) => {
+    if (s.isPlaying && soundStore.playerMode === 'playlist') return;
   });
-  if (!isPlaying) {
-    soundStore.sounds[0].forEach((sound) => (sound.isSelected = false));
-    sound.isSelected = true;
-    soundStore.selectedSound = sound;
-    resetSelectedSoundVolume();
+
+  soundStore.playlistSounds.forEach((sound) => (sound.isSelected = false));
+  soundStore.cartSounds0.forEach((sound) => (sound.isSelected = false));
+  soundStore.cartSounds1.forEach((sound) => (sound.isSelected = false));
+
+  sound.isSelected = true;
+  soundStore.selectedSound = sound;
+  resetSelectedSoundVolume();
+  if (sound.volumeGainNode !== null) {
+    soundStore.selectedSoundVolume = gainToDb(sound.volumeGainNode.gain.value);
   }
+}
+
+export function resetSelectedSoundVolume() {
+  const soundStore = useSoundsStore();
+  if (soundStore.faderTouchedDuringPlayback) return;
+  soundStore.selectedSoundVolume = 0.0;
 }
 
 export function setSelectedSoundVolume(volume: number) {
@@ -209,8 +238,10 @@ export function setSelectedSoundVolume(volume: number) {
 
   const selectedSound = soundStore.selectedSound;
   if (selectedSound === null) return;
-  if (selectedSound.volumeGainNode === null) return;
 
+  selectedSound.volumeDb = volume;
+
+  if (selectedSound.volumeGainNode === null) return;
   selectedSound.volumeGainNode.gain.value = dbToGain(volume);
 }
 
@@ -230,9 +261,10 @@ export function handlePauseEvent(sound: SoundModel) {
   sound.isPlaying = false;
   if (!getIsCuePlayed(sound)) {
     resetSelectedSoundVolume();
+    if (isCartSound(sound)) return;
     if (Date.now() - sound.launchTime > useSettingsStore().falseStartTime) {
-      incrementSelectedSound();
-    } else if (sound.duration < 1) incrementSelectedSound();
+      incrementPlaylistActiveSound();
+    } else if (sound.duration < 1) incrementPlaylistActiveSound();
   }
   sound.isCuePlayed = false;
 }
@@ -246,13 +278,42 @@ export function getRemainingTime(sound: SoundModel) {
   const outTime = sound.outTime ?? sound.audioElement.duration;
   const inTime = sound.inTime ?? 0;
   const duration = outTime - inTime;
-  return sound.isPlaying ? sound.remainingTime : duration;
+  return sound.isPlaying
+    ? sound.remainingTime / sound.audioElement.playbackRate
+    : duration;
 }
 
-export function resetSelectedSoundVolume() {
-  useSoundsStore().selectedSoundVolume = 0.0;
+export function isCartSound(sound: SoundModel | null) {
+  if (sound === null) return false;
+  return (
+    useSoundsStore().cartSounds0.includes(sound) ||
+    useSoundsStore().cartSounds1.includes(sound)
+  );
 }
 
+export function isPlaylistSound(sound: SoundModel | null) {
+  if (sound === null) return false;
+  return useSoundsStore().playlistSounds.includes(sound);
+}
+
+export function isPlaylistActiveSound(sound: SoundModel) {
+  return sound === useSoundsStore().playlistActiveSound;
+}
+
+export function isSelectedSound(sound: SoundModel) {
+  return useSoundsStore().selectedSound === sound;
+}
+
+export function setPlaylistActiveSound(sound: SoundModel, setSelected = false) {
+  useSoundsStore().playlistActiveSound = sound;
+
+  useSoundsStore().playlistSounds.forEach((sound) => {
+    sound.isPlaylistActiveSound = false;
+  });
+  sound.isPlaylistActiveSound = true;
+
+  if (setSelected) setSelectedSound(sound);
+}
 export function setEnveloppeGainValues(sound: SoundModel) {
   const soundStore = useSoundsStore();
   const audioContext = soundStore.audioContext;
@@ -286,7 +347,7 @@ export function setEnveloppeGainValues(sound: SoundModel) {
 }
 
 export function setTrimGain(sound: SoundModel, gain: number) {
-  sound.trimGain = gain;
+  sound.trimDb = gain;
 
   if (sound.trimGainNode === null) return;
   sound.trimGainNode.gain.value = dbToGain(gain);

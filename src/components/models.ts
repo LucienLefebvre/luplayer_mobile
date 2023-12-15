@@ -8,6 +8,7 @@ export interface SoundModel {
 
   isPlaying: boolean;
   isSelected: boolean;
+  isPlaylistActiveSound: boolean;
   isCuePlayed: boolean;
   hasBeenCuePlayed: boolean;
 
@@ -24,7 +25,8 @@ export interface SoundModel {
 
   integratedLoudness: number | null;
 
-  trimGain: number;
+  volumeDb: number;
+  trimDb: number;
   trimGainNode: GainNode | null;
   volumeGainNode: GainNode | null;
   enveloppeGainNode: GainNode | null;
@@ -37,6 +39,7 @@ export interface SoundModel {
   waveformChunks: Float32Array | null;
   displayWaveform: boolean;
   enveloppePoints: EnveloppePoint[];
+  enveloppeIsEnabled: boolean;
 }
 
 export interface EnveloppePoint {

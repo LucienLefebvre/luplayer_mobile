@@ -11,18 +11,25 @@ import {
   registerEventListeners,
   setSelectedSound,
   normalizeSound,
+  findSoundArray,
+  setPlaylistActiveSound as setPlaylistActiveSound,
 } from 'src/composables/sound-controller';
 import { getCssVar } from 'quasar';
+import SoundDetails from 'src/components/SoundDetails.vue';
 
 export const useSoundsStore = defineStore('soundsStore', {
   state: () => ({
     settingsStore: useSettingsStore(),
 
-    sounds: [[], []] as [SoundModel[], SoundModel[]],
+    playlistSounds: [] as SoundModel[],
+    cartSounds0: [] as SoundModel[],
+    cartSounds1: [] as SoundModel[],
 
+    //cartDisplayArrays: [[], []] as [number[], number[]],
     loadingSounds: [] as File[],
 
-    playerMode: 'playlist' as 'playlist' | 'cart',
+    playerMode: 'playlist' as 'playlist' | 'cart' | 'playlistAndCart',
+    arrayToAddSound: 'playlist' as 'playlist' | 'cart',
 
     audioContext: null as AudioContext | null,
     outputGainNode: null as GainNode | null,
@@ -31,11 +38,15 @@ export const useSoundsStore = defineStore('soundsStore', {
     sampleRate: 0 as number,
 
     selectedSound: null as SoundModel | null,
+    playlistActiveSound: null as SoundModel | null,
     editedSound: null as SoundModel | null,
 
     stoppedByButtonClick: false,
-    isReordering: false,
     faderTouchedDuringPlayback: false as boolean,
+    faderIsTouched: false as boolean,
+
+    isReordering: false,
+    reorderLocked: false,
 
     showEditWindow: false as boolean,
     showReorderWindow: false as boolean,
@@ -92,9 +103,11 @@ export const useSoundsStore = defineStore('soundsStore', {
           remainingTime: audioElement.duration,
           isPlaying: false,
           isSelected: false,
+          isPlaylistActiveSound: false,
           isCuePlayed: false,
           hasBeenCuePlayed: false,
-          trimGain: 0.0,
+          volumeDb: 0.0,
+          trimDb: 0.0,
           source: null,
           trimGainNode: null,
           volumeGainNode: null,
@@ -108,24 +121,23 @@ export const useSoundsStore = defineStore('soundsStore', {
           waveformChunks: null,
           enveloppePoints: defaultEnveloppePoints,
           displayWaveform: true,
+          enveloppeIsEnabled: false,
         };
-
-        let arrayToAdd = 0;
-        if (this.playerMode === 'cart') {
-          arrayToAdd = this.sounds[0].length > this.sounds[1].length ? 1 : 0;
-        }
 
         addedSound = reactive(addedSound);
 
         registerEventListeners(addedSound);
-        this.sounds[arrayToAdd].push(addedSound);
 
-        if (this.sounds[0].length === 1 && this.playerMode === 'playlist') {
-          this.sounds[0][0].isSelected = true;
-        }
-
-        if (this.selectedSound === null && this.playerMode === 'playlist') {
-          setSelectedSound(addedSound);
+        if (this.playerMode === 'playlist') {
+          this.addSoundToPlaylist(addedSound);
+        } else if (this.playerMode === 'cart') {
+          this.addSoundToCart(addedSound);
+        } else if (this.playerMode === 'playlistAndCart') {
+          if (this.arrayToAddSound === 'playlist') {
+            this.addSoundToPlaylist(addedSound);
+          } else {
+            this.addSoundToCart(addedSound);
+          }
         }
 
         if (this.settingsStore.autoNormalize) {
@@ -134,25 +146,50 @@ export const useSoundsStore = defineStore('soundsStore', {
       };
     },
 
-    deleteSound(sound: SoundModel) {
-      let array = -1;
-      let index = this.sounds[0].indexOf(sound);
-      if (index !== -1) {
-        array = 0;
-      } else {
-        index = this.sounds[1].indexOf(sound);
-        if (index !== -1) {
-          array = 1;
-        }
+    addSoundToCart(addedSound: SoundModel) {
+      const cartArrayToAdd =
+        this.cartSounds0.length <= this.cartSounds1.length
+          ? this.cartSounds0
+          : this.cartSounds1;
+
+      cartArrayToAdd.push(addedSound);
+    },
+
+    addSoundToPlaylist(addedSound: SoundModel) {
+      const arrayToAdd = this.playlistSounds;
+      arrayToAdd.push(addedSound);
+      /* if (
+        (this.selectedSound === null && this.playerMode === 'playlist') ||
+        'playlistAndCart'
+      ) {
+        setSelectedSound(addedSound);
+      } */
+      if (
+        (arrayToAdd.length === 1 && this.playerMode === 'playlist') ||
+        'playlistAndCart'
+      ) {
+        setSelectedSound(arrayToAdd[0]);
+        setPlaylistActiveSound(arrayToAdd[0]);
       }
+    },
+
+    deleteSound(sound: SoundModel) {
+      const array = findSoundArray(sound);
+      if (array === null) return;
+
+      const index = array.indexOf(sound);
+      if (index === -1) return;
 
       if (sound.audioElement.paused) {
         this.showEditWindow = false;
-        this.sounds[array].splice(index, 1);
+        array.splice(index, 1);
         if (sound.isSelected) {
           this.selectedSound = null;
-          if (this.sounds[0].length > 0 && this.playerMode === 'playlist') {
-            setSelectedSound(this.sounds[0][0]);
+          if (
+            this.playlistSounds.length > 0 &&
+            this.playerMode === 'playlist'
+          ) {
+            setSelectedSound(this.playlistSounds[0]);
           }
         }
       }
@@ -162,12 +199,66 @@ export const useSoundsStore = defineStore('soundsStore', {
       this.editedSound = sound;
     },
 
-    initializeCartPlayer() {
+    initializeCartMode() {
+      if (this.playerMode === 'cart') return;
+
+      this.playerMode = 'cart';
       this.selectedSound = null;
-      this.sounds.forEach((soundArray) => {
-        soundArray.forEach((sound) => {
-          sound.isSelected = false;
+      this.deselectAllSounds();
+
+      this.cartSounds0 = [];
+      this.cartSounds1 = [];
+
+      if (this.playlistSounds.length > 0) {
+        this.playlistSounds.forEach((sound, index) => {
+          const arrayToPush =
+            index % 2 === 0 ? this.cartSounds0 : this.cartSounds1;
+          arrayToPush.push(sound);
         });
+      }
+    },
+
+    initializePlaylistMode() {
+      if (this.playerMode === 'playlist') return;
+
+      this.playerMode = 'playlist';
+      this.selectedSound = null;
+      this.deselectAllSounds();
+
+      this.playlistSounds = [];
+
+      const cartSounds0Length = this.cartSounds0.length;
+      const cartSounds1Length = this.cartSounds1.length;
+      if (cartSounds0Length > 0 || cartSounds1Length > 0) {
+        const maxLenght = Math.max(cartSounds0Length, cartSounds1Length);
+        for (let i = 0; i < maxLenght; i++) {
+          if (this.cartSounds0[i]) {
+            this.playlistSounds.push(this.cartSounds0[i]);
+          }
+          if (this.cartSounds1[i]) {
+            this.playlistSounds.push(this.cartSounds1[i]);
+          }
+        }
+      }
+    },
+
+    initializePlaylistAndCartMode() {
+      if (this.playerMode === 'playlistAndCart') return;
+
+      this.playerMode = 'playlistAndCart';
+      this.selectedSound = null;
+      this.deselectAllSounds();
+    },
+
+    deselectAllSounds() {
+      this.deselectAllSoundsInArray(this.playlistSounds);
+      this.deselectAllSoundsInArray(this.cartSounds0);
+      this.deselectAllSoundsInArray(this.cartSounds1);
+    },
+
+    deselectAllSoundsInArray(array: SoundModel[]) {
+      array.forEach((sound) => {
+        sound.isSelected = false;
       });
     },
   },

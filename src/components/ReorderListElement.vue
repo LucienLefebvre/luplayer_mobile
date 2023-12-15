@@ -1,20 +1,20 @@
 <template>
   <div class="element-row" :style="{ color: getSoundColor() }">
-    <div v-if="soundsStore.playerMode === 'playlist'">
+    <div v-if="soundsStore.playerMode === 'playlist'" class="sound-index">
       {{ getSoundIndex() }}
     </div>
-    <q-btn
+    <!--   <q-btn
       flat
       dense
       :icon="sound.isPlaying ? 'pause' : 'play_arrow'"
       class="left-buttons"
       size="sm"
       @touchend="playOrStopSound(sound)"
-    />
+    /> -->
     <div class="sound-name">{{ sound.name }}</div>
-    <div class="sound-duration">
+    <!--   <div class="sound-duration">
       {{ getSoundDurationLabel() }}
-    </div>
+    </div> -->
     <q-btn
       flat
       dense
@@ -46,11 +46,10 @@ const props = defineProps({
 const sound = ref(props.sound);
 
 function getSoundIndex() {
-  return soundsStore.sounds[0].indexOf(sound.value) + 1;
+  return soundsStore.playlistSounds.indexOf(sound.value) + 1;
 }
 
 function getSoundColor() {
-  console.log('getSoundColor');
   if (props.sound.isPlaying) {
     return 'green';
   } else {
@@ -87,5 +86,8 @@ function getSoundDurationLabel() {
   overflow: hidden;
   width: 70%;
   max-width: 70%;
+}
+.sound-index {
+  color: yellow;
 }
 </style>

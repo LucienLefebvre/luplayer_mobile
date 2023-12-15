@@ -1,7 +1,7 @@
 <template>
   <div class="separator-div">
     <PeakMeter
-      v-if="settingsStore.showPeakMeter"
+      v-show="settingsStore.showPeakMeter"
       :analyserObject="soundsStore.outputAnalyserNodes"
       class="metersStyle"
     />
@@ -24,8 +24,6 @@ const settingsStore = useSettingsStore();
 }
 .separator-div {
   width: 100%;
-  border-top: 2px solid orange;
-  border-bottom: 2px solid orange;
   display: flex;
   flex-direction: column;
 }

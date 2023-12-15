@@ -13,59 +13,35 @@
     </div>
     <q-card class="panel-class">
       <div v-if="soundsStore.playerMode === 'playlist'">
-        <draggable
-          class="list-group"
-          v-model="soundsStore.sounds[0]"
-          item-key="id"
-          @start="drag = true"
-          @end="drag = false"
-          handle=".handle"
-        >
-          <template #item="{ element, index }">
-            <div class="sound-list-item">
-              <div class="handle">
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-              </div>
-              <ReorderListElement
-                :sound="element"
-                :index="index"
-                class="element"
-              />
-            </div>
-          </template>
-        </draggable>
+        <div id="listElements">
+          <div
+            v-for="(player, index) in soundsStore.playlistSounds"
+            :key="index"
+            class="sound-item"
+          >
+            <ReorderListElement :sound="player" style="width: 100%" />
+          </div>
+        </div>
       </div>
       <div v-else>
-        <div class="row">
-          <div
-            v-for="(draggableObj, index) in draggables"
-            :key="index"
-            :style="{ width: draggableObj.width, height: 'inherit' }"
-          >
-            <draggable
-              :list="draggableObj.list"
-              style="height: 100%"
-              group="sounds"
-              item-key="name"
-              @start="drag = true"
-              @end="drag = false"
-              ghost-class="ghost"
-              drag-class="dragging"
-              handle=".handle"
+        <div class="cart-sort">
+          <div id="listElements1" class="sound-cart-item">
+            <div
+              v-for="(player, index) in soundsStore.cartSounds0"
+              :key="index"
+              class="sound-item"
             >
-              <template #item="{ element }">
-                <div class="sound-list-item">
-                  <div class="handle">
-                    <div class="bar"></div>
-                    <div class="bar"></div>
-                    <div class="bar"></div>
-                  </div>
-                  <ReorderListElement :sound="element" :index="index" />
-                </div>
-              </template>
-            </draggable>
+              <ReorderListElement :sound="player" style="width: 100%" />
+            </div>
+          </div>
+          <div id="listElements2" class="sound-cart-item">
+            <div
+              v-for="(player, index) in soundsStore.cartSounds1"
+              :key="index"
+              class="sound-item"
+            >
+              <ReorderListElement :sound="player" style="width: 100%" />
+            </div>
           </div>
         </div>
       </div>
@@ -75,22 +51,118 @@
 
 <script setup lang="ts">
 import { useSoundsStore } from '../stores/sounds-store';
-import draggable from 'vuedraggable';
+import Sortable from 'sortablejs';
 import ReorderListElement from './ReorderListElement.vue';
+import { onMounted, ref, reactive } from 'vue';
+import { SoundModel } from './models';
 
-const soundsStore = useSoundsStore();
-let drag = false;
+const soundsStore = reactive(useSoundsStore());
 
-const draggables = [
-  {
-    width: '50%',
-    list: soundsStore.sounds[0],
-  },
-  {
-    width: '50%',
-    list: soundsStore.sounds[1],
-  },
-];
+let elements: HTMLElement | null = null;
+let elements1: HTMLElement | null = null;
+let elements2: HTMLElement | null = null;
+let sortable: Sortable;
+let sortable1: Sortable;
+let sortable2: Sortable;
+
+onMounted(() => {
+  elements = document.getElementById('listElements');
+  elements1 = document.getElementById('listElements1');
+  elements2 = document.getElementById('listElements2');
+  if (!elements && soundsStore.playerMode === 'playlist') return;
+  if (!elements1 && soundsStore.playerMode === 'cart') return;
+  if (!elements2 && soundsStore.playerMode === 'cart') return;
+
+  if (soundsStore.playerMode === 'playlist') {
+    sortable = Sortable.create(elements!, {
+      animation: 150,
+      sort: true,
+      ghostClass: 'ghost',
+      dragClass: 'dragging',
+
+      onEnd: (evt) => {
+        const array = soundsStore.playlistSounds;
+
+        const oldIndex = evt.oldIndex;
+        const newIndex = evt.newIndex;
+
+        if (oldIndex !== undefined && newIndex !== undefined) {
+          const movedSound = array[oldIndex];
+          array.splice(oldIndex, 1);
+          array.splice(newIndex, 0, movedSound);
+        }
+      },
+    });
+  } else if (soundsStore.playerMode === 'cart') {
+    sortable1 = Sortable.create(elements1!, {
+      animation: 150,
+      ghostClass: 'ghost',
+      dragClass: 'dragging',
+      group: { name: 'shared' },
+      sort: true,
+      onEnd: (evt) => {
+        updateCartArrays(evt);
+      },
+    });
+
+    sortable2 = Sortable.create(elements2!, {
+      animation: 150,
+      ghostClass: 'ghost',
+      dragClass: 'dragging',
+      group: { name: 'shared' },
+      onEnd: (evt) => {
+        updateCartArrays(evt);
+      },
+    });
+  }
+});
+
+let forceUpdate = 0;
+function updateCartArrays(evt: Sortable.SortableEvent) {
+  console.log('updateCartArrays');
+  const oldArrayIndex = evt.from.id === 'listElements1' ? 0 : 1;
+  const newArrayIndex = evt.to.id === 'listElements1' ? 0 : 1;
+  const oldItemIndex = evt.oldIndex;
+  const newItemIndex = evt.newIndex;
+
+  console.log(
+    'oldArrayIndex',
+    oldArrayIndex,
+    'newArrayIndex',
+    newArrayIndex,
+    'oldItemIndex',
+    oldItemIndex,
+    'newItemIndex',
+    newItemIndex
+  );
+
+  if (
+    oldItemIndex !== undefined &&
+    newItemIndex !== undefined &&
+    oldArrayIndex !== undefined &&
+    newArrayIndex !== undefined
+  ) {
+    const oldArray =
+      evt.from.id === 'listElements1'
+        ? soundsStore.cartSounds0
+        : soundsStore.cartSounds1;
+    const newArray =
+      evt.to.id === 'listElements1'
+        ? soundsStore.cartSounds0
+        : soundsStore.cartSounds1;
+
+    if (oldArray && newArray) {
+      const movedItem = oldArray[oldItemIndex];
+      console.log('movedItem', movedItem);
+      oldArray.splice(oldItemIndex, 1);
+      newArray.splice(newItemIndex, 0, movedItem);
+    }
+  }
+  elements1 = document.getElementById('listElements1');
+  elements2 = document.getElementById('listElements2');
+  sortable1.el = elements1!;
+  sortable2.el = elements2!;
+}
 </script>
 
 <style scoped>
@@ -105,15 +177,23 @@ const draggables = [
   border-radius: 10px;
   max-width: 100%;
   width: 85vw;
+  max-height: 80vh;
 }
 
-.sound-list-item {
+.sound-item {
   display: flex;
   flex-direction: row;
   padding-top: 5px;
   padding-bottom: 5px;
   font-size: 15px;
-  max-width: 100%;
+  width: 100%;
+}
+.sound-cart-item {
+  display: flex;
+  flex-direction: column;
+  padding: 3px;
+  font-size: 15px;
+  width: 50%;
 }
 .close-button {
   display: flex;
@@ -123,6 +203,12 @@ const draggables = [
 .list-group {
   min-height: 20px;
   max-height: 80%;
+}
+.cart-sort {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
 }
 .handle {
   display: flex;
