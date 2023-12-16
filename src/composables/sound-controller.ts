@@ -48,7 +48,7 @@ export function playSound(
   sound.launchTime = Date.now();
   clearTimeout(sound.timeOutId);
 
-  if (sound.outTime !== null && !isCuePlayed) {
+  if (sound.outTime !== null && !isCuePlayed && !sound.isLooping) {
     const inTime = sound.inTime !== null ? sound.inTime : 0;
     const timeOutDuration = (sound.outTime - inTime) * 1000;
 
@@ -57,14 +57,32 @@ export function playSound(
       sound.audioElement.currentTime = 0;
     }, timeOutDuration);
   }
+  if (sound.isLooping) {
+    loopSound(sound);
+  }
 
   sound.audioElement.addEventListener('ended', () => {
-    if (!sound.enveloppeGainNode) return;
+    if (!sound.enveloppeGainNode || sound.isLooping) return;
 
     sound.enveloppeGainNode.gain.cancelScheduledValues(0);
     stopSound(sound);
     sound.isCuePlayed = false;
   });
+}
+
+function loopSound(sound: SoundModel) {
+  sound.audioElement.loop = true;
+  if (sound.outTime !== null) {
+    const inTime = sound.inTime ?? 0;
+    const timeOutDuration = (sound.outTime - inTime) * 1000;
+
+    if (sound.timeOutId) clearTimeout(sound.timeOutId);
+
+    sound.timeOutId = setTimeout(() => {
+      sound.audioElement.currentTime = sound.inTime ?? 0;
+      loopSound(sound);
+    }, timeOutDuration);
+  }
 }
 
 function initSoundAudio(
@@ -208,11 +226,9 @@ export function findSoundArray(sound: SoundModel): SoundModel[] | null {
   return array;
 }
 export function setSelectedSound(sound: SoundModel) {
-  const soundStore = useSoundsStore();
+  if (sound === null || sound === undefined) return;
 
-  soundStore.playlistSounds.forEach((s) => {
-    if (s.isPlaying && soundStore.playerMode === 'playlist') return;
-  });
+  const soundStore = useSoundsStore();
 
   soundStore.playlistSounds.forEach((sound) => (sound.isSelected = false));
   soundStore.cartSounds0.forEach((sound) => (sound.isSelected = false));
@@ -259,7 +275,7 @@ export function handlePlayEvent(sound: SoundModel) {
 
 export function handlePauseEvent(sound: SoundModel) {
   sound.isPlaying = false;
-  if (!getIsCuePlayed(sound)) {
+  if (!getIsCuePlayed(sound) && isSelectedSound(sound)) {
     resetSelectedSoundVolume();
     if (isCartSound(sound)) return;
     if (Date.now() - sound.launchTime > useSettingsStore().falseStartTime) {
@@ -305,15 +321,24 @@ export function isSelectedSound(sound: SoundModel) {
 }
 
 export function setPlaylistActiveSound(sound: SoundModel, setSelected = false) {
-  useSoundsStore().playlistActiveSound = sound;
+  const soundsStore = useSoundsStore();
 
-  useSoundsStore().playlistSounds.forEach((sound) => {
+  if (
+    soundsStore.playlistActiveSound &&
+    soundsStore.playlistActiveSound.isPlaying &&
+    !isPlaylistActiveSound(sound)
+  ) {
+    return;
+  }
+  soundsStore.playlistSounds.forEach((sound) => {
     sound.isPlaylistActiveSound = false;
   });
   sound.isPlaylistActiveSound = true;
+  soundsStore.playlistActiveSound = sound;
 
   if (setSelected) setSelectedSound(sound);
 }
+
 export function setEnveloppeGainValues(sound: SoundModel) {
   const soundStore = useSoundsStore();
   const audioContext = soundStore.audioContext;

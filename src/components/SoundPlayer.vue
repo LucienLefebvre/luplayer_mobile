@@ -1,13 +1,20 @@
 <template>
-  <div class="player-container">
+  <div class="player-container" ref="playerContainer">
+    <!--  <div
+      class="delete-swipe-icon"
+      :style="{ height: getWaveformHeight(), opacity: 2 - opacity * 2 }"
+    >
+      <q-btn icon="delete" text-color="primary" color="red" />
+    </div> -->
     <q-card
       class="soundBackground shadow-10"
       :style="{
         width: '100%',
         borderColor: isSelectedSound(sound) ? 'yellow' : getWaveformColor(),
-
         borderWidth: '2px',
         backgroundColor: getBackgroundColor(0.1),
+        left: left + 'px',
+        opacity,
       }"
       @click="soundTouchUp(sound)"
       @contextmenu.prevent
@@ -55,6 +62,9 @@
           <div v-if="isPlaylistSound(sound)" class="sound-index">
             {{ getSoundIndex() }}
           </div>
+          <div v-if="isCartSound(sound) && sound.isLooping" class="text-yellow">
+            <q-icon name="loop" />
+          </div>
           <div class="sound-name">{{ props.sound.name }}</div>
           <div class="sound-duration">
             {{ getSoundDurationLabel($props.sound) }}
@@ -66,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { PropType, ref, onMounted, Ref, watch } from 'vue';
+import { PropType, ref, onMounted, Ref, watch, computed } from 'vue';
 import { SoundModel } from './models';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
@@ -84,9 +94,10 @@ import {
   setPlaylistActiveSound,
   isSelectedSound,
 } from 'src/composables/sound-controller';
-import { getCssVar, colors, is } from 'quasar';
-import { onLongPress } from '@vueuse/core';
-import { settings } from 'cluster';
+import { getCssVar, colors } from 'quasar';
+import { onLongPress, useSwipe } from '@vueuse/core';
+import type { SwipeDirection } from '@vueuse/core';
+
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 
@@ -98,9 +109,19 @@ const soundWaveforms = ref<typeof SoundWaveform | null>(null);
 
 const backgroundColor = ref('rgb(40, 134, 189)');
 
+let isTouchPanned = false;
+
+const playerCard = ref<HTMLElement | null>(null);
+const playerContainer = ref<HTMLElement | null>(null);
+const containerWidth = computed(() => playerContainer.value?.offsetWidth);
+const left = ref('0');
+const opacity = ref(1);
+const swipeThreshold = 100;
+
 function getWaveformColor() {
   if (sound.value.isPlaying) {
-    if (getRemainingTime(sound.value) < 5) return 'red';
+    if (getRemainingTime(sound.value) < 5 && sound.value.isPlaying)
+      return 'red';
     else return 'green';
   } else if (isPlaylistActiveSound(sound.value)) {
     return getCssVar('secondary') ?? 'orange';
@@ -116,39 +137,74 @@ function getColorFromRGB(
   return colors.changeAlpha(hexColor, opacity);
 }
 
-function getBackgroundColor(opacity: number) {
+function getBackgroundColor(opa: number) {
   let color;
-  if (sound.value.isPlaying) {
+  if (opacity.value < 0.5) {
+    color = 'red';
+  } else if (sound.value.isPlaying) {
     const rgbColor =
       getRemainingTime(sound.value) < 5
         ? { r: 255, g: 0, b: 0 }
         : { r: 93, g: 175, b: 77 };
-    color = getColorFromRGB(rgbColor, opacity);
-  } else if (
-    isPlaylistActiveSound(sound.value) &&
-    isPlaylistSound(sound.value)
-  ) {
+    color = getColorFromRGB(rgbColor, opa);
+  } else if (isPlaylistActiveSound(sound.value)) {
     const rgbColor = { r: 247, g: 151, b: 0 };
-    color = getColorFromRGB(rgbColor, opacity);
+    color = getColorFromRGB(rgbColor, opa);
   } else {
-    color = colors.changeAlpha(sound.value.color, opacity);
+    color = colors.changeAlpha(sound.value.color, opa);
   }
   backgroundColor.value = color;
   return color;
 }
 
-const soundOffset = ref(0);
-let isTouchPanned = false;
+const { direction, isSwiping, lengthX, lengthY } = useSwipe(playerCard, {
+  passive: true,
+  threshold: swipeThreshold,
+  onSwipe(e: TouchEvent) {
+    if (containerWidth.value) {
+      if (lengthX.value < 0) {
+        const length = Math.abs(lengthX.value);
+        left.value = `${length}`;
+        opacity.value = 1 - length / containerWidth.value;
+      } else {
+        const length = lengthX.value;
+        left.value = `${-length}`;
+      }
+    }
+  },
+  onSwipeEnd(e: TouchEvent, direction: SwipeDirection) {
+    if (
+      direction === 'RIGHT' &&
+      containerWidth.value &&
+      Math.abs(lengthX.value) / containerWidth.value >= 0.5
+    ) {
+      if (!sound.value.audioElement.paused) {
+        resetSwipe();
+      }
+      soundsStore.deleteSound(sound.value);
+    } else if (
+      direction === 'LEFT' &&
+      containerWidth.value &&
+      Math.abs(lengthX.value) / containerWidth.value >= 0.5
+    ) {
+      setSelectedSound(sound.value);
+      soundsStore.showEditWindow = true;
+      resetSwipe();
+    } else {
+      resetSwipe();
+    }
+  },
+});
+
+function resetSwipe() {
+  left.value = '0';
+  opacity.value = 1;
+}
 
 function soundTouchUp(soundModel: SoundModel) {
   if (!soundsStore.isReordering && !isTouchPanned) {
     soundClicked(soundModel);
   }
-
-  if (soundOffset.value > window.innerWidth / 2) {
-    soundsStore.deleteSound(sound.value);
-  }
-  soundOffset.value = 0;
 
   isTouchPanned = false;
 }
@@ -161,18 +217,17 @@ function soundClicked(sound: SoundModel) {
   }
 }
 
-const playerCard = ref<HTMLElement | null>(null);
 const longPressed = ref(false);
 
 function onLongPressCallback(e: PointerEvent) {
   if (!soundsStore.isReordering) {
     longPressed.value = true;
-    setSelectedSound(props.sound);
+    if (isPlaylistSound(sound.value)) {
+      setPlaylistActiveSound(sound.value, true);
+    } else {
+      setSelectedSound(sound.value);
+    }
   }
-}
-
-function reset() {
-  longPressed.value = false;
 }
 
 onLongPress(playerCard, onLongPressCallback, { delay: 800 });
@@ -180,12 +235,6 @@ onLongPress(playerCard, onLongPressCallback, { delay: 800 });
 const touchHold = ($e: Event, sound: SoundModel) => {
   $e.preventDefault();
 };
-
-function showEditWindow(sound: SoundModel) {
-  soundsStore.editedSound = sound;
-  soundsStore.showEditWindow = true;
-  console.log('touchHold');
-}
 
 function getSoundIndex() {
   const array = findSoundArray(sound.value);
@@ -207,6 +256,13 @@ watch(
   () => backgroundColor.value,
   () => {
     progressBar.value?.setBarColor(getBackgroundColor(0.2));
+  }
+);
+
+watch(
+  () => sound.value.isPlaylistActiveSound,
+  () => {
+    getBackgroundColor(1);
   }
 );
 
@@ -290,6 +346,7 @@ function shouldShowWaveform() {
   position: relative;
   z-index: 2;
 }
+
 .sound-index {
   text-align: center;
   color: yellow;
@@ -310,5 +367,15 @@ function shouldShowWaveform() {
   border-bottom-right-radius: 10px;
   position: relative;
   z-index: 2;
+}
+
+.delete-swipe-icon {
+  position: absolute;
+  width: 60%;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: -1;
 }
 </style>

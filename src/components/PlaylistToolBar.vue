@@ -120,7 +120,7 @@ function getReorderButtonClass() {
 
 function editButtonClicked() {
   if (soundsStore.selectedSound === null) return;
-  soundsStore.editedSound = soundsStore.selectedSound;
+  soundsStore.selectedSound = soundsStore.selectedSound;
   soundsStore.showEditWindow = true;
 }
 

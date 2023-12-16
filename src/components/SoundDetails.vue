@@ -90,6 +90,18 @@
         <div class="buttons-row">
           <div class="buttons-row-group">
             <q-btn
+              v-show="isCartSound(sound)"
+              icon="loop"
+              @click="sound.isLooping = !sound.isLooping"
+              class="set-mark-button"
+              size="sm"
+              :style="{
+                'background-color': sound.isLooping ? 'red' : 'orange',
+              }"
+            />
+          </div>
+          <div class="buttons-row-group">
+            <q-btn
               label="In"
               @click="setInTimeAtCurrentPosition(sound)"
               class="set-mark-button"
@@ -168,7 +180,10 @@ import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import { SoundModel, EnveloppePoint } from './models';
 import { Waveform } from 'src/composables/waveform';
-import { setEnveloppeGainValues } from 'src/composables/sound-controller';
+import {
+  isCartSound,
+  setEnveloppeGainValues,
+} from 'src/composables/sound-controller';
 import { dbToGain } from 'src/composables/math-helpers';
 import {
   deleteInTime,
@@ -187,7 +202,7 @@ import { getCssVar } from 'quasar';
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 
-const sound = soundsStore.editedSound as SoundModel;
+const sound = soundsStore.selectedSound as SoundModel;
 
 let minimap: Waveform | null = null;
 const minimapWaveformView = ref<HTMLDivElement | null>(null);

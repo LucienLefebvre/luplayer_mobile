@@ -69,7 +69,7 @@ function chooseFile() {
 import soundFileUrl from '../assets/son.mp3';
 
 onMounted(async () => {
-  /*  const response = await fetch(soundFileUrl);
+  /*   const response = await fetch(soundFileUrl);
   const blob = await response.blob();
   const file = new File([blob], 'son.mp3', { type: 'audio/mpeg' });
   const audioElement = document.createElement('audio');

@@ -4,6 +4,7 @@ import { useSettingsStore } from './settings-store';
 import { v4 as uuidv4 } from 'uuid';
 import {
   SoundModel,
+  dummySound,
   StereoAnalyserObject,
   EnveloppePoint,
 } from 'src/components/models';
@@ -14,50 +15,50 @@ import {
   findSoundArray,
   setPlaylistActiveSound as setPlaylistActiveSound,
 } from 'src/composables/sound-controller';
-import { getCssVar } from 'quasar';
+import { Notify, getCssVar } from 'quasar';
 import SoundDetails from 'src/components/SoundDetails.vue';
 
 export const useSoundsStore = defineStore('soundsStore', {
-  state: () => ({
-    settingsStore: useSettingsStore(),
+  state: () =>
+    reactive({
+      settingsStore: useSettingsStore(),
 
-    playlistSounds: [] as SoundModel[],
-    cartSounds0: [] as SoundModel[],
-    cartSounds1: [] as SoundModel[],
+      playlistSounds: [] as SoundModel[],
+      cartSounds0: [] as SoundModel[],
+      cartSounds1: [] as SoundModel[],
 
-    //cartDisplayArrays: [[], []] as [number[], number[]],
-    loadingSounds: [] as File[],
+      //cartDisplayArrays: [[], []] as [number[], number[]],
+      loadingSounds: [] as File[],
 
-    playerMode: 'playlist' as 'playlist' | 'cart' | 'playlistAndCart',
-    arrayToAddSound: 'playlist' as 'playlist' | 'cart',
+      playerMode: 'playlist' as 'playlist' | 'cart' | 'playlistAndCart',
+      arrayToAddSound: 'playlist' as 'playlist' | 'cart',
 
-    audioContext: null as AudioContext | null,
-    outputGainNode: null as GainNode | null,
-    outputLimiterNode: null as DynamicsCompressorNode | null,
-    outputAnalyserNodes: null as StereoAnalyserObject | null,
-    sampleRate: 0 as number,
+      audioContext: null as AudioContext | null,
+      outputGainNode: null as GainNode | null,
+      outputLimiterNode: null as DynamicsCompressorNode | null,
+      outputAnalyserNodes: null as StereoAnalyserObject | null,
+      sampleRate: 0 as number,
 
-    selectedSound: null as SoundModel | null,
-    playlistActiveSound: null as SoundModel | null,
-    editedSound: null as SoundModel | null,
+      selectedSound: null as SoundModel | null,
+      playlistActiveSound: null as SoundModel | null,
 
-    stoppedByButtonClick: false,
-    faderTouchedDuringPlayback: false as boolean,
-    faderIsTouched: false as boolean,
+      stoppedByButtonClick: false,
+      faderTouchedDuringPlayback: false as boolean,
+      faderIsTouched: false as boolean,
 
-    isReordering: false,
-    reorderLocked: false,
+      isReordering: false,
+      reorderLocked: false,
 
-    showEditWindow: false as boolean,
-    showReorderWindow: false as boolean,
-    showSettingsWindow: false as boolean,
-    showDeleteSoundWindow: false as boolean,
+      showEditWindow: false as boolean,
+      showReorderWindow: false as boolean,
+      showSettingsWindow: false as boolean,
+      showDeleteSoundWindow: false as boolean,
 
-    selectedSoundVolumeSliderValue: 0.0 as number,
-    selectedSoundVolume: 0.0 as number,
+      selectedSoundVolumeSliderValue: 0.0 as number,
+      selectedSoundVolume: 0.0 as number,
 
-    momentaryLoudness: { value: 0.0 as number },
-  }),
+      momentaryLoudness: { value: 0.0 as number },
+    }),
 
   actions: {
     async initAudioContext() {
@@ -186,42 +187,45 @@ export const useSoundsStore = defineStore('soundsStore', {
         if (sound.isSelected) {
           this.selectedSound = null;
           if (
-            this.playlistSounds.length > 0 &&
-            this.playerMode === 'playlist'
+            (this.playlistSounds.length > 0 &&
+              this.playerMode === 'playlist') ||
+            this.playerMode === 'playlistAndCart'
           ) {
             setSelectedSound(this.playlistSounds[0]);
           }
         }
-      }
-    },
-
-    setEditedSound(sound: SoundModel) {
-      this.editedSound = sound;
-    },
-
-    initializeCartMode() {
-      if (this.playerMode === 'cart') return;
-
-      this.playerMode = 'cart';
-      this.selectedSound = null;
-      this.deselectAllSounds();
-
-      this.cartSounds0 = [];
-      this.cartSounds1 = [];
-
-      if (this.playlistSounds.length > 0) {
-        this.playlistSounds.forEach((sound, index) => {
-          const arrayToPush =
-            index % 2 === 0 ? this.cartSounds0 : this.cartSounds1;
-          arrayToPush.push(sound);
+        if (sound.isPlaylistActiveSound) {
+          this.playlistActiveSound = null;
+          if (
+            (this.playlistSounds.length > 0 &&
+              this.playerMode === 'playlist') ||
+            this.playerMode === 'playlistAndCart'
+          ) {
+            console.log('playlistSounds', this.playlistSounds);
+            setPlaylistActiveSound(this.playlistSounds[0]);
+          }
+        }
+      } else {
+        Notify.create({
+          message: "Can't delete a sound while it's playing",
+          type: 'negative',
+          position: 'top',
+          timeout: 2000,
         });
       }
+
+      sound = dummySound;
     },
 
     initializePlaylistMode() {
       if (this.playerMode === 'playlist') return;
 
+      if (this.playerMode === 'playlistAndCart') {
+        this.playerMode = 'playlist';
+        return;
+      }
       this.playerMode = 'playlist';
+
       this.selectedSound = null;
       this.deselectAllSounds();
 
@@ -240,17 +244,54 @@ export const useSoundsStore = defineStore('soundsStore', {
           }
         }
       }
+
+      if (this.playlistSounds.length > 0) {
+        setPlaylistActiveSound(this.playlistSounds[0], true);
+      }
+
+      this.cartSounds0 = [];
+      this.cartSounds1 = [];
+    },
+
+    initializeCartMode() {
+      if (this.playerMode === 'cart') return;
+
+      this.playerMode = 'cart';
+      this.selectedSound = null;
+      this.deselectAllSounds();
+
+      this.cartSounds0 = [];
+      this.cartSounds1 = [];
+
+      const playlistSoundsCopy = [...this.playlistSounds];
+
+      if (playlistSoundsCopy.length > 0) {
+        playlistSoundsCopy.forEach((sound, index) => {
+          sound.isPlaylistActiveSound = false;
+          this.playlistActiveSound = null;
+          const arrayToPush =
+            index % 2 === 0 ? this.cartSounds0 : this.cartSounds1;
+          arrayToPush.push(sound);
+        });
+      }
+
+      this.playlistSounds = [];
     },
 
     initializePlaylistAndCartMode() {
       if (this.playerMode === 'playlistAndCart') return;
 
       this.playerMode = 'playlistAndCart';
-      this.selectedSound = null;
+
       this.deselectAllSounds();
+
+      if (this.playlistSounds.length > 0) {
+        setPlaylistActiveSound(this.playlistSounds[0], true);
+      }
     },
 
     deselectAllSounds() {
+      this.selectedSound = null;
       this.deselectAllSoundsInArray(this.playlistSounds);
       this.deselectAllSoundsInArray(this.cartSounds0);
       this.deselectAllSoundsInArray(this.cartSounds1);

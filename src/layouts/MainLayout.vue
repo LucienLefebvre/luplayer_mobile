@@ -9,7 +9,7 @@
   </q-layout>
   <q-dialog v-model="soundsStore.showEditWindow" full-width full-height>
     <div class="column fit centered-content">
-      <sound-details :sound="soundsStore.editedSound!" />
+      <sound-details />
     </div>
   </q-dialog>
   <q-dialog v-model="soundsStore.showReorderWindow" full-width>

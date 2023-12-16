@@ -21,6 +21,8 @@ export interface SoundModel {
   outTime: number | null;
   timeOutId?: ReturnType<typeof setTimeout>;
 
+  isLooping: boolean;
+
   launchTime: number;
 
   integratedLoudness: number | null;
@@ -41,6 +43,37 @@ export interface SoundModel {
   enveloppePoints: EnveloppePoint[];
   enveloppeIsEnabled: boolean;
 }
+
+export const dummySound: SoundModel = {
+  id: '',
+  name: '',
+  color: '',
+  isPlaying: false,
+  isSelected: false,
+  isPlaylistActiveSound: false,
+  isCuePlayed: false,
+  hasBeenCuePlayed: false,
+  audioElement: new Audio(),
+  source: null,
+  duration: 0,
+  remainingTime: 0,
+  inTime: null,
+  outTime: null,
+  isLooping: false,
+  launchTime: 0,
+  integratedLoudness: null,
+  volumeDb: 0,
+  trimDb: 0,
+  trimGainNode: null,
+  volumeGainNode: null,
+  enveloppeGainNode: null,
+  hpfEnabled: false,
+  hpfFrequency: 0,
+  waveformChunks: null,
+  displayWaveform: false,
+  enveloppePoints: [],
+  enveloppeIsEnabled: false,
+};
 
 export interface EnveloppePoint {
   time: number;
