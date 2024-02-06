@@ -166,8 +166,9 @@ export const useSoundsStore = defineStore('soundsStore', {
         setSelectedSound(addedSound);
       } */
       if (
-        (arrayToAdd.length === 1 && this.playerMode === 'playlist') ||
-        'playlistAndCart'
+        arrayToAdd.length === 1 &&
+        (this.playerMode === 'playlist' ||
+          this.playerMode === 'playlistAndCart')
       ) {
         setSelectedSound(arrayToAdd[0]);
         setPlaylistActiveSound(arrayToAdd[0]);
@@ -201,7 +202,6 @@ export const useSoundsStore = defineStore('soundsStore', {
               this.playerMode === 'playlist') ||
             this.playerMode === 'playlistAndCart'
           ) {
-            console.log('playlistSounds', this.playlistSounds);
             setPlaylistActiveSound(this.playlistSounds[0]);
           }
         }
@@ -234,8 +234,8 @@ export const useSoundsStore = defineStore('soundsStore', {
       const cartSounds0Length = this.cartSounds0.length;
       const cartSounds1Length = this.cartSounds1.length;
       if (cartSounds0Length > 0 || cartSounds1Length > 0) {
-        const maxLenght = Math.max(cartSounds0Length, cartSounds1Length);
-        for (let i = 0; i < maxLenght; i++) {
+        const maxLength = Math.max(cartSounds0Length, cartSounds1Length);
+        for (let i = 0; i < maxLength; i++) {
           if (this.cartSounds0[i]) {
             this.playlistSounds.push(this.cartSounds0[i]);
           }
