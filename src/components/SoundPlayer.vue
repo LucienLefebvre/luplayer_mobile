@@ -114,9 +114,10 @@ let isTouchPanned = false;
 const playerCard = ref<HTMLElement | null>(null);
 const playerContainer = ref<HTMLElement | null>(null);
 const containerWidth = computed(() => playerContainer.value?.offsetWidth);
+let swipeActionThreshold = 100;
 const left = ref('0');
 const opacity = ref(1);
-const swipeThreshold = 100;
+const swipeThreshold = containerWidth.value ? containerWidth.value / 4 : 100;
 
 function getWaveformColor() {
   if (sound.value.isPlaying) {
@@ -139,8 +140,10 @@ function getColorFromRGB(
 
 function getBackgroundColor(opa: number) {
   let color;
-  if (opacity.value < 0.5) {
+  if (Number(left.value) > swipeActionThreshold) {
     color = 'red';
+  } else if (Number(left.value) < -swipeActionThreshold) {
+    color = 'green';
   } else if (sound.value.isPlaying) {
     const rgbColor =
       getRemainingTime(sound.value) < 5
@@ -157,22 +160,30 @@ function getBackgroundColor(opa: number) {
   return color;
 }
 
+let hasBeenScolled = false;
 const { direction, isSwiping, lengthX, lengthY } = useSwipe(playerCard, {
   passive: true,
-  threshold: swipeThreshold,
+  threshold: 5,
   onSwipe(e: TouchEvent) {
-    if (containerWidth.value) {
-      if (lengthX.value < 0) {
+    if (containerWidth.value && !soundsStore.isReordering) {
+      if (direction.value === 'UP' || direction.value === 'DOWN') {
+        hasBeenScolled = true;
+        return;
+      }
+      if (lengthX.value < 0 && !hasBeenScolled) {
         const length = Math.abs(lengthX.value);
         left.value = `${length}`;
         opacity.value = 1 - length / containerWidth.value;
-      } else {
+      } else if (!hasBeenScolled) {
         const length = lengthX.value;
         left.value = `${-length}`;
       }
     }
   },
   onSwipeEnd(e: TouchEvent, direction: SwipeDirection) {
+    if (hasBeenScolled) {
+      hasBeenScolled = false;
+    }
     if (
       direction === 'RIGHT' &&
       containerWidth.value &&
@@ -249,6 +260,9 @@ onMounted(() => {
   if (soundPlayer.value) {
     barWidth.value = soundPlayer.value.offsetWidth;
     progressBar.value?.setBarColor(getBackgroundColor(0.2));
+  }
+  if (containerWidth.value) {
+    swipeActionThreshold = containerWidth.value / 2;
   }
 });
 

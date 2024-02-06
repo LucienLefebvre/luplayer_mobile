@@ -42,9 +42,6 @@ onMounted(async () => {
   waveform.addEventListener('touchHold', (event) => {
     emits('long-touch', event);
   });
-  /* waveform.addEventListener('waveformChunksCalculated', () => {
-    console.log('waveformChunksCalculated');
-  }); */
 
   await waveform.calculateWaveformChunks().then((chunks) => {
     sound.value.waveformChunks = chunks;
@@ -63,6 +60,13 @@ onMounted(async () => {
     waveform.setShowEnveloppe(false);
     waveform.setShowEnveloppeLine(false);
     waveform.setShowEnveloppePoints(false);
+
+    if (sound.value.inTime) {
+      waveform.setInTime(sound.value.inTime);
+    }
+    if (sound.value.outTime) {
+      waveform.setOutTime(sound.value.outTime);
+    }
 
     updateWaveformColor();
   });

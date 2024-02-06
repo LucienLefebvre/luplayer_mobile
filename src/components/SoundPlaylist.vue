@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, ref, onMounted, Ref } from 'vue';
+import { watch, ref, onMounted, Ref, nextTick } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import Sortable from 'sortablejs';
@@ -29,6 +29,7 @@ const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 
 const soundPlayers: Ref<HTMLElement | null> = ref(null);
+const soundPlayerRefs = ref([]);
 
 const scrollablePlaylistHeight = ref(0);
 const updateHeight = () => {

@@ -117,7 +117,8 @@ export function pauseSound(sound: SoundModel) {
 export function stopSound(sound: SoundModel) {
   console.log('stopSound');
   sound.audioElement.pause();
-  sound.audioElement.currentTime = sound.inTime ?? 0;
+  //sound.audioElement.currentTime = sound.inTime ?? 0;
+  sound.audioElement.currentTime = 0;
   sound.isPlaying = false;
   sound.volumeDb = 0;
   disconnectAndRemoveNodes(sound);
