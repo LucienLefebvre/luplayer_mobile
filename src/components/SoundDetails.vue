@@ -281,7 +281,6 @@ onMounted(() => {
   });
   zoomable.addEventListener('waveformDrag', () => {
     if (zoomable && zoomable.wasPlayingOnDragStart) {
-      console.log('pauseSound');
       pauseSound(sound);
     }
   });
@@ -312,6 +311,10 @@ onBeforeUnmount(() => {
     minimap.zoomableWaveformReference = null;
     minimap = null;
   }
+
+  if (sound.audioElement.paused) {
+    sound.audioElement.currentTime = 0;
+  }
 });
 
 const showNameDialog = ref(false);
@@ -341,6 +344,7 @@ function playButtonClicked(sound: SoundModel) {
     pauseSound(sound);
   }
 }
+
 function playInOutButtonClicked(sound: SoundModel) {
   if (!sound.isPlaying) {
     playSound(sound, false, false);
@@ -348,6 +352,7 @@ function playInOutButtonClicked(sound: SoundModel) {
     stopSound(sound);
   }
 }
+
 function getPlayButtonLabel(sound: SoundModel) {
   if (!sound.isPlaying) {
     return 'play';
@@ -387,6 +392,7 @@ function deleteLastClickedPoint(sound: SoundModel) {
     const index = zoomable.lastClickedPointIndex;
     if (index < 1) return;
     if (index === sound.enveloppePoints.length - 1) return;
+
     sound.enveloppePoints.splice(index, 1);
     zoomable.lastClickedPointIndex = -1;
     zoomable.setEnveloppePoints(sound.enveloppePoints);
