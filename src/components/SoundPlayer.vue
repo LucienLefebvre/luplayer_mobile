@@ -192,7 +192,8 @@ const { direction, isSwiping, lengthX, lengthY } = useSwipe(playerCard, {
       if (!sound.value.audioElement.paused) {
         resetSwipe();
       }
-      soundsStore.deleteSound(sound.value);
+      soundsStore.askForSoundDeletion(sound.value);
+      resetSwipe();
     } else if (
       direction === 'LEFT' &&
       containerWidth.value &&

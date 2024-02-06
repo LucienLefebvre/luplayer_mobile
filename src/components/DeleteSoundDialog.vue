@@ -6,7 +6,7 @@
         <div>
           Delete this sound
           <br />
-          "{{ sound?.name }}" ?
+          "{{ soundsStore.toBeDeletedSound?.name }}" ?
         </div>
       </q-card-section>
 
@@ -30,8 +30,9 @@ const props = defineProps({
 });
 
 function deleteButtonClicked() {
-  if (props.sound) {
-    soundsStore.deleteSound(props.sound);
+  const sound = soundsStore.toBeDeletedSound;
+  if (sound !== null) {
+    soundsStore.deleteSound(sound);
   }
   soundsStore.showDeleteSoundWindow = false;
 }

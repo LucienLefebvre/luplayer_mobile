@@ -126,7 +126,8 @@ function editButtonClicked() {
 
 function deleteButtonClicked() {
   if (soundsStore.selectedSound === null) return;
-  soundsStore.showDeleteSoundWindow = true;
+
+  soundsStore.askForSoundDeletion(soundsStore.selectedSound);
 }
 
 function getSvgPath() {

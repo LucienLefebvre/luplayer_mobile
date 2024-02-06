@@ -41,6 +41,7 @@ export const useSoundsStore = defineStore('soundsStore', {
 
       selectedSound: null as SoundModel | null,
       playlistActiveSound: null as SoundModel | null,
+      toBeDeletedSound: null as SoundModel | null,
 
       stoppedByButtonClick: false,
       faderTouchedDuringPlayback: false as boolean,
@@ -179,6 +180,11 @@ export const useSoundsStore = defineStore('soundsStore', {
       }
     },
 
+    askForSoundDeletion(sound: SoundModel) {
+      this.toBeDeletedSound = sound;
+      this.showDeleteSoundWindow = true;
+    },
+
     deleteSound(sound: SoundModel) {
       const array = findSoundArray(sound);
       if (array === null) return;
@@ -213,12 +219,20 @@ export const useSoundsStore = defineStore('soundsStore', {
         Notify.create({
           message: "Can't delete a sound while it's playing",
           type: 'negative',
-          position: 'top',
           timeout: 2000,
         });
+        return;
       }
 
+      const deleteNotifyString = `Sound "${sound.name}" deleted`;
+      Notify.create({
+        message: deleteNotifyString,
+        type: 'negative',
+        timeout: 2000,
+      });
+
       sound = dummySound;
+      this.toBeDeletedSound = null;
     },
 
     initializePlaylistMode() {

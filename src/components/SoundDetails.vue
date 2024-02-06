@@ -166,7 +166,7 @@
           <q-btn
             label="delete"
             color="red"
-            @click="soundsStore.deleteSound(sound)"
+            @click="soundsStore.askForSoundDeletion(sound)"
           />
         </div>
       </div>
