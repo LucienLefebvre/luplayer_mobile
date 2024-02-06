@@ -193,7 +193,6 @@ import {
   setInTimeAtCurrentPosition,
   setOutTimeAtCurrentPosition,
   setTrimGain,
-  normalizeSound,
   stopSound,
   getSoundColor,
 } from 'src/composables/sound-controller';

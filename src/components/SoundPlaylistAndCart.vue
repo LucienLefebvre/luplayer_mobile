@@ -38,14 +38,11 @@ const handleTouchMove = (event: TouchEvent) => {
   if (!panel.value) return;
   if (isDragging.value === false) return;
 
-  console.log('handleTouchMove');
   const panelRect = panel.value.getBoundingClientRect();
   touchMoveY.value = event.touches[0].clientY;
-
   const yPos = touchMoveY.value - panelRect.top;
 
   settings.playlistAndCartCartSize = Math.max(0, yPos);
-  console.log('yPos', yPos);
 };
 
 const handleTouchEnd = (event: TouchEvent) => {

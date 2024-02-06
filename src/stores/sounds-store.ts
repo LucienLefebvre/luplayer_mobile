@@ -143,7 +143,10 @@ export const useSoundsStore = defineStore('soundsStore', {
         }
 
         if (this.settingsStore.autoNormalize) {
-          normalizeSound(addedSound, this.settingsStore.normalizationLuTarget);
+          normalizeSound(
+            addedSound,
+            Number(this.settingsStore.normalizationLuTarget)
+          );
         }
       };
     },

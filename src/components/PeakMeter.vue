@@ -24,10 +24,10 @@ const dbLinesToDraw = [-40, -30, -20, -10] as number[];
 const range = -60 as number;
 
 const normRange = new NormalizableRange(-60, 0, 2);
-const rangedRedThreshold = normRange.logScaleTo0to1(
+let rangedRedThreshold = normRange.logScaleTo0to1(
   -settingsStore.peakMeterRedThreshold
 );
-const rangeOrangeThreshold = normRange.logScaleTo0to1(
+let rangeOrangeThreshold = normRange.logScaleTo0to1(
   -settingsStore.peakMeterOrangeThreshold
 );
 
@@ -47,12 +47,14 @@ const graduationLayer = new Konva.Layer();
 onMounted(() => {
   /////General
   if (!peakMeter.value) return;
+
   stage = new Konva.Stage({
     container: peakMeter.value,
     width: peakMeter.value.clientWidth,
     height: peakMeter.value.clientHeight,
   });
   console.log('onMounted');
+
   /////Bars
   meterBarLayer = new Konva.Layer();
   stage.add(meterBarLayer);
@@ -95,6 +97,7 @@ onMounted(() => {
     strokeWidth: 2,
   });
   meterBarLayer.add(peakHoldLine);
+
   ////Graduation lines
   dbLinesToDraw.forEach((value) => {
     const line = new Konva.Line({
@@ -119,14 +122,11 @@ onMounted(() => {
     graduationLayer.add(text);
   });
   stage.add(graduationLayer);
+
   ////Animation
   const anim = new Konva.Animation(() => {
     if (!settingsStore.showPeakMeter) return;
-    const startTime = performance.now();
     draw();
-    const endTime = performance.now();
-    const time = endTime - startTime;
-    //console.log(time);
   }, meterBarLayer);
   anim.start();
 });
@@ -148,6 +148,7 @@ function meterBarRectBuilder(
   meterBarLayer.add(bar);
   return bar;
 }
+
 function draw() {
   if (!peakMeter.value) return;
 
@@ -197,6 +198,7 @@ function drawBar(channelToDraw: number) {
       normRange.logScaleTo0to1(gainToDb(peakValue[channelToDraw])),
       rangeOrangeThreshold
     );
+
   meterBars[channelToDraw].red.width(barX);
   meterBars[channelToDraw].orange.width(barOrangeX);
   meterBars[channelToDraw].green.width(barGreenX);
@@ -283,6 +285,20 @@ watch(
     if (newValue) {
       analyser.value = newValue;
     }
+  }
+);
+
+watch(
+  () => settingsStore.peakMeterRedThreshold,
+  (newValue) => {
+    rangedRedThreshold = normRange.logScaleTo0to1(-newValue);
+  }
+);
+
+watch(
+  () => settingsStore.peakMeterOrangeThreshold,
+  (newValue) => {
+    rangeOrangeThreshold = normRange.logScaleTo0to1(-newValue);
   }
 );
 </script>

@@ -7,7 +7,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 
       autoScroll: true as boolean,
 
-      showMultiChannelWaveform: false as boolean, //TODO dynamic change
+      showMultiChannelWaveform: false as boolean,
 
       showPeakMeter: true as boolean,
 
@@ -48,6 +48,11 @@ export const useSettingsStore = defineStore('settingsStore', {
       console.log('loadSettings');
       const settings = JSON.parse(localStorage.getItem('settings') || '{}');
       Object.assign(this.$state, settings);
+      console.log(settings);
+    },
+
+    getPeakMeterOrangeThreshold() {
+      return Number(this.peakMeterOrangeThreshold);
     },
   },
 });
