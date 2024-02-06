@@ -106,6 +106,7 @@ export const useSoundsStore = defineStore('soundsStore', {
           isSelected: false,
           isPlaylistActiveSound: false,
           isCuePlayed: false,
+          isLooping: false,
           hasBeenCuePlayed: false,
           volumeDb: 0.0,
           trimDb: 0.0,

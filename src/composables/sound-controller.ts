@@ -5,7 +5,6 @@ import init, {
 } from 'src/rust/waveform_process/pkg';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
-import SoundProgressBar from 'src/components/SoundProgressBar.vue';
 
 export function playSound(
   sound: SoundModel,
@@ -26,12 +25,15 @@ export function playSound(
   if (!isCuePlayed) {
     sound.audioElement.currentTime = sound.inTime ?? 0;
   }
+
   if (soundsStore.selectedSound === sound) {
     sound.volumeGainNode.gain.value = dbToGain(soundsStore.selectedSoundVolume);
   }
+
   if ((sound.enveloppePoints, sound.enveloppePoints.length > 0)) {
     setEnveloppeGainValues(sound);
   }
+
   if (fadeIn) {
     const fadeTime = settingsStore.defaultFadeInTime / 1000;
     sound.trimGainNode.gain.setValueAtTime(0.01, audioContext.currentTime);
@@ -202,9 +204,11 @@ export function stopSoundWithFadeOut(sound: SoundModel) {
 export function incrementPlaylistActiveSound() {
   const soundStore = useSoundsStore();
   if (soundStore.playlistActiveSound === null) return;
+
   const index = soundStore.playlistSounds.indexOf(
     soundStore.playlistActiveSound
   );
+
   if (index < soundStore.playlistSounds.length - 1) {
     const soundTarget = soundStore.playlistSounds[index + 1];
     setPlaylistActiveSound(soundTarget);
@@ -276,7 +280,7 @@ export function handlePlayEvent(sound: SoundModel) {
 
 export function handlePauseEvent(sound: SoundModel) {
   sound.isPlaying = false;
-  if (!getIsCuePlayed(sound) && isSelectedSound(sound)) {
+  if (!getIsCuePlayed(sound) && isPlaylistActiveSound(sound)) {
     resetSelectedSoundVolume();
     if (isCartSound(sound)) return;
     if (Date.now() - sound.launchTime > useSettingsStore().falseStartTime) {
