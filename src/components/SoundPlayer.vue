@@ -213,20 +213,22 @@ function resetSwipe() {
   opacity.value = 1;
 }
 
+let timeOfLastClick = 0;
+
 function soundTouchUp(soundModel: SoundModel) {
+  const now = new Date().getTime();
   if (!soundsStore.isReordering && !isTouchPanned) {
-    soundClicked(soundModel);
+    const isDoubleTap = now - timeOfLastClick < 300;
+
+    if (isCartSound(soundModel)) {
+      playOrStopSound(soundModel, false, isDoubleTap);
+    } else if (isPlaylistSound(soundModel)) {
+      setPlaylistActiveSound(soundModel, true);
+    }
   }
 
   isTouchPanned = false;
-}
-
-function soundClicked(sound: SoundModel) {
-  if (isCartSound(sound)) {
-    playOrStopSound(sound, false);
-  } else if (isPlaylistSound(sound)) {
-    setPlaylistActiveSound(sound, true);
-  }
+  timeOfLastClick = now;
 }
 
 const longPressed = ref(false);

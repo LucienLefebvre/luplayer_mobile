@@ -64,7 +64,7 @@
         </q-list>
       </q-btn-dropdown>
 
-      <!-- <q-btn
+      <q-btn
         class="q-mr-sm"
         flat
         round
@@ -72,8 +72,8 @@
         icon="settings"
         style="color: orange"
         @click="toggleSettings"
-      /> -->
-      <q-btn-dropdown
+      />
+      <!--       <q-btn-dropdown
         flat
         round
         dense
@@ -81,7 +81,7 @@
         style="color: orange"
         transition-duration="100"
         ><settings-panel />
-      </q-btn-dropdown>
+      </q-btn-dropdown> -->
     </q-toolbar>
   </div>
 </template>
@@ -90,7 +90,6 @@
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSoundsStore } from '../stores/sounds-store';
-import SettingsPanel from './SettingsPanel.vue';
 
 const soundsStore = useSoundsStore();
 const router = useRouter();

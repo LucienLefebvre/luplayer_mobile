@@ -1,177 +1,175 @@
 <template>
-  <div class="column sound-details">
-    <div class="close-button">
+  <!--  <div class="close-button">
       <q-btn
         @click="closeButtonClicked(sound)"
         icon="close"
-        color="white"
+        color="orange"
         flat
         round
         dense
         size="20px"
       />
-    </div>
-    <q-card class="soundDetailsBackground">
-      <div>
-        <div class="sound-name-color-row">
-          <q-btn
-            :style="{
-              'background-color': getSoundColor(sound),
-              'text-color': getCssVar('secondary') ?? 'orange',
-            }"
-            size="sm"
-            @click="colorClicked()"
-          />
+    </div> -->
+  <q-card class="soundDetailsBackground">
+    <div>
+      <div class="sound-name-color-row">
+        <q-btn
+          :style="{
+            'background-color': getSoundColor(sound),
+            'text-color': getCssVar('secondary') ?? 'orange',
+          }"
+          size="sm"
+          @click="colorClicked()"
+        />
+        <q-dialog
+          v-model="showColorDialog"
+          auto-save
+          :cover="false"
+          :offset="[0, 20]"
+        >
+          <q-card class="name-color-dialog">
+            <q-color
+              v-model="sound.color"
+              no-header
+              no-footer
+              default-view="palette"
+            />
+          </q-card>
+        </q-dialog>
+        <div
+          class="sound-name"
+          :style="{ color: sound.color }"
+          @click="nameClicked()"
+        >
+          {{ sound.name }}
           <q-dialog
-            v-model="showColorDialog"
+            v-model="showNameDialog"
             auto-save
             :cover="false"
             :offset="[0, 20]"
           >
-            <q-card class="name-color-dialog">
-              <q-color
-                v-model="sound.color"
-                no-header
-                no-footer
-                default-view="palette"
+            <q-card class="name-color-dialog" style="padding: 10px">
+              <q-input
+                :input-style="{ color: 'orange' }"
+                color="orange"
+                clearable
+                v-model="sound.name"
+                dense
+                autofocus
+                @keyup.enter="showNameDialog = false"
               />
             </q-card>
           </q-dialog>
-          <div
-            class="sound-name"
-            :style="{ color: sound.color }"
-            @click="nameClicked()"
-          >
-            {{ sound.name }}
-            <q-dialog
-              v-model="showNameDialog"
-              auto-save
-              :cover="false"
-              :offset="[0, 20]"
-            >
-              <q-card class="name-color-dialog" style="padding: 10px">
-                <q-input
-                  :input-style="{ color: 'orange' }"
-                  color="orange"
-                  clearable
-                  v-model="sound.name"
-                  dense
-                  autofocus
-                  @keyup.enter="showNameDialog = false"
-                />
-              </q-card>
-            </q-dialog>
-          </div>
         </div>
-        <q-separator class="separator" size="2px" color="secondary" />
-        <div class="row volume-container">
-          <div class="trim-gain-value">{{ sound.trimDb }}dB</div>
-          <div>-24</div>
-          <q-slider
-            label
-            :label-value="sound.trimDb + 'dB'"
-            v-model="sound.trimDb"
-            @update:model-value="setTrimGain(sound, $event!)"
-            :min="-24"
-            :max="24"
-            :step="0.1"
-            track-size="4px"
-            thumb-size="20px"
-            color="orange"
-            class="volume-slider"
-            :markers="24"
-          />
-          <div>+24</div>
-        </div>
-        <q-separator class="separator" size="2px" color="secondary" />
+      </div>
+      <q-separator class="separator" size="2px" color="secondary" />
+      <div class="row volume-container">
+        <div class="trim-gain-value">{{ sound.trimDb }}dB</div>
+        <div>-24</div>
+        <q-slider
+          label
+          :label-value="sound.trimDb + 'dB'"
+          v-model="sound.trimDb"
+          @update:model-value="setTrimGain(sound, $event!)"
+          :min="-24"
+          :max="24"
+          :step="0.1"
+          track-size="4px"
+          thumb-size="20px"
+          color="orange"
+          class="volume-slider"
+          :markers="24"
+        />
+        <div>+24</div>
+      </div>
+      <q-separator class="separator" size="2px" color="secondary" />
 
-        <div style="height: 10px"></div>
+      <div style="height: 10px"></div>
 
-        <div class="buttons-row">
-          <div class="buttons-row-group">
-            <q-btn
-              v-show="isCartSound(sound)"
-              icon="loop"
-              @click="sound.isLooping = !sound.isLooping"
-              class="set-mark-button"
-              size="sm"
-              :style="{
-                'background-color': sound.isLooping ? 'red' : 'orange',
-              }"
-            />
-          </div>
-          <div class="buttons-row-group">
-            <q-btn
-              label="In"
-              @click="setInTimeAtCurrentPosition(sound)"
-              class="set-mark-button"
-              size="sm"
-            />
-            <q-btn
-              icon="delete"
-              @click="deleteInTime(sound)"
-              class="delete-mark-button"
-              size="sm"
-            />
-          </div>
-          <div class="buttons-row-group">
-            <q-btn
-              label="Out"
-              @click="setOutTimeAtCurrentPosition(sound)"
-              class="set-mark-button"
-              size="sm"
-            />
-            <q-btn
-              icon="delete"
-              @click="deleteOutTime(sound)"
-              class="delete-mark-button"
-              size="sm"
-            />
-          </div>
-        </div>
-        <div style="height: 10px"></div>
-        <div ref="minimapWaveformView" class="waveform-container"></div>
-        <div ref="zoomableWaveformView" class="waveform-container"></div>
-        <div style="height: 10px"></div>
-        <div class="buttons-row">
-          <div class="buttons-row-group">
-            <q-btn
-              label="point"
-              @click="addEnveloppePointAtPlayPosition(sound)"
-              class="set-mark-button"
-              size="sm"
-            />
-            <q-btn
-              icon="delete"
-              @click="deleteLastClickedPoint(sound)"
-              class="delete-mark-button"
-              size="sm"
-            />
-          </div>
-        </div>
-
-        <q-separator class="separator" size="2px" color="secondary" />
-        <div class="play-pause">
+      <div class="buttons-row">
+        <div class="buttons-row-group">
           <q-btn
-            :label="getPlayButtonLabel(sound)"
-            color="green"
-            @click="playButtonClicked(sound)"
+            v-show="isCartSound(sound)"
+            icon="loop"
+            @click="sound.isLooping = !sound.isLooping"
+            class="set-mark-button"
+            size="sm"
+            :style="{
+              'background-color': sound.isLooping ? 'red' : 'orange',
+            }"
+          />
+        </div>
+        <div class="buttons-row-group">
+          <q-btn
+            label="In"
+            @click="setInTimeAtCurrentPosition(sound)"
+            class="set-mark-button"
+            size="sm"
           />
           <q-btn
-            :label="getPlayInOutButtonLabel(sound)"
-            color="green"
-            @click="playInOutButtonClicked(sound)"
+            icon="delete"
+            @click="deleteInTime(sound)"
+            class="delete-mark-button"
+            size="sm"
           />
-
+        </div>
+        <div class="buttons-row-group">
           <q-btn
-            label="delete"
-            color="red"
-            @click="soundsStore.askForSoundDeletion(sound)"
+            label="Out"
+            @click="setOutTimeAtCurrentPosition(sound)"
+            class="set-mark-button"
+            size="sm"
+          />
+          <q-btn
+            icon="delete"
+            @click="deleteOutTime(sound)"
+            class="delete-mark-button"
+            size="sm"
           />
         </div>
       </div>
-    </q-card>
-  </div>
+      <div style="height: 10px"></div>
+      <div ref="minimapWaveformView" class="waveform-container"></div>
+      <div ref="zoomableWaveformView" class="waveform-container"></div>
+      <div style="height: 10px"></div>
+      <div class="buttons-row">
+        <div class="buttons-row-group">
+          <q-btn
+            label="point"
+            @click="addEnveloppePointAtPlayPosition(sound)"
+            class="set-mark-button"
+            size="sm"
+          />
+          <q-btn
+            icon="delete"
+            @click="deleteLastClickedPoint(sound)"
+            class="delete-mark-button"
+            size="sm"
+          />
+        </div>
+      </div>
+
+      <q-separator class="separator" size="2px" color="secondary" />
+      <div class="play-pause">
+        <q-btn
+          :label="getPlayButtonLabel(sound)"
+          color="green"
+          @click="playButtonClicked(sound)"
+        />
+        <q-btn
+          :label="getPlayInOutButtonLabel(sound)"
+          color="green"
+          @click="playInOutButtonClicked(sound)"
+        />
+
+        <q-btn
+          label="delete"
+          color="red"
+          @click="soundsStore.askForSoundDeletion(sound)"
+        />
+      </div>
+    </div>
+  </q-card>
 </template>
 
 <script setup lang="ts">
@@ -469,6 +467,7 @@ watch(
   justify-content: center;
   align-items: center;
   width: 100%;
+  flex-wrap: nowrap;
 }
 .sound-name-color-row {
   display: flex;
@@ -534,12 +533,15 @@ watch(
 }
 
 .soundDetailsBackground {
-  /* border: 2px solid;
-  border-color: var(--blueColor); */
-  border-radius: 10px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+
   background-color: var(--bkgColor);
   width: 100%;
-  padding: 10px;
+  padding: 5px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
 }
 .play-pause {
   display: flex;

@@ -4,7 +4,7 @@
       :color="buttonColor()"
       :label="buttonLabel()"
       class="button"
-      @click="playButtonClicked"
+      @click="handleClick"
     />
   </div>
 </template>
@@ -13,11 +13,24 @@
 import { useSoundsStore } from '../stores/sounds-store';
 import {
   playButtonClicked,
+  playButtonDoubleClicked,
   getRemainingTime,
   getSoundDurationLabel,
 } from 'src/composables/sound-controller';
 
 const soundsStore = useSoundsStore();
+
+let timeOfLastClick = 0;
+
+function handleClick() {
+  const now = new Date().getTime();
+  if (now - timeOfLastClick < 300) {
+    playButtonDoubleClicked();
+  } else {
+    playButtonClicked();
+  }
+  timeOfLastClick = now;
+}
 
 function buttonColor() {
   const selectedSound = soundsStore.playlistActiveSound;

@@ -5,6 +5,7 @@ import init, {
 } from 'src/rust/waveform_process/pkg';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
+import { settings } from 'cluster';
 
 export function playSound(
   sound: SoundModel,
@@ -136,9 +137,19 @@ export function disconnectAndRemoveNodes(sound: SoundModel) {
   sound.enveloppeGainNode = null;
 }
 
-export function playOrStopSound(sound: SoundModel, isCuePlayed = true) {
+export function playOrStopSound(
+  sound: SoundModel,
+  isCuePlayed = true,
+  isDoubleTap = false
+) {
+  const settingsStore = useSettingsStore();
+
   if (sound.isPlaying) {
-    stopSound(sound);
+    if (settingsStore.doubleTapToStop && isDoubleTap) {
+      stopSound(sound);
+    } else if (!settingsStore.doubleTapToStop) {
+      stopSound(sound);
+    }
   } else {
     playSound(sound, isCuePlayed, false);
   }
@@ -146,15 +157,32 @@ export function playOrStopSound(sound: SoundModel, isCuePlayed = true) {
 
 export function playButtonClicked() {
   const soundStore = useSoundsStore();
+  const settingsStore = useSettingsStore();
+
   const selectedSound = soundStore.playlistActiveSound;
 
   if (selectedSound === null) return;
 
-  if (selectedSound.isPlaying) {
+  if (selectedSound.isPlaying && !settingsStore.doubleTapToStop) {
     soundStore.stoppedByButtonClick = true;
     stopSound(selectedSound);
-  } else {
+  } else if (!selectedSound.isPlaying) {
     playSelectedSound();
+  }
+}
+
+export function playButtonDoubleClicked() {
+  console.log('playButtonDoubleClicked');
+  const soundStore = useSoundsStore();
+  const settingsStore = useSettingsStore();
+
+  const selectedSound = soundStore.playlistActiveSound;
+
+  if (selectedSound === null) return;
+
+  if (selectedSound.isPlaying && settingsStore.doubleTapToStop) {
+    soundStore.stoppedByButtonClick = true;
+    stopSound(selectedSound);
   }
 }
 

@@ -7,21 +7,17 @@
       <PlayerMainPanel />
     </q-page-container>
   </q-layout>
-  <q-dialog v-model="soundsStore.showEditWindow" full-width full-height>
-    <div class="column fit centered-content">
-      <sound-details />
-    </div>
+  <q-dialog v-model="soundsStore.showEditWindow" full-width position="bottom">
+    <sound-details />
   </q-dialog>
   <q-dialog v-model="soundsStore.showReorderWindow" full-width>
     <div class="column fit centered-content">
       <ReorderPanel />
     </div>
   </q-dialog>
-  <!--   <q-dialog v-model="soundsStore.showSettingsWindow" maximized>
-    <div class="column fit centered-content">
-      <SettingsPanel />
-    </div>
-  </q-dialog> -->
+  <q-dialog v-model="soundsStore.showSettingsWindow" full-width>
+    <SettingsDialog />
+  </q-dialog>
   <q-dialog v-model="soundsStore.showDeleteSoundWindow">
     <div class="column fit centered-content">
       <DeleteSoundDialog :sound="soundsStore.selectedSound" />
@@ -38,7 +34,7 @@ import { useSettingsStore } from 'src/stores/settings-store';
 import MainToolBar from 'src/components/MainToolBar.vue';
 import SoundDetails from 'src/components/SoundDetails.vue';
 import ReorderPanel from 'src/components/ReorderPanel.vue';
-import SettingsPanel from 'src/components/SettingsPanel.vue';
+import SettingsDialog from 'src/components/SettingsDialog.vue';
 import DeleteSoundDialog from 'src/components/DeleteSoundDialog.vue';
 import PlayerMainPanel from 'src/components/PlayerMainPanel.vue';
 

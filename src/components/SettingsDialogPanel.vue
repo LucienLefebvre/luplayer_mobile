@@ -1,20 +1,10 @@
 <template>
-  <div class="column settings-panel">
-    <!--    <div class="close-button">
-      <q-btn
-        @click="soundsStore.showSettingsWindow = false"
-        icon="close"
-        color="white"
-        flat
-        round
-        dense
-        size="20px"
-      />
-    </div>
-    <q-card class="card-class"> -->
-    <div class="settings-panel">
-      <div class="settings-part-name">Display</div>
-
+  <div class="settings-panel">
+    <q-expansion-item
+      expand-separator
+      label="Display"
+      class="settings-part-name"
+    >
       <div class="settings-row">
         <div class="settings-label">Keep screen awake</div>
         <q-toggle v-model="settingsStore.keepScreenAwake" color="orange" />
@@ -80,8 +70,28 @@
         <div class="settings-label">Auto scroll to selected sound</div>
         <q-toggle v-model="settingsStore.autoScroll" color="orange" />
       </div>
-      <q-separator class="separator" size="1px" color="primary" />
-      <div class="settings-part-name">Fader</div>
+    </q-expansion-item>
+    <q-expansion-item
+      expand-separator
+      label="Play / Stop"
+      class="settings-part-name"
+    >
+      <div class="settings-row">
+        <div class="settings-label">Double tap to stop</div>
+        <q-toggle v-model="settingsStore.doubleTapToStop" color="orange" />
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">False start time (ms)</div>
+        <q-input
+          v-model="settingsStore.falseStartTime"
+          type="number"
+          input-class="text-center text-orange"
+          style="width: 50px; color: orange; background-color: var(--bkgColor)"
+          borderless
+        />
+      </div>
+    </q-expansion-item>
+    <q-expansion-item expand-separator label="Fader" class="settings-part-name">
       <div class="settings-row">
         <div class="settings-label">Invert fader side</div>
         <q-toggle v-model="settingsStore.faderIsOtherSide" color="orange" />
@@ -101,8 +111,12 @@
         <div class="settings-label">Fader stop</div>
         <q-toggle v-model="settingsStore.faderStop" color="orange" />
       </div>
-      <q-separator class="separator" size="1px" color="primary" />
-      <div class="settings-part-name">Normalization</div>
+    </q-expansion-item>
+    <q-expansion-item
+      expand-separator
+      label="Normalization"
+      class="settings-part-name"
+    >
       <div class="settings-row">
         <div class="settings-label">Auto normalize</div>
         <q-toggle
@@ -122,8 +136,8 @@
           borderless
         />
       </div>
-      <q-separator class="separator" size="1px" color="primary" />
-      <div class="settings-part-name">Meter</div>
+    </q-expansion-item>
+    <q-expansion-item expand-separator label="Meter" class="settings-part-name">
       <div class="settings-row">
         <div class="settings-label">Show peak meter</div>
         <q-toggle v-model="settingsStore.showPeakMeter" color="orange" />
@@ -152,15 +166,18 @@
           style="width: 50px; color: orange; background-color: var(--bkgColor)"
         />
       </div>
-    </div>
-    <!--     </q-card> -->
+    </q-expansion-item>
   </div>
+
+  <!--     </q-card> -->
 </template>
 
 <script setup lang="ts">
 import { watch, watchEffect } from 'vue';
 import { useSettingsStore } from 'src/stores/settings-store';
+import { useSoundsStore } from 'src/stores/sounds-store';
 
+const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 
 watchEffect(() => {
@@ -190,11 +207,18 @@ watch(
 </script>
 
 <style scoped>
+.close-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 .settings-panel {
-  background-color: var(--bkgColor);
   display: flex;
   flex-direction: column;
-  padding: 5px;
+  flex-wrap: nowrap;
+  background-color: var(--bkgColor);
+  border: 0px;
+  padding: 4px;
 }
 .settings-part-name {
   font-size: 17px;
@@ -212,10 +236,5 @@ watch(
 }
 .settings-label {
   padding-right: 10px;
-}
-.separator {
-  margin: 40px;
-  margin-top: 5px;
-  margin-bottom: 5px;
 }
 </style>

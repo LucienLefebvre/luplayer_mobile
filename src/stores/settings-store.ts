@@ -23,6 +23,7 @@ export const useSettingsStore = defineStore('settingsStore', {
       faderStop: true as boolean,
 
       falseStartTime: 1000 as number,
+      doubleTapToStop: false as boolean,
 
       waveformVerticalZoomFactor: 1.3 as number,
 
