@@ -42,6 +42,11 @@ export function playSound(
       dbToGain(sound.trimDb),
       audioContext.currentTime + fadeTime
     );
+    soundsStore.isFading = true;
+
+    setTimeout(() => {
+      soundsStore.isFading = false;
+    }, fadeTime * 1000);
   }
 
   sound.isCuePlayed = isCuePlayed;
@@ -208,8 +213,11 @@ export function playSoundWithFadeIn(sound: SoundModel) {
 
 export function stopSoundWithFadeOut(sound: SoundModel) {
   if (!sound.trimGainNode) return;
-  const audioContext = useSoundsStore().audioContext;
+
+  const soundsStore = useSoundsStore();
+  const audioContext = soundsStore.audioContext;
   if (audioContext === null) return;
+
   sound.trimGainNode.gain.setValueAtTime(
     dbToGain(sound.trimDb),
     audioContext.currentTime
@@ -224,8 +232,12 @@ export function stopSoundWithFadeOut(sound: SoundModel) {
     0.01,
     audioContext.currentTime + rampTime
   );
+
+  soundsStore.isFading = true;
+
   setTimeout(() => {
     stopSound(sound);
+    soundsStore.isFading = false;
   }, rampTime * 1000);
 }
 

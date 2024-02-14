@@ -59,8 +59,6 @@ const updateHeight = () => {
   if (settingsStore.showLuMeter) {
     heightToSubtract += meterHeight;
   }
-  console.log('heightToSubtract', heightToSubtract);
-  console.log('window.innerHeight', window.innerHeight);
   scrollablePlaylistHeight.value = window.innerHeight - heightToSubtract;
 };
 watch(

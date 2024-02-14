@@ -27,7 +27,6 @@ export const useSoundsStore = defineStore('soundsStore', {
       cartSounds0: [] as SoundModel[],
       cartSounds1: [] as SoundModel[],
 
-      //cartDisplayArrays: [[], []] as [number[], number[]],
       loadingSounds: [] as File[],
 
       playerMode: 'playlist' as 'playlist' | 'cart' | 'playlistAndCart',
@@ -46,6 +45,8 @@ export const useSoundsStore = defineStore('soundsStore', {
       stoppedByButtonClick: false,
       faderTouchedDuringPlayback: false as boolean,
       faderIsTouched: false as boolean,
+
+      isFading: false as boolean,
 
       isReordering: false,
       reorderLocked: false,

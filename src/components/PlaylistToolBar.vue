@@ -32,7 +32,7 @@
     />
     <q-btn icon="edit" class="icon" @click="editButtonClicked" size="sm" />
     <q-btn icon="delete" class="icon" @click="deleteButtonClicked" size="sm" />
-    <q-btn class="icon" @click="fadeButtonClicked" size="sm">
+    <q-btn :class="getFadeButtonClass()" @click="fadeButtonClicked" size="sm">
       <svg
         width="24"
         height="24"
@@ -115,6 +115,11 @@ function reorderButtonClicked(longTouch = false) {
 function getReorderButtonClass() {
   if (soundsStore.reorderLocked) return 'alt-alt-icon';
   else if (soundsStore.isReordering) return 'alt-icon';
+  else return 'icon';
+}
+
+function getFadeButtonClass() {
+  if (soundsStore.isFading) return 'alt-alt-icon';
   else return 'icon';
 }
 

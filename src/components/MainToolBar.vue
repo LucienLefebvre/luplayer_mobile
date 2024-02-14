@@ -46,7 +46,7 @@
               <q-item-label class="listLabel">Cart</q-item-label>
             </q-item-section>
           </q-item>
-          <q-item
+          <!-- <q-item
             clickable
             v-close-popup
             @click="playlistAndCartClicked()"
@@ -60,7 +60,7 @@
             <q-item-section>
               <q-item-label class="listLabel">Both</q-item-label>
             </q-item-section>
-          </q-item>
+          </q-item> -->
         </q-list>
       </q-btn-dropdown>
 
