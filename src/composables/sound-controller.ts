@@ -5,7 +5,6 @@ import init, {
 } from 'src/rust/waveform_process/pkg';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
-import { settings } from 'cluster';
 
 export function playSound(
   sound: SoundModel,
@@ -27,9 +26,10 @@ export function playSound(
     sound.audioElement.currentTime = sound.inTime ?? 0;
   }
 
-  if (soundsStore.selectedSound === sound) {
+  /*   if (soundsStore.selectedSound === sound) {
     sound.volumeGainNode.gain.value = dbToGain(soundsStore.selectedSoundVolume);
-  }
+  } */
+  sound.volumeGainNode.gain.value = dbToGain(sound.volumeDb);
 
   if ((sound.enveloppePoints, sound.enveloppePoints.length > 0)) {
     setEnveloppeGainValues(sound);
@@ -117,20 +117,22 @@ export function pauseSound(sound: SoundModel) {
   console.log('pauseSound');
   sound.audioElement.pause();
   sound.isPlaying = false;
-  sound.volumeDb = 0;
+  if (!isCartSound(sound)) sound.volumeDb = 0;
   disconnectAndRemoveNodes(sound);
   clearTimeout(sound.timeOutId);
 }
 
-export function stopSound(sound: SoundModel) {
+export function stopSound(sound: SoundModel, stoppedByFader = false) {
   console.log('stopSound');
   sound.audioElement.pause();
   //sound.audioElement.currentTime = sound.inTime ?? 0;
   sound.audioElement.currentTime = 0;
   sound.isPlaying = false;
-  sound.volumeDb = 0;
+  if (!isCartSound(sound)) sound.volumeDb = 0;
+  if (stoppedByFader) sound.volumeDb = 0;
   disconnectAndRemoveNodes(sound);
   clearTimeout(sound.timeOutId);
+  console.log(isCartSound(sound));
 }
 
 export function disconnectAndRemoveNodes(sound: SoundModel) {
@@ -145,7 +147,8 @@ export function disconnectAndRemoveNodes(sound: SoundModel) {
 export function playOrStopSound(
   sound: SoundModel,
   isCuePlayed = true,
-  isDoubleTap = false
+  isDoubleTap = false,
+  selectSound = false
 ) {
   const settingsStore = useSettingsStore();
 
@@ -157,6 +160,7 @@ export function playOrStopSound(
     }
   } else {
     playSound(sound, isCuePlayed, false);
+    if (selectSound) setSelectedSound(sound);
   }
 }
 
@@ -177,7 +181,6 @@ export function playButtonClicked() {
 }
 
 export function playButtonDoubleClicked() {
-  console.log('playButtonDoubleClicked');
   const soundStore = useSoundsStore();
   const settingsStore = useSettingsStore();
 
@@ -270,7 +273,8 @@ export function findSoundArray(sound: SoundModel): SoundModel[] | null {
   }
   return array;
 }
-export function setSelectedSound(sound: SoundModel) {
+
+export function setSelectedSound(sound: SoundModel, resetVolume = true) {
   if (sound === null || sound === undefined) return;
 
   const soundStore = useSoundsStore();
@@ -281,7 +285,7 @@ export function setSelectedSound(sound: SoundModel) {
 
   sound.isSelected = true;
   soundStore.selectedSound = sound;
-  resetSelectedSoundVolume();
+  if (resetVolume) resetSelectedSoundVolume();
   if (sound.volumeGainNode !== null) {
     soundStore.selectedSoundVolume = gainToDb(sound.volumeGainNode.gain.value);
   }
@@ -297,7 +301,12 @@ export function setSelectedSoundVolume(volume: number) {
   const soundStore = useSoundsStore();
   soundStore.selectedSoundVolume = volume;
 
-  const selectedSound = soundStore.selectedSound;
+  let selectedSound;
+  if (soundStore.playerMode === 'cart') {
+    selectedSound = soundStore.selectedSound;
+  } else {
+    selectedSound = soundStore.playlistActiveSound;
+  }
   if (selectedSound === null) return;
 
   selectedSound.volumeDb = volume;

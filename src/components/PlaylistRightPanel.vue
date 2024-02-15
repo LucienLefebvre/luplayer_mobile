@@ -62,7 +62,7 @@ watch(
       newValue === -60 &&
       settingsStore.faderStop
     ) {
-      stopSound(soundsStore.selectedSound);
+      stopSound(soundsStore.selectedSound, true);
       soundsStore.faderTouchedDuringPlayback = true;
     }
   }

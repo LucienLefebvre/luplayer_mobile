@@ -4,13 +4,14 @@
       expand-separator
       label="Display"
       class="settings-part-name"
+      group="settings-item-group"
     >
       <div class="settings-row">
         <div class="settings-label">Keep screen awake</div>
         <q-toggle v-model="settingsStore.keepScreenAwake" color="orange" />
       </div>
       <div class="settings-row">
-        <div class="settings-label">Waveform size</div>
+        <div class="settings-label">Playlist waveform size</div>
         <q-slider
           style="height: 100%; width: 60%"
           v-model="settingsStore.playlistWaveformHeightFactor"
@@ -21,7 +22,7 @@
         />
       </div>
       <div class="settings-row">
-        <div class="settings-label">Sound name size</div>
+        <div class="settings-label">Playlist sound name size</div>
         <q-slider
           style="height: 100%; width: 60%"
           v-model="settingsStore.playlistSoundNameHeightFactor"
@@ -31,13 +32,7 @@
           color="orange"
         />
       </div>
-      <div class="settings-row">
-        <div class="settings-label">Independant sounds size</div>
-        <q-toggle
-          v-model="settingsStore.cartIsDifferentHeightThanPlaylist"
-          color="orange"
-        />
-      </div>
+
       <div
         class="settings-row"
         v-show="settingsStore.cartIsDifferentHeightThanPlaylist"
@@ -70,12 +65,27 @@
         <div class="settings-label">Auto scroll to selected sound</div>
         <q-toggle v-model="settingsStore.autoScroll" color="orange" />
       </div>
+      <div class="settings-row">
+        <div class="settings-label">Display playlist controls</div>
+        <q-toggle
+          v-model="settingsStore.displayPlaylistControls"
+          color="orange"
+        />
+      </div>
     </q-expansion-item>
     <q-expansion-item
       expand-separator
       label="Play / Stop"
       class="settings-part-name"
+      group="settings-item-group"
     >
+      <div class="settings-row">
+        <div class="settings-label">Select last played cart sound</div>
+        <q-toggle
+          v-model="settingsStore.selectLastPlayedCartSound"
+          color="orange"
+        />
+      </div>
       <div class="settings-row">
         <div class="settings-label">Double tap to stop</div>
         <q-toggle v-model="settingsStore.doubleTapToStop" color="orange" />
@@ -91,7 +101,13 @@
         />
       </div>
     </q-expansion-item>
-    <q-expansion-item expand-separator label="Fader" class="settings-part-name">
+
+    <q-expansion-item
+      expand-separator
+      label="Fader"
+      class="settings-part-name"
+      group="settings-item-group"
+    >
       <div class="settings-row">
         <div class="settings-label">Invert fader side</div>
         <q-toggle v-model="settingsStore.faderIsOtherSide" color="orange" />
@@ -116,6 +132,7 @@
       expand-separator
       label="Normalization"
       class="settings-part-name"
+      group="settings-item-group"
     >
       <div class="settings-row">
         <div class="settings-label">Auto normalize</div>
@@ -137,7 +154,12 @@
         />
       </div>
     </q-expansion-item>
-    <q-expansion-item expand-separator label="Meter" class="settings-part-name">
+    <q-expansion-item
+      expand-separator
+      label="Meter"
+      class="settings-part-name"
+      group="settings-item-group"
+    >
       <div class="settings-row">
         <div class="settings-label">Show peak meter</div>
         <q-toggle v-model="settingsStore.showPeakMeter" color="orange" />

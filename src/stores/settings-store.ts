@@ -25,11 +25,13 @@ export const useSettingsStore = defineStore('settingsStore', {
       falseStartTime: 1000 as number,
       doubleTapToStop: false as boolean,
 
+      displayPlaylistControls: true as boolean,
+
       waveformVerticalZoomFactor: 1.3 as number,
 
       playlistWaveformHeightFactor: 1 as number,
       playlistSoundNameHeightFactor: 1 as number,
-      cartIsDifferentHeightThanPlaylist: false as boolean,
+      cartIsDifferentHeightThanPlaylist: true as boolean,
       cartWaveformHeightFactor: 1 as number,
       cartSoundNameHeightFactor: 1 as number,
 
@@ -37,6 +39,8 @@ export const useSettingsStore = defineStore('settingsStore', {
       defaultFadeOutTime: 5000 as number,
 
       playlistAndCartCartSize: 150 as number,
+
+      selectLastPlayedCartSound: true as boolean,
     }),
 
   actions: {

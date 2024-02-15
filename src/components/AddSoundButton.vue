@@ -49,10 +49,13 @@
     multiple
     accept=".wav, .mp3"
   />
+  <q-dialog v-model="showLoadingDialog" persistent seamless position="bottom"
+    ><q-linear-progress :value="progression" size="20px" />
+  </q-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { useSoundsStore } from '../stores/sounds-store';
 
@@ -80,7 +83,8 @@ onMounted(async () => {
   soundsStore.loadSound(audioElement, file.name); */
 });
 
-function onFileChange(event: Event) {
+const filesLoaded = ref(false);
+async function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement;
   const files = input.files;
 
@@ -88,9 +92,13 @@ function onFileChange(event: Event) {
     return;
   }
 
+  showLoadingDialog.value = true;
+  soundsStore.numberOfSoundsToLoad = files.length;
+
+  const allowedExtensions = ['.wav', '.mp3', '.ogg', '.flac', '.WAV', '.MP3'];
+
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    const allowedExtensions = ['.wav', '.mp3', '.ogg', '.flac', '.WAV', '.MP3'];
 
     const isValidExtension = allowedExtensions.some((ext) =>
       file.name.endsWith(ext)
@@ -99,6 +107,8 @@ function onFileChange(event: Event) {
     if (!isValidExtension) {
       alert('Invalid file type. Please select a .wav or .mp3 file.');
       input.value = '';
+      soundsStore.numberOfSoundsToLoad--;
+      resetLoadCounter();
       return;
     }
 
@@ -107,9 +117,9 @@ function onFileChange(event: Event) {
     audioElement.src = url;
     audioElement.preload = 'metadata';
 
-    soundsStore.loadSound(audioElement, input.files[i].name);
-
-    audioElement.onerror = () => {
+    try {
+      await soundsStore.loadSound(audioElement, input.files[i].name);
+    } catch (error) {
       const errorString = `Could not load sound file : ${file.name}`;
       $q.notify({
         message: errorString,
@@ -117,8 +127,31 @@ function onFileChange(event: Event) {
         type: 'negative',
         position: 'top',
       });
-    };
+      resetLoadCounter();
+    }
   }
+}
+
+const progression = ref(0);
+const showLoadingDialog = ref(false);
+watch(
+  () => soundsStore.numberOfLoadedSounds,
+  (newValue: number) => {
+    progression.value = newValue / soundsStore.numberOfSoundsToLoad;
+    console.log(progression.value);
+    if (newValue === soundsStore.numberOfSoundsToLoad) {
+      setTimeout(() => {
+        resetLoadCounter();
+      }, 2000);
+    }
+  }
+);
+
+function resetLoadCounter() {
+  soundsStore.numberOfSoundsToLoad = 0;
+  soundsStore.numberOfLoadedSounds = 0;
+  showLoadingDialog.value = false;
+  progression.value = 0;
 }
 </script>
 

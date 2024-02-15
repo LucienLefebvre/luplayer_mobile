@@ -1,10 +1,31 @@
 <template>
   <div class="about-panel">
-    <div>LuPlayer mobile v0.1</div>
-    <div>Developped by Lucien Lefebvre</div>
-    <div>Source code available on GitHub</div>
-    <div>contact@luplayer.org</div>
-    <div>Desktop version available on luplayer.org</div>
+    <div class="blueText">LuPlayer Mobile v0.1</div>
+    <br />
+    <div class="orangeText">Developed by Lucien Lefebvre</div>
+    <br />
+    <div class="blueText">
+      Source code available on
+      <a
+        href="https://github.com/LucienLefebvre/luplayer_mobile"
+        target="_blank"
+        style="color: inherit"
+        >GitHub</a
+      >
+    </div>
+    <br />
+    <div class="orangeText">
+      <a href="mailto:contact@luplayer.org" style="color: inherit"
+        >contact@luplayer.org</a
+      >
+    </div>
+    <br />
+    <div class="blueText">
+      Desktop version available on
+      <a href="https://luplayer.org" target="_blank" style="color: inherit"
+        >luplayer.org</a
+      >
+    </div>
   </div>
 </template>
 
@@ -22,12 +43,12 @@
   background-color: var(--bkgColor);
 }
 
-.about-panel div:nth-child(odd) {
+.orangeText {
   color: orange;
   padding-top: 5px;
 }
 
-.about-panel div:nth-child(even) {
+.blueText {
   color: var(--blueColor);
 }
 </style>

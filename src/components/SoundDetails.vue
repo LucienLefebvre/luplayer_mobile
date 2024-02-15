@@ -87,9 +87,8 @@
       <div style="height: 10px"></div>
 
       <div class="buttons-row">
-        <div class="buttons-row-group">
+        <div class="buttons-row-group" v-if="isCartSound(sound)">
           <q-btn
-            v-show="isCartSound(sound)"
             icon="loop"
             @click="sound.isLooping = !sound.isLooping"
             class="set-mark-button"
@@ -522,7 +521,7 @@ watch(
 .buttons-row-group {
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
+  justify-content: space-evenly;
   gap: 10px;
 }
 .set-mark-button {

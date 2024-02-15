@@ -36,6 +36,7 @@ const tab = ref('settings');
 .tab-panels {
   padding: 0px;
   background-color: var(--bkgColor);
+  border-top: 1px solid orange;
 }
 .tab-panel {
   padding: 0px;

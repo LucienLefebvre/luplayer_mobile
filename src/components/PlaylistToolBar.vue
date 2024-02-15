@@ -6,21 +6,21 @@
       class="icon"
       @click="previousButtonClicked"
       size="sm"
-      v-show="soundsStore.playerMode === 'playlist' || 'playlistAndCart'"
+      v-show="shouldDisplayPlaylistControl()"
     />
     <q-btn
       icon="vertical_align_top"
       class="icon"
       @click="upButtonClicked"
       size="sm"
-      v-show="soundsStore.playerMode === 'playlist' || 'playlistAndCart'"
+      v-show="shouldDisplayPlaylistControl()"
     />
     <q-btn
       icon="skip_next"
       class="icon"
       @click="nextButtonClicked"
       size="sm"
-      v-show="soundsStore.playerMode === 'playlist' || 'playlistAndCart'"
+      v-show="shouldDisplayPlaylistControl()"
     />
     <q-btn
       icon="low_priority"
@@ -51,14 +51,22 @@ import { ref } from 'vue';
 import {
   playSoundWithFadeIn,
   setPlaylistActiveSound,
-  setSelectedSound,
   stopSoundWithFadeOut,
 } from 'src/composables/sound-controller';
 import { useSoundsStore } from '../stores/sounds-store';
+import { useSettingsStore } from 'src/stores/settings-store';
 import { onLongPress } from '@vueuse/core';
 
 const soundsStore = useSoundsStore();
+const settingsStore = useSettingsStore();
 
+function shouldDisplayPlaylistControl() {
+  return (
+    (soundsStore.playerMode === 'playlist' ||
+      soundsStore.playerMode === 'playlistAndCart') &&
+    settingsStore.displayPlaylistControls
+  );
+}
 function nextButtonClicked() {
   if (soundsStore.playlistActiveSound === null) return;
   if (soundsStore.playlistActiveSound.isPlaying) return;
@@ -99,17 +107,9 @@ onLongPress(reorderButton, onLongPressCallbackHook, {
   },
 });
 
-function reorderButtonClicked(longTouch = false) {
+function reorderButtonClicked() {
   soundsStore.isReordering = !soundsStore.isReordering;
   if (!soundsStore.isReordering) soundsStore.reorderLocked = false;
-  //if (longTouch) soundsStore.reorderLocked = true;
-  /* if (
-    soundsStore.playlistSounds.length === 0 &&
-    soundsStore.cartSounds0.length === 0 &&
-    soundsStore.cartSounds1.length === 0
-  )
-    return;
-  soundsStore.showReorderWindow = !soundsStore.showReorderWindow; */
 }
 
 function getReorderButtonClass() {

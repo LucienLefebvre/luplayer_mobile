@@ -10,7 +10,7 @@
       class="soundBackground shadow-10"
       :style="{
         width: '100%',
-        borderColor: isSelectedSound(sound) ? 'yellow' : getWaveformColor(),
+        borderColor: getBorderColor(),
         borderWidth: '2px',
         backgroundColor: getBackgroundColor(0.1),
         left: left + 'px',
@@ -94,7 +94,7 @@ import {
   setPlaylistActiveSound,
   isSelectedSound,
 } from 'src/composables/sound-controller';
-import { getCssVar, colors } from 'quasar';
+import { getCssVar, colors, is } from 'quasar';
 import { onLongPress, useSwipe } from '@vueuse/core';
 import type { SwipeDirection } from '@vueuse/core';
 
@@ -117,7 +117,6 @@ const containerWidth = computed(() => playerContainer.value?.offsetWidth);
 let swipeActionThreshold = 100;
 const left = ref('0');
 const opacity = ref(1);
-const swipeThreshold = containerWidth.value ? containerWidth.value / 4 : 100;
 
 function getWaveformColor() {
   if (sound.value.isPlaying) {
@@ -130,6 +129,7 @@ function getWaveformColor() {
     return sound.value.color ?? 'blue';
   }
 }
+
 function getColorFromRGB(
   rgbColor: { r: number; g: number; b: number },
   opacity: number
@@ -142,8 +142,6 @@ function getBackgroundColor(opa: number) {
   let color;
   if (Number(left.value) > swipeActionThreshold) {
     color = 'red';
-  } else if (Number(left.value) < -swipeActionThreshold) {
-    color = 'green';
   } else if (sound.value.isPlaying) {
     const rgbColor =
       getRemainingTime(sound.value) < 5
@@ -160,12 +158,23 @@ function getBackgroundColor(opa: number) {
   return color;
 }
 
+function getBorderColor() {
+  if (
+    (soundsStore.playerMode === 'playlist' &&
+      isPlaylistActiveSound(sound.value)) ||
+    (soundsStore.playerMode === 'cart' && isSelectedSound(sound.value))
+  )
+    return 'yellow';
+  else return getBackgroundColor(1);
+}
 let hasBeenScolled = false;
+
 const { direction, isSwiping, lengthX, lengthY } = useSwipe(playerCard, {
   passive: true,
   threshold: 5,
   onSwipe(e: TouchEvent) {
     if (containerWidth.value && !soundsStore.isReordering) {
+      if (!canSwipeSound(direction.value!)) return;
       if (direction.value === 'UP' || direction.value === 'DOWN') {
         hasBeenScolled = true;
         return;
@@ -181,6 +190,8 @@ const { direction, isSwiping, lengthX, lengthY } = useSwipe(playerCard, {
     }
   },
   onSwipeEnd(e: TouchEvent, direction: SwipeDirection) {
+    if (soundsStore.isReordering) return;
+    if (!canSwipeSound(direction)) return;
     if (hasBeenScolled) {
       hasBeenScolled = false;
     }
@@ -199,7 +210,7 @@ const { direction, isSwiping, lengthX, lengthY } = useSwipe(playerCard, {
       containerWidth.value &&
       Math.abs(lengthX.value) / containerWidth.value >= 0.5
     ) {
-      setSelectedSound(sound.value);
+      setSelectedSound(sound.value, false);
       soundsStore.showEditWindow = true;
       resetSwipe();
     } else {
@@ -208,6 +219,16 @@ const { direction, isSwiping, lengthX, lengthY } = useSwipe(playerCard, {
   },
 });
 
+function canSwipeSound(direction: SwipeDirection) {
+  if (soundsStore.playerMode === 'cart' && !sound.value.isPlaying) return true;
+  else if (
+    soundsStore.playerMode === 'playlist' &&
+    direction === 'RIGHT' &&
+    sound.value.isPlaying
+  )
+    return false;
+  else return true;
+}
 function resetSwipe() {
   left.value = '0';
   opacity.value = 1;
@@ -221,7 +242,12 @@ function soundTouchUp(soundModel: SoundModel) {
     const isDoubleTap = now - timeOfLastClick < 300;
 
     if (isCartSound(soundModel)) {
-      playOrStopSound(soundModel, false, isDoubleTap);
+      playOrStopSound(
+        soundModel,
+        false,
+        isDoubleTap,
+        settingsStore.selectLastPlayedCartSound
+      );
     } else if (isPlaylistSound(soundModel)) {
       setPlaylistActiveSound(soundModel, true);
     }
@@ -244,11 +270,7 @@ function onLongPressCallback(e: PointerEvent) {
   }
 }
 
-onLongPress(playerCard, onLongPressCallback, { delay: 800 });
-
-const touchHold = ($e: Event, sound: SoundModel) => {
-  $e.preventDefault();
-};
+onLongPress(playerCard, onLongPressCallback, { delay: 500 });
 
 function getSoundIndex() {
   const array = findSoundArray(sound.value);
@@ -283,16 +305,6 @@ watch(
   }
 );
 
-function getWaveformHeight() {
-  if (!settingsStore.cartIsDifferentHeightThanPlaylist) {
-    return settingsStore.playlistWaveformHeightFactor * 100;
-  } else {
-    return isCartSound(sound.value)
-      ? settingsStore.cartWaveformHeightFactor * 100
-      : settingsStore.playlistWaveformHeightFactor * 100;
-  }
-}
-
 function getSoundNameHeight() {
   if (!settingsStore.cartIsDifferentHeightThanPlaylist) {
     return settingsStore.playlistSoundNameHeightFactor * 20;
@@ -300,22 +312,6 @@ function getSoundNameHeight() {
     return isCartSound(sound.value)
       ? settingsStore.cartSoundNameHeightFactor * 20
       : settingsStore.playlistSoundNameHeightFactor * 20;
-  }
-}
-
-function shouldShowWaveform() {
-  if (!settingsStore.cartIsDifferentHeightThanPlaylist) {
-    return (
-      settingsStore.playlistWaveformHeightFactor > 0.1 &&
-      sound.value.waveformChunks
-    );
-  } else {
-    return (
-      (isCartSound(sound.value)
-        ? settingsStore.cartWaveformHeightFactor
-        : settingsStore.playlistWaveformHeightFactor) > 0.1 &&
-      sound.value.waveformChunks
-    );
   }
 }
 </script>

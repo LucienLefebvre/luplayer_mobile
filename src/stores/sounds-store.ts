@@ -23,6 +23,9 @@ export const useSoundsStore = defineStore('soundsStore', {
     reactive({
       settingsStore: useSettingsStore(),
 
+      numberOfSoundsToLoad: -1,
+      numberOfLoadedSounds: 0,
+
       playlistSounds: [] as SoundModel[],
       cartSounds0: [] as SoundModel[],
       cartSounds1: [] as SoundModel[],
@@ -85,72 +88,81 @@ export const useSoundsStore = defineStore('soundsStore', {
       this.outputLimiterNode.connect(this.audioContext.destination);
     },
 
-    loadSound(audioElement: HTMLAudioElement, name: string) {
-      audioElement.onloadedmetadata = async () => {
-        if (this.audioContext === null) {
-          this.initAudioContext();
-          if (this.audioContext === null) return;
-        }
+    loadSound(audioElement: HTMLAudioElement, name: string): Promise<void> {
+      return new Promise((resolve, reject) => {
+        audioElement.onloadedmetadata = async () => {
+          try {
+            if (this.audioContext === null) {
+              this.initAudioContext();
+              if (this.audioContext === null) return;
+            }
 
-        const defaultEnveloppePoints = [
-          { time: 0, gainDb: 0 },
-          { time: audioElement.duration, gainDb: 0 },
-        ] as EnveloppePoint[];
+            const defaultEnveloppePoints = [
+              { time: 0, gainDb: 0 },
+              { time: audioElement.duration, gainDb: 0 },
+            ] as EnveloppePoint[];
 
-        let addedSound: SoundModel = {
-          id: uuidv4(),
-          name: name,
-          audioElement: audioElement,
-          color: getCssVar('primary') ?? '#000000',
-          duration: audioElement.duration,
-          remainingTime: audioElement.duration,
-          isPlaying: false,
-          isSelected: false,
-          isPlaylistActiveSound: false,
-          isCuePlayed: false,
-          isLooping: false,
-          hasBeenCuePlayed: false,
-          volumeDb: 0.0,
-          trimDb: 0.0,
-          source: null,
-          trimGainNode: null,
-          volumeGainNode: null,
-          enveloppeGainNode: null,
-          inTime: null,
-          outTime: null,
-          integratedLoudness: null,
-          hpfEnabled: false,
-          hpfFrequency: 80,
-          launchTime: 0,
-          waveformChunks: null,
-          enveloppePoints: defaultEnveloppePoints,
-          displayWaveform: true,
-          enveloppeIsEnabled: false,
-        };
+            let addedSound: SoundModel = {
+              id: uuidv4(),
+              name: name,
+              audioElement: audioElement,
+              color: getCssVar('primary') ?? '#000000',
+              duration: audioElement.duration,
+              remainingTime: audioElement.duration,
+              isPlaying: false,
+              isSelected: false,
+              isPlaylistActiveSound: false,
+              isCuePlayed: false,
+              isLooping: false,
+              hasBeenCuePlayed: false,
+              volumeDb: 0.0,
+              trimDb: 0.0,
+              source: null,
+              trimGainNode: null,
+              volumeGainNode: null,
+              enveloppeGainNode: null,
+              inTime: null,
+              outTime: null,
+              integratedLoudness: null,
+              hpfEnabled: false,
+              hpfFrequency: 80,
+              launchTime: 0,
+              waveformChunks: null,
+              enveloppePoints: defaultEnveloppePoints,
+              displayWaveform: true,
+              enveloppeIsEnabled: false,
+            };
 
-        addedSound = reactive(addedSound);
+            addedSound = reactive(addedSound);
 
-        registerEventListeners(addedSound);
+            registerEventListeners(addedSound);
 
-        if (this.playerMode === 'playlist') {
-          this.addSoundToPlaylist(addedSound);
-        } else if (this.playerMode === 'cart') {
-          this.addSoundToCart(addedSound);
-        } else if (this.playerMode === 'playlistAndCart') {
-          if (this.arrayToAddSound === 'playlist') {
-            this.addSoundToPlaylist(addedSound);
-          } else {
-            this.addSoundToCart(addedSound);
+            if (this.playerMode === 'playlist') {
+              this.addSoundToPlaylist(addedSound);
+            } else if (this.playerMode === 'cart') {
+              this.addSoundToCart(addedSound);
+            } else if (this.playerMode === 'playlistAndCart') {
+              if (this.arrayToAddSound === 'playlist') {
+                this.addSoundToPlaylist(addedSound);
+              } else {
+                this.addSoundToCart(addedSound);
+              }
+            }
+
+            if (this.settingsStore.autoNormalize) {
+              normalizeSound(
+                addedSound,
+                Number(this.settingsStore.normalizationLuTarget)
+              );
+            }
+
+            this.numberOfLoadedSounds++;
+            resolve();
+          } catch (error) {
+            reject(error);
           }
-        }
-
-        if (this.settingsStore.autoNormalize) {
-          normalizeSound(
-            addedSound,
-            Number(this.settingsStore.normalizationLuTarget)
-          );
-        }
-      };
+        };
+      });
     },
 
     addSoundToCart(addedSound: SoundModel) {

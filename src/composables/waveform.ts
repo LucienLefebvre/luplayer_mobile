@@ -278,6 +278,7 @@ export class Waveform {
 
   public launchAnimation() {
     if (!this.anim.isRunning()) {
+      this.waveformLayer.clearCache();
       this.anim.start();
     }
   }
@@ -285,6 +286,8 @@ export class Waveform {
   public stopAnimation() {
     if (this.anim.isRunning() && !this.isDragging) {
       this.anim.stop();
+      if (this.waveformLayer.height() > 0 && this.waveformLayer.width() > 0)
+        this.waveformLayer.cache();
     }
   }
 
