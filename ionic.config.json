@@ -1,0 +1,7 @@
+{
+  "name": "luplayer-web",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "custom"
+}

@@ -1,12 +1,22 @@
 <template>
   <div class="toolbar">
     <q-toolbar class="bg-accent">
+      <q-btn
+        class="q-mr-sm"
+        flat
+        round
+        dense
+        icon="menu"
+        style="color: orange"
+        @click="toggleSettings"
+      />
       <div style="display: flex; align-items: center">
         <img
           src="src\assets\icon.png"
           style="height: 30px; width: auto; object-fit: contain"
         />
       </div>
+
       <q-toolbar-title class="toolbar-title">LuPlayer </q-toolbar-title>
       <q-btn-dropdown
         flat
@@ -46,42 +56,8 @@
               <q-item-label class="listLabel">Cart</q-item-label>
             </q-item-section>
           </q-item>
-          <!-- <q-item
-            clickable
-            v-close-popup
-            @click="playlistAndCartClicked()"
-            :style="{
-              'background-color':
-                soundsStore.playerMode === 'playlistAndCart'
-                  ? 'orange'
-                  : 'var(--bkgColor)',
-            }"
-          >
-            <q-item-section>
-              <q-item-label class="listLabel">Both</q-item-label>
-            </q-item-section>
-          </q-item> -->
         </q-list>
       </q-btn-dropdown>
-
-      <q-btn
-        class="q-mr-sm"
-        flat
-        round
-        dense
-        icon="settings"
-        style="color: orange"
-        @click="toggleSettings"
-      />
-      <!--       <q-btn-dropdown
-        flat
-        round
-        dense
-        icon="settings"
-        style="color: orange"
-        transition-duration="100"
-        ><settings-panel />
-      </q-btn-dropdown> -->
     </q-toolbar>
   </div>
 </template>

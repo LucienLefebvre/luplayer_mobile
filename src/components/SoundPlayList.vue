@@ -94,7 +94,6 @@ onMounted(() => {
   elements = document.getElementById('listElements');
   if (!elements) return;
 
-  console.log('elements0', elements);
   sortable = Sortable.create(elements!, {
     animation: 150,
     ghostClass: 'ghost',

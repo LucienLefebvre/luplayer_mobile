@@ -11,6 +11,8 @@
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
+    "@capacitor/core": "^5.0.0",
+    "@capacitor/filesystem": "^5.2.1",
     "@quasar/extras": "^1.0.0",
     "@vueuse/core": "^9.13.0",
     "konva": "^8.4.3",
@@ -28,7 +30,6 @@
   "devDependencies": {
     "@quasar/app-vite": "^1.0.0",
     "@types/node": "^12.20.21",
-    "@types/pixi.js": "^5.0.0",
     "@types/sortablejs": "^1.15.7",
     "@types/uuid": "^9.0.0",
     "@typescript-eslint/eslint-plugin": "^5.10.0",

@@ -2,7 +2,12 @@ import Konva from 'konva';
 
 export interface SoundModel {
   id: string;
+
+  fileContent: ArrayBuffer;
+  base64FileContent?: string;
+
   name: string;
+  path: string;
 
   color: string;
 
@@ -48,6 +53,8 @@ export const dummySound: SoundModel = {
   id: '',
   name: '',
   color: '',
+  path: '',
+  fileContent: new ArrayBuffer(0),
   isPlaying: false,
   isSelected: false,
   isPlaylistActiveSound: false,

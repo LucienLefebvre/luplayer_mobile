@@ -45,33 +45,36 @@ onMounted(async () => {
 
   await waveform.calculateWaveformChunks().then((chunks) => {
     sound.value.waveformChunks = chunks;
-    waveform.setHeight(getWaveformHeight());
-    waveform?.setVerticalZoomFactor(
-      dbToGain(sound.value.trimDb) * settingsStore.waveformVerticalZoomFactor
-    );
-    waveform.showInTime = true;
-    waveform.showOutTime = true;
-    waveform.inTimeColor = 'lightblue';
-    waveform.outTimeColor = 'yellow';
-    waveform.isZoomable = false;
-    waveform.waveformLayer.listening(false);
-    waveform.name = sound.value.name;
-    waveform.setEnveloppePoints(sound.value.enveloppePoints);
-    waveform.setShowEnveloppe(false);
-    waveform.setShowEnveloppeLine(false);
-    waveform.setShowEnveloppePoints(false);
-
-    if (sound.value.inTime) {
-      waveform.setInTime(sound.value.inTime);
-    }
-    if (sound.value.outTime) {
-      waveform.setOutTime(sound.value.outTime);
-    }
-
-    updateWaveformColor();
+    initWaveform();
   });
 });
 
+function initWaveform() {
+  waveform.setHeight(getWaveformHeight());
+  waveform?.setVerticalZoomFactor(
+    dbToGain(sound.value.trimDb) * settingsStore.waveformVerticalZoomFactor
+  );
+  waveform.showInTime = true;
+  waveform.showOutTime = true;
+  waveform.inTimeColor = 'lightblue';
+  waveform.outTimeColor = 'yellow';
+  waveform.isZoomable = false;
+  waveform.waveformLayer.listening(false);
+  waveform.name = sound.value.name;
+  waveform.setEnveloppePoints(sound.value.enveloppePoints);
+  waveform.setShowEnveloppe(false);
+  waveform.setShowEnveloppeLine(false);
+  waveform.setShowEnveloppePoints(false);
+
+  if (sound.value.inTime) {
+    waveform.setInTime(sound.value.inTime);
+  }
+  if (sound.value.outTime) {
+    waveform.setOutTime(sound.value.outTime);
+  }
+
+  updateWaveformColor();
+}
 function getWaveformHeight() {
   if (!settingsStore.cartIsDifferentHeightThanPlaylist) {
     return settingsStore.playlistWaveformHeightFactor * 100;

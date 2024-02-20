@@ -84,27 +84,26 @@ onMounted(async () => {
 });
 
 const filesLoaded = ref(false);
+
 async function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement;
   const files = input.files;
 
-  if (files === null || files.length === 0 || input.files === null) {
+  if (!files || files.length === 0) {
     return;
   }
 
+  await processFiles(files, input);
+}
+
+async function processFiles(files: FileList, input: HTMLInputElement) {
   showLoadingDialog.value = true;
   soundsStore.numberOfSoundsToLoad = files.length;
 
   const allowedExtensions = ['.wav', '.mp3', '.ogg', '.flac', '.WAV', '.MP3'];
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-
-    const isValidExtension = allowedExtensions.some((ext) =>
-      file.name.endsWith(ext)
-    );
-
-    if (!isValidExtension) {
+  for (const file of Array.from(files)) {
+    if (!allowedExtensions.some((ext) => file.name.endsWith(ext))) {
       alert('Invalid file type. Please select a .wav or .mp3 file.');
       input.value = '';
       soundsStore.numberOfSoundsToLoad--;
@@ -112,30 +111,40 @@ async function onFileChange(event: Event) {
       return;
     }
 
-    const audioElement = document.createElement('audio');
-    const url = URL.createObjectURL(file);
-    audioElement.src = url;
-    audioElement.preload = 'metadata';
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(file);
+    reader.onload = async function (event) {
+      const arrayBuffer = event.target?.result as ArrayBuffer;
 
-    try {
-      await soundsStore.loadSound(audioElement, input.files[i].name);
-    } catch (error) {
-      const errorString = `Could not load sound file : ${file.name}`;
-      $q.notify({
-        message: errorString,
-        color: 'red',
-        type: 'negative',
-        position: 'top',
-      });
-      resetLoadCounter();
-    }
+      // Create a Blob from the ArrayBuffer
+      const blob = new Blob([arrayBuffer], { type: file.type });
+
+      // Create an object URL from the Blob
+      const url = URL.createObjectURL(blob);
+
+      const audioElement = document.createElement('audio');
+      audioElement.src = URL.createObjectURL(blob);
+      audioElement.preload = 'metadata';
+
+      try {
+        await soundsStore.loadSound(audioElement, file.name, arrayBuffer);
+      } catch (error) {
+        $q.notify({
+          message: `Could not load sound file : ${file.name}`,
+          color: 'red',
+          type: 'negative',
+          position: 'top',
+        });
+        resetLoadCounter();
+      }
+    };
   }
 }
 
 const progression = ref(0);
 const showLoadingDialog = ref(false);
 watch(
-  () => soundsStore.numberOfLoadedSounds,
+  () => soundsStore.numberOfLoadSaveSounds,
   (newValue: number) => {
     progression.value = newValue / soundsStore.numberOfSoundsToLoad;
     console.log(progression.value);
@@ -149,7 +158,7 @@ watch(
 
 function resetLoadCounter() {
   soundsStore.numberOfSoundsToLoad = 0;
-  soundsStore.numberOfLoadedSounds = 0;
+  soundsStore.numberOfLoadSaveSounds = 0;
   showLoadingDialog.value = false;
   progression.value = 0;
 }

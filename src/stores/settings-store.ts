@@ -45,15 +45,12 @@ export const useSettingsStore = defineStore('settingsStore', {
 
   actions: {
     saveSettings() {
-      console.log('saveSettings');
       localStorage.setItem('settings', JSON.stringify(this.$state));
     },
 
     loadSettings() {
-      console.log('loadSettings');
       const settings = JSON.parse(localStorage.getItem('settings') || '{}');
       Object.assign(this.$state, settings);
-      console.log(settings);
     },
 
     getPeakMeterOrangeThreshold() {

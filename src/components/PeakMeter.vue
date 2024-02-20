@@ -53,7 +53,6 @@ onMounted(() => {
     width: peakMeter.value.clientWidth,
     height: peakMeter.value.clientHeight,
   });
-  console.log('onMounted');
 
   /////Bars
   meterBarLayer = new Konva.Layer();

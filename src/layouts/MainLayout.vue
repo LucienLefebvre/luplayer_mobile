@@ -23,6 +23,18 @@
       <DeleteSoundDialog :sound="soundsStore.selectedSound" />
     </div>
   </q-dialog>
+  <q-dialog v-model="soundsStore.showPlaylistLoadSaveWindow">
+    <div class="column fit centered-content">
+      <div style="color: orange; font-size: 15px">
+        {{ soundsStore.playlistLoadSaveWindowText }}
+      </div>
+      <q-linear-progress
+        :value="soundsStore.playlistLoadSaveProgress"
+        color="orange"
+        size="15px"
+      />
+    </div>
+  </q-dialog>
 </template>
 
 <script setup lang="ts">
@@ -81,6 +93,7 @@ html {
 }
 body {
   background-color: rgb(50, 62, 68);
+  font-family: 'Roboto', sans-serif;
 }
 .centered-content {
   display: flex;
