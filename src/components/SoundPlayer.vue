@@ -1,11 +1,5 @@
 <template>
   <div class="player-container" ref="playerContainer">
-    <!--  <div
-      class="delete-swipe-icon"
-      :style="{ height: getWaveformHeight(), opacity: 2 - opacity * 2 }"
-    >
-      <q-btn icon="delete" text-color="primary" color="red" />
-    </div> -->
     <q-card
       class="soundBackground shadow-10"
       :style="{
@@ -20,7 +14,6 @@
       @contextmenu.prevent
       ref="playerCard"
     >
-      <!--   v-touch-hold="(e: TouchHold) => touchHold(sound)" -->
       <div class="column d-flex flex-center" style="width: 100%">
         <q-circular-progress
           v-if="!sound.waveformChunks"
@@ -48,7 +41,7 @@
             fontSize: getSoundNameHeight() + 'px',
             userSelect: 'none',
           }"
-          ref="soundPlayer"
+          ref="nameBar"
         >
           <sound-progress-bar
             :sound="sound"
@@ -59,6 +52,7 @@
             class="sound-progress-bar"
             ref="progressBar"
           />
+
           <div v-if="isPlaylistSound(sound)" class="sound-index">
             {{ getSoundIndex() }}
           </div>
@@ -97,6 +91,7 @@ import {
 import { getCssVar, colors, is } from 'quasar';
 import { onLongPress, useSwipe } from '@vueuse/core';
 import type { SwipeDirection } from '@vueuse/core';
+import { dir } from 'console';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -175,7 +170,11 @@ const { direction, isSwiping, lengthX, lengthY } = useSwipe(playerCard, {
   onSwipe(e: TouchEvent) {
     if (containerWidth.value && !soundsStore.isReordering) {
       if (!canSwipeSound(direction.value!)) return;
-      if (direction.value === 'UP' || direction.value === 'DOWN') {
+      if (
+        direction.value === 'UP' ||
+        direction.value === 'DOWN' ||
+        direction.value === 'LEFT'
+      ) {
         hasBeenScolled = true;
         return;
       }
@@ -205,7 +204,7 @@ const { direction, isSwiping, lengthX, lengthY } = useSwipe(playerCard, {
       }
       soundsStore.askForSoundDeletion(sound.value);
       resetSwipe();
-    } else if (
+    } /* else if (
       direction === 'LEFT' &&
       containerWidth.value &&
       Math.abs(lengthX.value) / containerWidth.value >= 0.5
@@ -213,7 +212,7 @@ const { direction, isSwiping, lengthX, lengthY } = useSwipe(playerCard, {
       setSelectedSound(sound.value, false);
       soundsStore.showEditWindow = true;
       resetSwipe();
-    } else {
+    } */ else {
       resetSwipe();
     }
   },
@@ -278,12 +277,12 @@ function getSoundIndex() {
   return array.indexOf(sound.value) + 1;
 }
 
-const soundPlayer: Ref<HTMLElement | null> = ref(null);
+const nameBar: Ref<HTMLElement | null> = ref(null);
 const progressBar = ref<typeof SoundProgressBar | null>(null);
 const barWidth = ref(0);
 onMounted(() => {
-  if (soundPlayer.value) {
-    barWidth.value = soundPlayer.value.offsetWidth;
+  if (nameBar.value) {
+    barWidth.value = nameBar.value.offsetWidth;
     progressBar.value?.setBarColor(getBackgroundColor(0.2));
   }
   if (containerWidth.value) {
@@ -347,7 +346,6 @@ function getSoundNameHeight() {
 }
 .sound-progress-bar {
   position: absolute;
-  z-index: 1;
 }
 .sound-name {
   text-align: center;
@@ -357,7 +355,6 @@ function getSoundNameHeight() {
   text-overflow: ellipsis;
   white-space: nowrap;
   position: relative;
-  z-index: 2;
 }
 
 .sound-index {
@@ -367,9 +364,7 @@ function getSoundNameHeight() {
   width: 20px;
   border-top-right-radius: 5px;
   border-bottom-left-radius: 10px;
-
   position: relative;
-  z-index: 2;
 }
 .sound-duration {
   text-align: center;
@@ -379,16 +374,5 @@ function getSoundNameHeight() {
   border-top-left-radius: 5px;
   border-bottom-right-radius: 10px;
   position: relative;
-  z-index: 2;
-}
-
-.delete-swipe-icon {
-  position: absolute;
-  width: 60%;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: -1;
 }
 </style>

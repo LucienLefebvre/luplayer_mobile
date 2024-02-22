@@ -42,10 +42,11 @@ export function playSound(
       dbToGain(sound.trimDb),
       audioContext.currentTime + fadeTime
     );
-    soundsStore.isFading = true;
+    sound.isFadingIn = true;
+    sound.fadeInStartTime = Date.now();
 
     setTimeout(() => {
-      soundsStore.isFading = false;
+      sound.isFadingIn = false;
     }, fadeTime * 1000);
   }
 
@@ -114,7 +115,6 @@ function initSoundAudio(
 }
 
 export function pauseSound(sound: SoundModel) {
-  console.log('pauseSound');
   sound.audioElement.pause();
   sound.isPlaying = false;
   if (!isCartSound(sound)) sound.volumeDb = 0;
@@ -123,7 +123,6 @@ export function pauseSound(sound: SoundModel) {
 }
 
 export function stopSound(sound: SoundModel, stoppedByFader = false) {
-  console.log('stopSound');
   sound.audioElement.pause();
   //sound.audioElement.currentTime = sound.inTime ?? 0;
   sound.audioElement.currentTime = 0;
@@ -132,7 +131,6 @@ export function stopSound(sound: SoundModel, stoppedByFader = false) {
   if (stoppedByFader) sound.volumeDb = 0;
   disconnectAndRemoveNodes(sound);
   clearTimeout(sound.timeOutId);
-  console.log(isCartSound(sound));
 }
 
 export function disconnectAndRemoveNodes(sound: SoundModel) {
@@ -236,11 +234,12 @@ export function stopSoundWithFadeOut(sound: SoundModel) {
     audioContext.currentTime + rampTime
   );
 
-  soundsStore.isFading = true;
+  sound.isFadingOut = true;
+  sound.fadeOutStartTime = Date.now();
 
   setTimeout(() => {
     stopSound(sound);
-    soundsStore.isFading = false;
+    sound.isFadingOut = false;
   }, rampTime * 1000);
 }
 

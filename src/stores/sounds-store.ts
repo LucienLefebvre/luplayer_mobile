@@ -49,8 +49,6 @@ export const useSoundsStore = defineStore('soundsStore', {
       faderTouchedDuringPlayback: false as boolean,
       faderIsTouched: false as boolean,
 
-      isFading: false as boolean,
-
       isReordering: false,
       reorderLocked: false,
 
@@ -90,7 +88,7 @@ export const useSoundsStore = defineStore('soundsStore', {
       this.outputLimiterNode.connect(this.audioContext.destination);
     },
 
-    loadSound(
+    async loadSound(
       audioElement: HTMLAudioElement,
       name: string,
       fileContent: ArrayBuffer
@@ -139,6 +137,10 @@ export const useSoundsStore = defineStore('soundsStore', {
               enveloppePoints: defaultEnveloppePoints,
               displayWaveform: true,
               enveloppeIsEnabled: false,
+              isFadingIn: false,
+              isFadingOut: false,
+              fadeInStartTime: 0,
+              fadeOutStartTime: 0,
             };
 
             addedSound = reactive(addedSound);
@@ -200,7 +202,7 @@ export const useSoundsStore = defineStore('soundsStore', {
       this.showDeleteSoundWindow = true;
     },
 
-    deleteSound(sound: SoundModel) {
+    deleteSound(sound: SoundModel, notify = true) {
       const array = findSoundArray(sound);
       if (array === null) return;
 
@@ -208,8 +210,14 @@ export const useSoundsStore = defineStore('soundsStore', {
       if (index === -1) return;
 
       if (sound.audioElement.paused) {
+        sound.audioElement.src = '';
+        sound.audioElement.load();
+        sound.waveformChunks = null;
+        sound.fileContent = new ArrayBuffer(0);
+
         this.showEditWindow = false;
         array.splice(index, 1);
+
         if (sound.isSelected) {
           this.selectedSound = null;
           if (
@@ -235,21 +243,24 @@ export const useSoundsStore = defineStore('soundsStore', {
           message: "Can't delete a sound while it's playing",
           type: 'negative',
           position: 'top',
-          timeout: 2000,
+          timeout: 1000,
         });
         return;
       }
 
-      const deleteNotifyString = `Sound "${sound.name}" deleted`;
-      Notify.create({
-        message: deleteNotifyString,
-        type: 'negative',
-        timeout: 2000,
-        position: 'top',
-      });
+      if (notify) {
+        const deleteNotifyString = `Sound "${sound.name}" deleted`;
+        Notify.create({
+          message: deleteNotifyString,
+          type: 'negative',
+          timeout: 1000,
+          position: 'top',
+          group: 'deleteSound',
+        });
 
-      sound = dummySound;
-      this.toBeDeletedSound = null;
+        sound = dummySound;
+        this.toBeDeletedSound = null;
+      }
     },
 
     checkIfThereAreLoadedSounds() {
@@ -347,12 +358,22 @@ export const useSoundsStore = defineStore('soundsStore', {
       });
     },
 
-    deleteAllSounds() {
+    deleteAllSounds(notify = true) {
+      this.deleteAllSoundsInArray(this.playlistSounds, notify);
       this.playlistSounds = [];
+      this.deleteAllSoundsInArray(this.cartSounds0, notify);
       this.cartSounds0 = [];
+      this.deleteAllSoundsInArray(this.cartSounds1, notify);
       this.cartSounds1 = [];
       this.selectedSound = null;
       this.playlistActiveSound = null;
+    },
+
+    deleteAllSoundsInArray(array: SoundModel[], notify = true) {
+      array.forEach((sound) => {
+        this.deleteSound(sound, notify);
+      });
+      array.splice(0, array.length);
     },
 
     async savePlaylist(name: string) {
@@ -363,11 +384,32 @@ export const useSoundsStore = defineStore('soundsStore', {
         this.playlistLoadSaveProgress = 0;
         this.numberOfLoadSaveSounds = 0;
 
-        const soundList = [] as string[];
+        let soundList;
+        let numberOfSoundsToSave = 0;
 
-        for (const sound of this.playlistSounds) {
-          soundList.push(sound.id);
-          await this.saveSound(sound);
+        if (this.playerMode === 'playlist') {
+          soundList = [] as string[];
+          soundList.push('playlist');
+          numberOfSoundsToSave = this.playlistSounds.length;
+          for (const sound of this.playlistSounds) {
+            await this.pushAndSaveSound(soundList, sound);
+            this.updateSavingProgress(numberOfSoundsToSave);
+          }
+        }
+        if (this.playerMode === 'cart') {
+          soundList = [] as string[];
+          soundList.push('cart');
+          numberOfSoundsToSave =
+            this.cartSounds0.length + this.cartSounds1.length;
+          for (const sound of this.cartSounds0) {
+            await this.pushAndSaveSound(soundList, sound);
+            this.updateSavingProgress(numberOfSoundsToSave);
+          }
+          soundList.push('separator');
+          for (const sound of this.cartSounds1) {
+            await this.pushAndSaveSound(soundList, sound);
+            this.updateSavingProgress(numberOfSoundsToSave);
+          }
         }
 
         const data = JSON.stringify(soundList);
@@ -404,25 +446,35 @@ export const useSoundsStore = defineStore('soundsStore', {
       }
     },
 
-    async saveSound(sound: SoundModel) {
+    async pushAndSaveSound(soundList: string[], sound: SoundModel) {
+      const uuid = uuidv4();
+      soundList.push(uuid);
+      await this.saveSound(sound, uuid);
+    },
+
+    async saveSound(sound: SoundModel, uuid: string) {
       const start = performance.now();
 
-      sound.base64FileContent = this.arrayBufferToBase64(sound.fileContent);
-      const data = JSON.stringify(sound);
+      const soundToSave = { ...sound, waveformChunks: null };
+      soundToSave.base64FileContent = this.arrayBufferToBase64(
+        sound.fileContent
+      );
+      const data = JSON.stringify(soundToSave);
 
       await Filesystem.writeFile({
-        path: sound.id,
+        path: uuid,
         data: data,
         directory: Directory.External,
         encoding: Encoding.UTF8,
       });
 
+      soundToSave.base64FileContent = undefined;
+    },
+
+    updateSavingProgress(numberOfSoundsToSave: number) {
       this.numberOfLoadSaveSounds++;
       this.playlistLoadSaveProgress =
-        this.numberOfLoadSaveSounds / this.playlistSounds.length;
-
-      const end = performance.now();
-      console.log('Save sound duration: ', end - start);
+        this.numberOfLoadSaveSounds / numberOfSoundsToSave;
     },
 
     async loadPlaylist(playlist: string, keepCurrentSounds: boolean) {
@@ -437,7 +489,7 @@ export const useSoundsStore = defineStore('soundsStore', {
         this.numberOfLoadSaveSounds = 0;
 
         if (!keepCurrentSounds) {
-          this.deleteAllSounds();
+          this.deleteAllSounds(false);
         }
 
         const playlistFile = await Filesystem.readFile({
@@ -452,29 +504,40 @@ export const useSoundsStore = defineStore('soundsStore', {
         }
         const numberOfSoundsToLoad = soundList.length;
 
-        await Promise.all(
-          soundList.map(async (soundId) => {
-            await this.loadSoundFromFile(soundId);
-            this.numberOfLoadSaveSounds++;
-            this.playlistLoadSaveProgress =
-              this.numberOfLoadSaveSounds / numberOfSoundsToLoad;
-          })
-        ).then(() => {
-          this.showSettingsWindow = false;
-          this.showPlaylistLoadSaveWindow = false;
+        const playlistType = this.getPlaylistType(soundList);
 
-          if (
-            this.playerMode === 'playlist' &&
-            this.playlistSounds.length > 0
-          ) {
-            setPlaylistActiveSound(this.playlistSounds[0], true);
+        if (playlistType === 'cart' && this.playerMode === 'playlist') {
+          this.initializeCartMode();
+        } else if (playlistType === 'playlist' && this.playerMode === 'cart') {
+          this.initializePlaylistMode();
+        }
+
+        soundList.shift();
+        let playlistToLoadTo =
+          playlistType === 'playlist' ? this.playlistSounds : this.cartSounds0;
+
+        for (const soundId of soundList) {
+          if (soundId === 'separator') {
+            playlistToLoadTo = this.cartSounds1;
+            continue;
           }
+          await this.loadSoundFromFile(soundId, playlistToLoadTo);
+          this.numberOfLoadSaveSounds++;
+          this.playlistLoadSaveProgress =
+            this.numberOfLoadSaveSounds / numberOfSoundsToLoad;
+        }
 
-          Notify.create({
-            message: `Playlist "${playlist}" loaded`,
-            type: 'positive',
-            position: 'top',
-          });
+        this.showSettingsWindow = false;
+        this.showPlaylistLoadSaveWindow = false;
+
+        if (this.playerMode === 'playlist' && this.playlistSounds.length > 0) {
+          setPlaylistActiveSound(this.playlistSounds[0], true);
+        }
+
+        Notify.create({
+          message: `Playlist "${playlist}" loaded`,
+          type: 'positive',
+          position: 'top',
         });
       } catch (error) {
         console.log(error);
@@ -488,7 +551,16 @@ export const useSoundsStore = defineStore('soundsStore', {
       }
     },
 
-    async loadSoundFromFile(fileName: string) {
+    getPlaylistType(soundList: string[]): 'playlist' | 'cart' {
+      if (soundList[0] === 'playlist') {
+        return 'playlist';
+      } else if (soundList[0] === 'cart') {
+        return 'cart';
+      }
+      return 'playlist';
+    },
+
+    async loadSoundFromFile(fileName: string, playlistToLoadTo: SoundModel[]) {
       const rawSound = await Filesystem.readFile({
         path: fileName,
         directory: Directory.External,
@@ -508,6 +580,14 @@ export const useSoundsStore = defineStore('soundsStore', {
       audioElement.src = url;
       audioElement.preload = 'metadata';
 
+      loadedSound.base64FileContent = undefined;
+      loadedSound.fileContent = new ArrayBuffer(0);
+
+      console.log(
+        'size : ',
+        this.estimateSizeInBytes(loadedSound.waveformChunks)
+      );
+
       audioElement.onloadedmetadata = () => {
         let sound: SoundModel = {
           ...loadedSound,
@@ -526,13 +606,19 @@ export const useSoundsStore = defineStore('soundsStore', {
           enveloppeGainNode: null,
           launchTime: 0,
           displayWaveform: true,
+          waveformChunks: null,
         };
 
         sound = reactive(sound);
         registerEventListeners(sound);
 
-        this.playlistSounds.push(sound);
+        playlistToLoadTo.push(sound);
       };
+    },
+
+    estimateSizeInBytes(object: any) {
+      const jsonString = JSON.stringify(object);
+      return new Blob([jsonString]).size / 1000000;
     },
 
     async deletePlaylist(playlist: string) {

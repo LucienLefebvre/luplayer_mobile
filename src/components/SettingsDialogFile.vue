@@ -1,5 +1,6 @@
 <template>
   <div class="settings-panel">
+    <div class="section-name">Save playlist :</div>
     <div class="save-playlist-row">
       <q-input
         bottom-slots
@@ -25,26 +26,46 @@
       </q-input>
     </div>
 
-    <div class="saved-playlist">
-      <div v-for="playlist in savedPlaylists" :key="playlist">
-        <div class="buttonRow">
-          <div class="playlistName font-roboto">
-            {{ playlist }}
-          </div>
-          <div class="playlist-buttons">
-            <q-btn
-              icon="folder_open"
-              class="openPlaylistButton"
-              @click="openButtonClicked(playlist)"
-            ></q-btn>
-            <q-btn
-              icon="delete"
-              class="deletePlaylistButton"
-              @click="deleteButtonClicked(playlist)"
-            ></q-btn>
+    <div v-if="getSavedPlaylists().length > 0">
+      <div class="section-name">Load playlist :</div>
+      <div class="saved-playlist">
+        <div v-for="playlist in savedPlaylists" :key="playlist">
+          <div class="buttonRow">
+            <div class="playlistName font-roboto">
+              {{ playlist }}
+            </div>
+            <div class="playlist-buttons">
+              <q-btn
+                icon="folder_open"
+                class="openPlaylistButton"
+                @click="openButtonClicked(playlist)"
+                size="sm"
+              ></q-btn>
+              <q-btn
+                icon="add"
+                class="openPlaylistButton"
+                @click="addButtonClicked(playlist)"
+                size="sm"
+              ></q-btn>
+              <q-btn
+                icon="delete"
+                class="deletePlaylistButton"
+                @click="deleteButtonClicked(playlist)"
+                size="sm"
+              ></q-btn>
+            </div>
           </div>
         </div>
       </div>
+    </div>
+    <div class="section-name">Empty playlist :</div>
+    <div class="buttonRow">
+      <q-btn
+        label="Clear all sounds"
+        color="red"
+        @click="clearSoundsClicked()"
+        class="font-roboto"
+      />
     </div>
   </div>
 </template>
@@ -112,6 +133,26 @@ function openButtonClicked(playlist: string) {
   }
 }
 
+function addButtonClicked(playlist: string) {
+  Dialog.create({
+    title: 'Import playlist',
+    message: 'Add selected playlist to current playlist?',
+    style: 'background-color: var(--bkgColor); color: orange;',
+    ok: {
+      push: true,
+      color: 'orange',
+      label: 'Import',
+    },
+    cancel: {
+      push: true,
+      color: 'red',
+      label: 'Cancel',
+    },
+  }).onOk(() => {
+    soundsStore.loadPlaylist(playlist, true);
+  });
+}
+
 function deleteButtonClicked(playlist: string) {
   Dialog.create({
     title: 'Delete playlist',
@@ -137,6 +178,26 @@ const savedPlaylists = ref('[]');
 function getSavedPlaylists() {
   return JSON.parse(localStorage.getItem('savedPlaylists') || '[]');
 }
+
+function clearSoundsClicked() {
+  Dialog.create({
+    title: 'Clear all sounds ?',
+    style: 'background-color: var(--bkgColor); color: orange;',
+    ok: {
+      push: true,
+      color: 'red',
+      label: 'Clear',
+    },
+    cancel: {
+      push: true,
+      color: 'orange',
+      label: 'Cancel',
+    },
+  }).onOk(() => {
+    soundsStore.deleteAllSounds(false);
+    soundsStore.showSettingsWindow = false;
+  });
+}
 </script>
 
 <style scoped>
@@ -149,19 +210,25 @@ function getSavedPlaylists() {
   border: 0px;
   padding: 10px;
 }
+.section-name {
+  color: var(--blueColor);
+  font-size: 17px;
+  border-radius: 5px;
+
+  font-family: 'Roboto', sans-serif;
+}
 .save-playlist-row {
   display: flex;
   flex-direction: row;
   justify-content: space-evenly;
   align-items: center;
-  padding: 3px;
 }
 .buttonRow {
   display: flex;
   flex-direction: row;
   justify-content: space-evenly;
   align-items: center;
-  padding: 3px;
+  padding: 5px;
 }
 .playlist-buttons {
   display: flex;
@@ -177,11 +244,12 @@ function getSavedPlaylists() {
 }
 .saved-playlist {
   max-height: 300px;
+  overflow-y: auto;
 }
 .playlistName {
   color: orange;
-  font-size: 20px;
-  padding: 10px;
+  font-size: 18px;
+  padding: 5px;
   border-radius: 5px;
   width: 55%;
 }
@@ -192,10 +260,12 @@ function getSavedPlaylists() {
   color: orange;
   background-color: var(--blueColor);
   border-radius: 8px;
+  width: 35px;
 }
 .deletePlaylistButton {
   color: red;
   background-color: var(--blueColor);
   border-radius: 8px;
+  width: 35px;
 }
 </style>

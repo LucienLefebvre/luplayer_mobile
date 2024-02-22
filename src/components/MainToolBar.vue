@@ -12,7 +12,7 @@
       />
       <div style="display: flex; align-items: center">
         <img
-          src="src\assets\icon.png"
+          src="~assets\icon.png"
           style="height: 30px; width: auto; object-fit: contain"
         />
       </div>

@@ -65,13 +65,13 @@
         <div class="settings-label">Auto scroll to selected sound</div>
         <q-toggle v-model="settingsStore.autoScroll" color="orange" />
       </div>
-      <div class="settings-row">
+      <!-- <div class="settings-row">
         <div class="settings-label">Display playlist controls</div>
         <q-toggle
           v-model="settingsStore.displayPlaylistControls"
           color="orange"
         />
-      </div>
+      </div> -->
     </q-expansion-item>
     <q-expansion-item
       expand-separator

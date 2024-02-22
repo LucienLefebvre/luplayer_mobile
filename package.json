@@ -1,9 +1,9 @@
 {
-  "name": "luplayer-web",
-  "version": "0.0.1",
-  "description": "A Quasar Project",
-  "productName": "Luplayer-web",
-  "author": "LucienLefebvre <lucien.lefebvre57@gmail.com>",
+  "name": "LuPlayer",
+  "version": "0.1",
+  "description": "A simple audio player",
+  "productName": "LuPlayer",
+  "author": "Lucien Lefebvre <lucien.lefebvre57@gmail.com>",
   "private": true,
   "scripts": {
     "lint": "eslint --ext .js,.ts,.vue ./",

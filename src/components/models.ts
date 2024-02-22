@@ -17,6 +17,11 @@ export interface SoundModel {
   isCuePlayed: boolean;
   hasBeenCuePlayed: boolean;
 
+  isFadingIn: boolean;
+  isFadingOut: boolean;
+  fadeInStartTime: number;
+  fadeOutStartTime: number;
+
   audioElement: HTMLAudioElement;
   source: MediaElementAudioSourceNode | null;
 
@@ -80,6 +85,10 @@ export const dummySound: SoundModel = {
   displayWaveform: false,
   enveloppePoints: [],
   enveloppeIsEnabled: false,
+  isFadingIn: false,
+  isFadingOut: false,
+  fadeInStartTime: 0,
+  fadeOutStartTime: 0,
 };
 
 export interface EnveloppePoint {

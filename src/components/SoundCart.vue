@@ -98,7 +98,7 @@ onMounted(() => {
     group: { name: 'shared' },
     sort: true,
     onEnd: (evt) => {
-      dragEnd();
+      dragEnd(evt);
     },
   });
   sortable0.option('disabled', !soundsStore.isReordering);
@@ -109,18 +109,35 @@ onMounted(() => {
     group: { name: 'shared' },
     sort: true,
     onEnd: (evt) => {
-      dragEnd();
+      dragEnd(evt);
     },
   });
   sortable1.option('disabled', !soundsStore.isReordering);
 });
 
-function dragEnd() {
+function dragEnd(evt: Sortable.SortableEvent) {
+  const from = getCartFromDragEvent(evt.from);
+  const to = getCartFromDragEvent(evt.to);
+  const sound = from.find((s) => s.id === evt.item.id);
+  if (!sound) return;
+  const index = from.indexOf(sound);
+  from.splice(index, 1);
+  const toIndex = evt.newIndex ?? 0;
+  to.splice(toIndex, 0, sound);
+
   if (soundsStore.reorderLocked) return;
   if (soundsStore.isReordering) {
     soundsStore.isReordering = false;
   }
 }
+
+function getCartFromDragEvent(element: HTMLElement) {
+  if (element === elements0) {
+    return soundsStore.cartSounds0;
+  }
+  return soundsStore.cartSounds1;
+}
+
 watch(
   () => soundsStore.isReordering,
   () => {

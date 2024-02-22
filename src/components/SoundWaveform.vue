@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { PropType, ref, onMounted, watch } from 'vue';
+import { PropType, ref, onMounted, watch, onBeforeUnmount } from 'vue';
 import { useSettingsStore } from '../stores/settings-store';
 import { SoundModel } from './models';
 import { Waveform } from 'src/composables/waveform';
@@ -19,7 +19,6 @@ import {
   isCartSound,
   isPlaylistActiveSound,
 } from 'src/composables/sound-controller';
-import { useSoundsStore } from 'src/stores/sounds-store';
 
 const settingsStore = useSettingsStore();
 const props = defineProps({
@@ -43,10 +42,19 @@ onMounted(async () => {
     emits('long-touch', event);
   });
 
-  await waveform.calculateWaveformChunks().then((chunks) => {
-    sound.value.waveformChunks = chunks;
+  if (sound.value.waveformChunks) {
+    await waveform.setWaveformChunks(sound.value.waveformChunks);
     initWaveform();
-  });
+  } else {
+    await waveform.calculateWaveformChunks().then((chunks) => {
+      sound.value.waveformChunks = chunks;
+      initWaveform();
+    });
+  }
+});
+
+onBeforeUnmount(() => {
+  waveform.cleanUp();
 });
 
 function initWaveform() {
@@ -141,6 +149,13 @@ function updateWaveformColor() {
     waveform?.setRemainingWaveformFillColor(sound.value.color);
   }
 }
+
+watch(
+  () => sound.value.color,
+  () => {
+    updateWaveformColor();
+  }
+);
 
 watch(
   () => sound.value.trimDb,

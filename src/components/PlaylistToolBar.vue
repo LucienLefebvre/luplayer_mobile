@@ -1,13 +1,13 @@
 <template>
   <div class="playlist-toolbar">
-    <q-btn
+    <!--    <q-btn
       flat
       icon="skip_previous"
       class="icon"
       @click="previousButtonClicked"
       size="sm"
       v-show="shouldDisplayPlaylistControl()"
-    />
+    /> -->
     <q-btn
       icon="vertical_align_top"
       class="icon"
@@ -15,13 +15,13 @@
       size="sm"
       v-show="shouldDisplayPlaylistControl()"
     />
-    <q-btn
+    <!-- <q-btn
       icon="skip_next"
       class="icon"
       @click="nextButtonClicked"
       size="sm"
       v-show="shouldDisplayPlaylistControl()"
-    />
+    /> -->
     <q-btn
       icon="low_priority"
       :class="getReorderButtonClass()"
@@ -119,7 +119,11 @@ function getReorderButtonClass() {
 }
 
 function getFadeButtonClass() {
-  if (soundsStore.isFading) return 'alt-alt-icon';
+  if (
+    soundsStore.selectedSound?.isFadingIn ||
+    soundsStore.selectedSound?.isFadingOut
+  )
+    return 'alt-alt-icon';
   else return 'icon';
 }
 

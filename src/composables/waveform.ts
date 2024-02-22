@@ -413,12 +413,12 @@ export class Waveform {
     return this.globalWaveformChunks;
   }
 
-  public setWaveformChunks(waveformChunks: Float32Array) {
+  public async setWaveformChunks(waveformChunks: Float32Array) {
     this.globalWaveformChunks = waveformChunks;
 
     this.waveformCalculated = true;
     this.launchAnimation();
-    this.calculateYValueArrayFromChunks();
+    await this.calculateYValueArrayFromChunks();
   }
 
   private async calculateYValueArrayFromChunks() {
@@ -1367,7 +1367,34 @@ export class Waveform {
     this.minimapRangeLayer?.destroy();
     this.minimapRangeRect?.destroy();
 
-    this.touchHoldTimeout = null;
+    this.stage.destroy();
+    this.globalWaveformChunks = new Float32Array(0);
+    this.diplayWaveformChunks = new Float32Array(0);
+    this.displayChunkSize = 0;
+    this.waveformCalculated = false;
+    this.waveformLayer.destroy();
+    this.waveformLayerBackground.destroy();
+    this.playedLine.destroy();
+    this.remainingLine.destroy();
+    this.remainingLine.closed(true);
+    this.waveformBarsRect = [];
+    this.enveloppePointsLayer.destroy();
+    this.enveloppeLineLayer.destroy();
+    this.enveloppePointsDisplayCircles.forEach((circle) => {
+      circle.destroy();
+    });
+    this.enveloppePointsDragCircles.forEach((circle) => {
+      circle.destroy();
+    });
+    this.enveloppePointsLine.forEach((line) => {
+      line.destroy();
+    });
+    this.enveloppePointsValueLayer.destroy();
+    this.enveloppePointsValueText.destroy();
+    this.enveloppePointsValueTextBackground.destroy();
+    this.showLastClickedPoint = false;
+    this.lastClickedPointColor = 'yellow';
+    this.lastClickedPointIndex = -1;
 
     this.audioElement.removeEventListener('play', () => {
       this.handleAudioElementUpdate();
