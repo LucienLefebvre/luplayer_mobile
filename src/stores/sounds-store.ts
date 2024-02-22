@@ -581,12 +581,8 @@ export const useSoundsStore = defineStore('soundsStore', {
       audioElement.preload = 'metadata';
 
       loadedSound.base64FileContent = undefined;
-      loadedSound.fileContent = new ArrayBuffer(0);
 
-      console.log(
-        'size : ',
-        this.estimateSizeInBytes(loadedSound.waveformChunks)
-      );
+      console.log('size : ', this.estimateSizeInBytes(loadedSound.fileContent));
 
       audioElement.onloadedmetadata = () => {
         let sound: SoundModel = {
