@@ -10,7 +10,7 @@ import { dbToGain } from './math-helpers';
 import { NormalizableRange } from './normalizable-range';
 import { useThrottledRefHistory } from '@vueuse/core';
 
-const WINDOW_SIZE = 64;
+let WINDOW_SIZE = 256;
 const TOUCH_MOUSE_CLICK_TIME = 200;
 const TOUCH_HOLD_TIME = 500;
 
@@ -307,63 +307,113 @@ export class Waveform {
     this.eventTarget.removeEventListener(type, listener, options);
   }
 
-  public handleAudioElementUpdate() {
+  private handleAudioElementUpdate = () => {
     if (this.isPlayPositionAlwaysOnCenter) this.centerTimeRangeOnPlayPosition();
     this.launchAnimation();
-  }
+  };
   private registerEventsListeners() {
-    this.audioElement.addEventListener('play', () => {
-      this.handleAudioElementUpdate();
-    });
-    this.audioElement.addEventListener('pause', () => {
-      this.handleAudioElementUpdate();
-    });
-    this.audioElement.addEventListener('timeupdate', () => {
-      this.handleAudioElementUpdate();
-    });
+    this.audioElement.addEventListener('play', this.handleAudioElementUpdate);
+    this.audioElement.addEventListener('pause', this.handleAudioElementUpdate);
+    this.audioElement.addEventListener(
+      'timeupdate',
+      this.handleAudioElementUpdate
+    );
   }
+
+  private unregisterEventsListeners() {
+    this.audioElement.removeEventListener(
+      'play',
+      this.handleAudioElementUpdate
+    );
+    this.audioElement.removeEventListener(
+      'pause',
+      this.handleAudioElementUpdate
+    );
+    this.audioElement.removeEventListener(
+      'timeupdate',
+      this.handleAudioElementUpdate
+    );
+  }
+
+  private handleMouseDownTouchStart = (e: any) => {
+    const debounceClick = debounce(
+      () => {
+        this.handleMouseTouchStart(e);
+      },
+      10,
+      true
+    );
+    debounceClick();
+  };
+
+  private handleMouseUpTouchEnd = () => {
+    if (this.touchHoldTimeout) clearTimeout(this.touchHoldTimeout);
+    if (Date.now() - this.touchMouseDownTime < TOUCH_MOUSE_CLICK_TIME) {
+      this.handleClick();
+    }
+    if (this.isDragging) {
+      this.handleDragEnd();
+    }
+  };
+
+  private handleMouseMoveTouchMove = (e: any) => {
+    if (e.evt.touches && e.evt.touches.length > 1) {
+      this.handleTouchPan(e);
+    } else if (this.isDragging) {
+      this.handleDrag();
+    }
+  };
+
+  private handleWheel = (e: any) => {
+    this.handleMouseWheel(e.evt);
+  };
+
+  private handleWaveformStartEndTimesChanged = () => {
+    this.handleMinimapTimesChanged();
+  };
 
   private registerMouseEvents() {
-    this.waveformLayer?.on('mousedown touchstart', (e) => {
-      const debounceClick = debounce(
-        () => {
-          this.handleMouseTouchStart(e);
-        },
-        10,
-        true
-      );
-      debounceClick();
-    });
-
-    this.waveformLayer?.on('mouseup touchend', () => {
-      if (this.touchHoldTimeout) clearTimeout(this.touchHoldTimeout);
-      if (Date.now() - this.touchMouseDownTime < TOUCH_MOUSE_CLICK_TIME) {
-        this.handleClick();
-      }
-      if (this.isDragging) {
-        this.handleDragEnd();
-      }
-    });
+    this.waveformLayer?.on(
+      'mousedown touchstart',
+      this.handleMouseDownTouchStart
+    );
+    this.waveformLayer?.on('mouseup touchend', this.handleMouseUpTouchEnd);
 
     if (this.isZoomable) {
-      this.waveformLayer?.on('mousemove touchmove', (e) => {
-        if (e.evt.touches && e.evt.touches.length > 1) {
-          this.handleTouchPan(e);
-        } else if (this.isDragging) {
-          this.handleDrag();
-        }
-      });
+      this.waveformLayer?.on(
+        'mousemove touchmove',
+        this.handleMouseMoveTouchMove
+      );
     }
-    this.waveformLayer?.on('wheel', (e) => {
-      this.handleMouseWheel(e.evt);
-    });
+    this.waveformLayer?.on('wheel', this.handleWheel);
 
     if (this.isMinimap && this.minimapWaveformReference !== null) {
       this.minimapWaveformReference.addEventListener(
         'waveformStartEndTimesChanged',
-        () => {
-          this.handleMinimapTimesChanged();
-        }
+        this.handleWaveformStartEndTimesChanged
+      );
+    }
+  }
+
+  private deregisterMouseEvents() {
+    this.waveformLayer?.off(
+      'mousedown touchstart',
+      this.handleMouseDownTouchStart
+    );
+    this.waveformLayer?.off('mouseup touchend', this.handleMouseUpTouchEnd);
+
+    if (this.isZoomable) {
+      this.waveformLayer?.off(
+        'mousemove touchmove',
+        this.handleMouseMoveTouchMove
+      );
+    }
+    this.waveformLayer?.off('wheel', this.handleWheel);
+
+    if (this.isMinimap && this.minimapWaveformReference !== null) {
+      this.minimapWaveformReference.removeEventListener(
+        'waveformStartEndTimesChanged',
+        this.handleWaveformStartEndTimesChanged
       );
     }
   }
@@ -381,6 +431,7 @@ export class Waveform {
   }
 
   public async calculateWaveformChunks(): Promise<Float32Array> {
+    console.log('calculateWaveformChunks');
     try {
       const buffer = await fetch(this.audioElement.src).then((response) =>
         response.arrayBuffer()
@@ -394,21 +445,23 @@ export class Waveform {
         rightChannelData = leftChannelData;
       }
 
+      if (this.audioElement.duration < 2) WINDOW_SIZE = 8;
+
       this.globalWaveformChunks = calculate_waveform_chunks(
         leftChannelData,
         rightChannelData,
         WINDOW_SIZE
       );
+
+      this.waveformCalculated = true;
+      this.launchAnimation();
+      this.calculateYValueArrayFromChunks();
+
+      const event = new CustomEvent('waveformChunksCalculated');
+      this.eventTarget.dispatchEvent(event);
     } catch (error) {
       console.error('Error:', error);
     }
-
-    this.waveformCalculated = true;
-    this.launchAnimation();
-    this.calculateYValueArrayFromChunks();
-
-    const event = new CustomEvent('waveformChunksCalculated');
-    this.eventTarget.dispatchEvent(event);
 
     return this.globalWaveformChunks;
   }
@@ -864,7 +917,9 @@ export class Waveform {
 
       const timeDelta = this.xToTime(this.dragStartX + deltaX) - dragStartXTime;
 
-      this.setCurrentPlayTime(this.audioElement.currentTime - timeDelta, false);
+      const timeToSet = this.audioElement.currentTime - timeDelta;
+      this.setCurrentPlayTime(timeToSet, true);
+
       this.centerTimeRangeOnPlayPosition();
 
       this.dragStartX = pointerPosX;
@@ -1356,6 +1411,9 @@ export class Waveform {
   }
 
   cleanUp() {
+    this.unregisterEventsListeners();
+    this.deregisterMouseEvents();
+
     this.stage.off('mousedown touchstart');
     this.stage.off('mouseup touchend');
     this.stage.off('mousemove touchmove');
@@ -1396,15 +1454,6 @@ export class Waveform {
     this.lastClickedPointColor = 'yellow';
     this.lastClickedPointIndex = -1;
 
-    this.audioElement.removeEventListener('play', () => {
-      this.handleAudioElementUpdate();
-    });
-    this.audioElement.removeEventListener('pause', () => {
-      this.handleAudioElementUpdate();
-    });
-    this.audioElement.removeEventListener('timeupdate', () => {
-      this.handleAudioElementUpdate();
-    });
     this.minimapWaveformReference?.removeEventListener(
       'waveformStartEndTimesChanged',
       () => {

@@ -243,7 +243,7 @@ watch(
   padding: 4px;
 }
 .settings-part-name {
-  font-size: 17px;
+  font-size: 1.1rem;
   color: var(--blueColor);
 }
 .settings-row {
@@ -252,7 +252,7 @@ watch(
   justify-content: space-between;
   align-items: center;
   padding: 2px;
-  font-size: 15px;
+  font-size: 1rem;
   color: orange;
   max-width: 100%;
 }

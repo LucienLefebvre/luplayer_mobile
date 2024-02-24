@@ -212,7 +212,7 @@ function clearSoundsClicked() {
 }
 .section-name {
   color: var(--blueColor);
-  font-size: 17px;
+  font-size: 1.1rem;
   border-radius: 5px;
 
   font-family: 'Roboto', sans-serif;
@@ -240,7 +240,7 @@ function clearSoundsClicked() {
 }
 .nameInput {
   width: 80%;
-  font-size: 18px;
+  font-size: 1.2rem;
 }
 .saved-playlist {
   max-height: 300px;
@@ -248,7 +248,7 @@ function clearSoundsClicked() {
 }
 .playlistName {
   color: orange;
-  font-size: 18px;
+  font-size: 1.2rem;
   padding: 5px;
   border-radius: 5px;
   width: 55%;

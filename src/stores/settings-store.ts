@@ -4,6 +4,7 @@ export const useSettingsStore = defineStore('settingsStore', {
   state: () =>
     reactive({
       keepScreenAwake: true as boolean,
+      vibration: true as boolean,
 
       autoScroll: true as boolean,
 

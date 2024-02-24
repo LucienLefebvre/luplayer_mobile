@@ -39,7 +39,7 @@
   padding: 10px;
   border: 0px;
   text-align: center;
-  font-size: large;
+  font-size: 1.2rem;
   background-color: var(--bkgColor);
 }
 

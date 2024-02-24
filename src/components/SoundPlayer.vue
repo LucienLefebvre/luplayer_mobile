@@ -59,6 +59,9 @@
           <div v-if="isCartSound(sound) && sound.isLooping" class="text-yellow">
             <q-icon name="loop" />
           </div>
+          <div v-if="isCartSound(sound) && sound.retrigger" class="text-yellow">
+            <q-icon name="start" />
+          </div>
           <div class="sound-name">{{ props.sound.name }}</div>
           <div class="sound-duration">
             {{ getSoundDurationLabel($props.sound) }}
@@ -87,11 +90,12 @@ import {
   isPlaylistActiveSound,
   setPlaylistActiveSound,
   isSelectedSound,
+  playSound,
+  stopSound,
 } from 'src/composables/sound-controller';
 import { getCssVar, colors, is } from 'quasar';
 import { onLongPress, useSwipe } from '@vueuse/core';
 import type { SwipeDirection } from '@vueuse/core';
-import { dir } from 'console';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -241,6 +245,12 @@ function soundTouchUp(soundModel: SoundModel) {
     const isDoubleTap = now - timeOfLastClick < 300;
 
     if (isCartSound(soundModel)) {
+      if (soundModel.retrigger) {
+        stopSound(soundModel);
+        playSound(soundModel, false, false);
+        setSelectedSound(soundModel);
+        return;
+      }
       playOrStopSound(
         soundModel,
         false,
@@ -261,6 +271,9 @@ const longPressed = ref(false);
 function onLongPressCallback(e: PointerEvent) {
   if (!soundsStore.isReordering) {
     longPressed.value = true;
+    if (sound.value.isPlaying && sound.value.retrigger) {
+      stopSound(sound.value);
+    }
     if (isPlaylistSound(sound.value)) {
       setPlaylistActiveSound(sound.value, true);
     } else {
@@ -341,7 +354,7 @@ function getSoundNameHeight() {
   justify-content: space-between;
   width: 100%;
   max-width: 100%;
-  font-size: 16px;
+  font-size: 1rem;
   gap: 5px;
 }
 .sound-progress-bar {

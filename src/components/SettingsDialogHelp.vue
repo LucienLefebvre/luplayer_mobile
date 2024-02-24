@@ -85,11 +85,11 @@ function getFadeInSvgPath() {
   padding: 10px;
 }
 .help-part-name {
-  font-size: 17px;
+  font-size: 1.1rem;
   color: var(--blueColor);
 }
 .help-text {
-  font-size: 15px;
+  font-size: 1rem;
   color: orange;
 }
 .icon {

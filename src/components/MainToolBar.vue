@@ -96,7 +96,9 @@ function toggleSettings() {
 }
 .listLabel {
   color: var(--blueColor);
-  font-size: 17px;
+  font-size: 1rem;
+
+  font-family: 'Roboto', sans-serif;
 }
 
 .toolbar-title {
@@ -104,6 +106,6 @@ function toggleSettings() {
   overflow: visible;
   text-overflow: clip;
   color: var(--blueColor);
-  font-size: 20px;
+  font-size: 1.5rem;
 }
 </style>

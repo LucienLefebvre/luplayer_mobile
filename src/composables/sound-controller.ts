@@ -322,6 +322,16 @@ export function registerEventListeners(sound: SoundModel) {
   );
 }
 
+export function unregisterEventListeners(sound: SoundModel) {
+  sound.audioElement.removeEventListener('play', () => handlePlayEvent(sound));
+  sound.audioElement.removeEventListener('pause', () =>
+    handlePauseEvent(sound)
+  );
+  sound.audioElement.removeEventListener('timeupdate', () =>
+    handleTimeUpdateEvent(sound)
+  );
+}
+
 export function handlePlayEvent(sound: SoundModel) {
   sound.isPlaying = true;
 }

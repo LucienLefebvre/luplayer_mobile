@@ -35,12 +35,8 @@ onMounted(async () => {
   if (!waveformNew.value) return;
   waveform = new Waveform(waveformNew.value, props.sound.audioElement);
 
-  waveform.addEventListener('click', (event) => {
-    emits('click', event);
-  });
-  waveform.addEventListener('touchHold', (event) => {
-    emits('long-touch', event);
-  });
+  waveform.addEventListener('click', handleClick);
+  waveform.addEventListener('touchHold', handleTouchHold);
 
   if (sound.value.waveformChunks) {
     await waveform.setWaveformChunks(sound.value.waveformChunks);
@@ -54,8 +50,18 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  waveform.removeEventListener('click', handleClick);
+  waveform.removeEventListener('touchHold', handleTouchHold);
   waveform.cleanUp();
 });
+
+function handleClick(event: any) {
+  emits('click', event);
+}
+
+function handleTouchHold(event: any) {
+  emits('long-touch', event);
+}
 
 function initWaveform() {
   waveform.setHeight(getWaveformHeight());

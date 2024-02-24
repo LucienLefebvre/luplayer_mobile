@@ -125,7 +125,7 @@ async function processFiles(files: FileList, input: HTMLInputElement) {
 
           const audioElement = document.createElement('audio');
           const objectUrl = URL.createObjectURL(blob);
-          audioElement.src = audioElement.src = objectUrl;
+          audioElement.src = objectUrl;
           audioElement.preload = 'metadata';
 
           await soundsStore.loadSound(audioElement, file.name, arrayBuffer);

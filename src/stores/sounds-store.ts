@@ -106,6 +106,10 @@ export const useSoundsStore = defineStore('soundsStore', {
               { time: audioElement.duration, gainDb: 0 },
             ] as EnveloppePoint[];
 
+            /* if (audioElement.duration < 2000) {
+              await this.replaceAudioElement(audioElement);
+            } */
+
             let addedSound: SoundModel = {
               id: uuidv4(),
               fileContent: fileContent,
@@ -120,6 +124,7 @@ export const useSoundsStore = defineStore('soundsStore', {
               isPlaylistActiveSound: false,
               isCuePlayed: false,
               isLooping: false,
+              retrigger: false,
               hasBeenCuePlayed: false,
               volumeDb: 0.0,
               trimDb: 0.0,
@@ -173,6 +178,32 @@ export const useSoundsStore = defineStore('soundsStore', {
           }
         };
       });
+    },
+
+    async replaceAudioElement(audioElement: HTMLAudioElement) {
+      const source = this.audioContext?.createMediaElementSource(audioElement);
+      await this.audioContext?.audioWorklet.addModule(
+        'src/scripts/audio-buffer-processor.js'
+      );
+      const processor = new AudioWorkletNode(
+        this.audioContext as AudioContext,
+        'audio-buffer-processor'
+      );
+
+      const response = await fetch(audioElement.src);
+      const buffer = await response.arrayBuffer();
+      const baseAudioBuffer = await this.audioContext?.decodeAudioData(buffer);
+      const audioBuffer = this.audioContext?.createBuffer(
+        2,
+        baseAudioBuffer!.sampleRate * 2,
+        baseAudioBuffer!.sampleRate
+      );
+      if (audioBuffer === undefined) return baseAudioBuffer!;
+      audioBuffer?.copyToChannel(baseAudioBuffer!.getChannelData(0), 0);
+      audioBuffer?.copyToChannel(baseAudioBuffer!.getChannelData(0), 1);
+
+      const sourceNode = this.audioContext?.createBufferSource();
+      if (sourceNode === undefined) return;
     },
 
     addSoundToCart(addedSound: SoundModel) {

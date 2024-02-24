@@ -32,6 +32,7 @@ export interface SoundModel {
   timeOutId?: ReturnType<typeof setTimeout>;
 
   isLooping: boolean;
+  retrigger: boolean;
 
   launchTime: number;
 
@@ -72,6 +73,7 @@ export const dummySound: SoundModel = {
   inTime: null,
   outTime: null,
   isLooping: false,
+  retrigger: false,
   launchTime: 0,
   integratedLoudness: null,
   volumeDb: 0,

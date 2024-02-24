@@ -58,7 +58,7 @@ function buttonLabel() {
 <style scoped>
 .button {
   width: 100%;
-  font-size: 32px;
+  font-size: 2rem;
   align-items: center;
 }
 </style>

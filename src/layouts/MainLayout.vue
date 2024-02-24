@@ -8,7 +8,7 @@
     </q-page-container>
   </q-layout>
   <q-dialog v-model="soundsStore.showEditWindow" full-width position="bottom">
-    <sound-details />
+    <sound-details :key="soundDetailsKey" @remount="remountSoundDetails()" />
   </q-dialog>
   <q-dialog v-model="soundsStore.showReorderWindow" full-width>
     <div class="column fit centered-content">
@@ -25,7 +25,7 @@
   </q-dialog>
   <q-dialog v-model="soundsStore.showPlaylistLoadSaveWindow">
     <div class="column fit centered-content">
-      <div style="color: orange; font-size: 15px">
+      <div style="color: orange; font-size: 1rem">
         {{ soundsStore.playlistLoadSaveWindowText }}
       </div>
       <q-linear-progress
@@ -39,7 +39,7 @@
 
 <script setup lang="ts">
 import { useWakeLock } from '@vueuse/core';
-import { onMounted, watch } from 'vue';
+import { onMounted, watch, ref } from 'vue';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 
@@ -80,6 +80,11 @@ watch(
     }
   }
 );
+
+const soundDetailsKey = ref(0);
+function remountSoundDetails() {
+  soundDetailsKey.value += 1;
+}
 </script>
 
 <style>
