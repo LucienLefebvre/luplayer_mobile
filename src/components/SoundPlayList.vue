@@ -12,7 +12,7 @@
         :id="sound.id"
         ref="soundPlayerRefs"
       >
-        <SoundPlayer :sound="sound" :id="sound.id" />
+        <SoundPlayer :sound="sound" :id="sound.id" :key="sound.id" />
       </div>
     </div>
   </div>
@@ -136,6 +136,14 @@ watch(
 onMounted(() => {
   updateHeight();
 });
+
+watch(
+  () => soundsStore.playlistSounds,
+  (newPlaylist, oldPlaylist) => {
+    console.log(soundPlayerRefs.value.length);
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped>

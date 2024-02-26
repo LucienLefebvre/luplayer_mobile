@@ -189,9 +189,57 @@
         />
       </div>
     </q-expansion-item>
+    <q-expansion-item
+      expand-separator
+      label="Performance"
+      class="settings-part-name"
+      group="settings-item-group"
+    >
+      <div class="settings-row">
+        <div class="settings-label">Performance mode (need restart)</div>
+        <q-btn-dropdown
+          flat
+          :label="getPerformanceLabel()"
+          class="q-mr-sm"
+          style="color: orange"
+          transition-duration="100"
+        >
+          <q-list style="background-color: var(--bkgColor)">
+            <q-item
+              clickable
+              v-close-popup
+              @click="settingsStore.audioContextLatencyHint = 'playback'"
+              :style="{
+                'background-color':
+                  settingsStore.audioContextLatencyHint === 'playback'
+                    ? 'orange'
+                    : 'var(--bkgColor)',
+              }"
+            >
+              <q-item-section>
+                <q-item-label class="listLabel">Best performance</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-close-popup
+              @click="settingsStore.audioContextLatencyHint = 'interactive'"
+              :style="{
+                'background-color':
+                  settingsStore.audioContextLatencyHint === 'interactive'
+                    ? 'orange'
+                    : 'var(--bkgColor)',
+              }"
+            >
+              <q-item-section>
+                <q-item-label class="listLabel">Minimize latency</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+      </div>
+    </q-expansion-item>
   </div>
-
-  <!--     </q-card> -->
 </template>
 
 <script setup lang="ts">
@@ -226,6 +274,15 @@ watch(
     settingsStore.peakMeterRedThreshold = newValue;
   }
 );
+
+function getPerformanceLabel() {
+  if (settingsStore.audioContextLatencyHint === 'interactive') {
+    return 'Minimize latency';
+  } else if (settingsStore.audioContextLatencyHint === 'playback') {
+    return 'Best performance';
+  }
+  return 'Best performance';
+}
 </script>
 
 <style scoped>
@@ -243,8 +300,10 @@ watch(
   padding: 4px;
 }
 .settings-part-name {
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: var(--blueColor);
+  font-weight: 500;
+  text-transform: uppercase;
 }
 .settings-row {
   display: flex;
@@ -252,11 +311,22 @@ watch(
   justify-content: space-between;
   align-items: center;
   padding: 2px;
-  font-size: 1rem;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.715em;
   color: orange;
   max-width: 100%;
+  text-transform: uppercase;
 }
 .settings-label {
   padding-right: 10px;
+}
+.listLabel {
+  color: var(--blueColor);
+  font-size: 1rem;
+  font-family: 'Roboto', sans-serif;
+  text-transform: uppercase;
+  font-size: 14px;
+  font-weight: 500;
 }
 </style>

@@ -58,7 +58,7 @@
         </div>
       </div>
     </div>
-    <div class="section-name">Empty playlist :</div>
+    <div class="section-name">Clear playlist :</div>
     <div class="buttonRow">
       <q-btn
         label="Clear all sounds"
@@ -211,11 +211,10 @@ function clearSoundsClicked() {
   padding: 10px;
 }
 .section-name {
+  font-size: 1rem;
   color: var(--blueColor);
-  font-size: 1.1rem;
-  border-radius: 5px;
-
-  font-family: 'Roboto', sans-serif;
+  font-weight: 500;
+  text-transform: uppercase;
 }
 .save-playlist-row {
   display: flex;

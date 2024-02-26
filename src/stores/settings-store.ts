@@ -5,6 +5,7 @@ export const useSettingsStore = defineStore('settingsStore', {
     reactive({
       keepScreenAwake: true as boolean,
       vibration: true as boolean,
+      audioContextLatencyHint: 'playback' as string,
 
       autoScroll: true as boolean,
 

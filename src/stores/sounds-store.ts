@@ -67,7 +67,13 @@ export const useSoundsStore = defineStore('soundsStore', {
 
   actions: {
     async initAudioContext() {
-      this.audioContext = new AudioContext();
+      const latencyHint = this.settingsStore
+        .audioContextLatencyHint as AudioContextLatencyCategory;
+      this.audioContext = new AudioContext({
+        latencyHint: latencyHint,
+      });
+      console.log(this.audioContext.baseLatency);
+
       this.sampleRate = this.audioContext.sampleRate;
 
       this.outputGainNode = this.audioContext.createGain();

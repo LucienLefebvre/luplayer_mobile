@@ -73,7 +73,15 @@
 </template>
 
 <script setup lang="ts">
-import { PropType, ref, onMounted, Ref, watch, computed } from 'vue';
+import {
+  PropType,
+  ref,
+  onMounted,
+  Ref,
+  watch,
+  computed,
+  onBeforeUnmount,
+} from 'vue';
 import { SoundModel } from './models';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
@@ -94,7 +102,7 @@ import {
   stopSound,
 } from 'src/composables/sound-controller';
 import { getCssVar, colors, is } from 'quasar';
-import { onLongPress, useSwipe } from '@vueuse/core';
+import { onLongPress, tryOnBeforeUnmount, useSwipe } from '@vueuse/core';
 import type { SwipeDirection } from '@vueuse/core';
 
 const soundsStore = useSoundsStore();
@@ -208,15 +216,7 @@ const { direction, isSwiping, lengthX, lengthY } = useSwipe(playerCard, {
       }
       soundsStore.askForSoundDeletion(sound.value);
       resetSwipe();
-    } /* else if (
-      direction === 'LEFT' &&
-      containerWidth.value &&
-      Math.abs(lengthX.value) / containerWidth.value >= 0.5
-    ) {
-      setSelectedSound(sound.value, false);
-      soundsStore.showEditWindow = true;
-      resetSwipe();
-    } */ else {
+    } else {
       resetSwipe();
     }
   },
@@ -293,6 +293,7 @@ function getSoundIndex() {
 const nameBar: Ref<HTMLElement | null> = ref(null);
 const progressBar = ref<typeof SoundProgressBar | null>(null);
 const barWidth = ref(0);
+
 onMounted(() => {
   if (nameBar.value) {
     barWidth.value = nameBar.value.offsetWidth;
@@ -326,6 +327,14 @@ function getSoundNameHeight() {
       : settingsStore.playlistSoundNameHeightFactor * 20;
   }
 }
+
+onBeforeUnmount(() => {
+  soundWaveforms.value = null;
+  playerCard.value = null;
+  playerContainer.value = null;
+  nameBar.value = null;
+  progressBar.value = null;
+});
 </script>
 
 <style scoped>
