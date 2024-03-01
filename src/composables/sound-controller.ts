@@ -502,7 +502,8 @@ export function getTrimValueFromLoudness(
   loudness: number,
   targetValue: number
 ) {
-  return Math.round((-23 + targetValue - loudness) * 10) / 10;
+  if (loudness === Number.NEGATIVE_INFINITY) return 0;
+  else return Math.round((-23 + targetValue - loudness) * 10) / 10;
 }
 
 export function toggleHpf(sound: SoundModel) {

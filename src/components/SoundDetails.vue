@@ -545,8 +545,11 @@ function getPreviousSound(): SoundModel | null {
 }
 
 const emits = defineEmits(['remount']);
+
 function showLeftArrow() {
-  return getPreviousSound() !== null;
+  const isPlaylistAndPlaying =
+    soundsStore.playerMode === 'playlist' && sound.isPlaying;
+  return getPreviousSound() !== null && !isPlaylistAndPlaying;
 }
 
 function leftArrowClicked() {
@@ -586,7 +589,9 @@ function getNextSound(): SoundModel | null {
 }
 
 function showRightArrow() {
-  return getNextSound() !== null;
+  const isPlaylistAndPlaying =
+    soundsStore.playerMode === 'playlist' && sound.isPlaying;
+  return getNextSound() !== null && !isPlaylistAndPlaying;
 }
 
 function rightArrowClicked() {
@@ -670,7 +675,7 @@ function setEditedSound(sound: SoundModel) {
   font-size: 1rem;
 }
 .trim-gain-value {
-  width: 55px;
+  width: 65px;
   color: var(--blueColor);
   background-color: orange;
   border-radius: 5px;
