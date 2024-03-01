@@ -112,7 +112,8 @@ onMounted(() => {
       y: 0,
       text: `${value}`,
       fontSize: 14,
-      fontFamily: 'Calibri',
+      fontFamily: 'Roboto',
+      fontStyle: 'bold',
       fill: 'black',
       opacity: 0.5,
       strokeWidth: 2,
@@ -136,7 +137,7 @@ function meterBarRectBuilder(
   cornerRadius = 5
 ): Konva.Rect {
   const bar = new Konva.Rect({
-    x: 0,
+    x: -10,
     y: 0,
     width: 0,
     height: stage.height() / 2,
@@ -178,7 +179,7 @@ function drawBar(channelToDraw: number) {
   if (peakValue[channelToDraw] < peakHoldValue) {
     setPeakHoldTimeOut();
   }
-  const meterWidth = stage.width();
+  const meterWidth = stage.width() + 10;
   const meterHeight = stage.height();
 
   const barHeight = meterHeight / 2;

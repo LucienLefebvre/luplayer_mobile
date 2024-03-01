@@ -309,6 +309,18 @@ export const useSoundsStore = defineStore('soundsStore', {
       }
     },
 
+    checkIfThereArePlayingSounds() {
+      if (this.playerMode === 'playlist') {
+        return this.playlistSounds.some((sound) => sound.isPlaying);
+      }
+      if (this.playerMode === 'cart') {
+        return (
+          this.cartSounds0.some((sound) => sound.isPlaying) ||
+          this.cartSounds1.some((sound) => sound.isPlaying)
+        );
+      }
+    },
+
     initializePlaylistMode() {
       if (this.playerMode === 'playlist') return;
 

@@ -39,7 +39,6 @@
           :style="{
             color: getWaveformColor(),
             fontSize: getSoundNameHeight() + 'px',
-            userSelect: 'none',
           }"
           ref="nameBar"
         >
@@ -344,7 +343,6 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-
   align-items: center;
 }
 .soundBackground {
@@ -365,6 +363,7 @@ onBeforeUnmount(() => {
   max-width: 100%;
   font-size: 1rem;
   gap: 5px;
+  user-select: none;
 }
 .sound-progress-bar {
   position: absolute;

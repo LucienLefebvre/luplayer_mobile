@@ -136,14 +136,6 @@ watch(
 onMounted(() => {
   updateHeight();
 });
-
-watch(
-  () => soundsStore.playlistSounds,
-  (newPlaylist, oldPlaylist) => {
-    console.log(soundPlayerRefs.value.length);
-  },
-  { deep: true }
-);
 </script>
 
 <style scoped>

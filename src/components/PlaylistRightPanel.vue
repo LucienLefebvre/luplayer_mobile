@@ -1,6 +1,6 @@
 <template>
   <div class="right-panel">
-    <div class="row justify-center volumeLabel" style="height: 5%">
+    <div class="row justify-center volume-label" style="height: 5%">
       {{ getVolumeLabelText() }}
     </div>
     <div class="row justify-center flex" style="height: 85%">
@@ -108,9 +108,10 @@ function faderTouchEnd() {
 </script>
 
 <style scoped>
-.volumeLabel {
+.volume-label {
   font-size: 1rem;
   color: orange;
+  user-select: none;
 }
 .right-panel {
   display: flex;

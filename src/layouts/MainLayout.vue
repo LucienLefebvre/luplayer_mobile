@@ -53,10 +53,18 @@ import PlayerMainPanel from 'src/components/PlayerMainPanel.vue';
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 const wakeLock = useWakeLock();
+
 onMounted(() => {
   if (settingsStore.keepScreenAwake) wakeLock.request('screen');
 
   settingsStore.loadSettings();
+
+  if (process.env.NODE_ENV === 'production') {
+    window.addEventListener('beforeunload', (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    });
+  }
 });
 
 watch(

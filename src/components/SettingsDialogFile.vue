@@ -180,6 +180,16 @@ function getSavedPlaylists() {
 }
 
 function clearSoundsClicked() {
+  if (soundsStore.checkIfThereArePlayingSounds()) {
+    Notify.create({
+      message: "Can't clear the playlist while sounds are playing",
+      type: 'negative',
+      position: 'top',
+      timeout: 1000,
+    });
+    return;
+  }
+
   Dialog.create({
     title: 'Clear all sounds ?',
     style: 'background-color: var(--bkgColor); color: orange;',

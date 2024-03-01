@@ -97,7 +97,6 @@ function toggleSettings() {
 .listLabel {
   color: var(--blueColor);
   font-size: 1rem;
-
   font-family: 'Roboto', sans-serif;
 }
 
