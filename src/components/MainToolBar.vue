@@ -63,26 +63,22 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { useSoundsStore } from '../stores/sounds-store';
+import { useSettingsStore } from 'src/stores/settings-store';
 
 const soundsStore = useSoundsStore();
-const router = useRouter();
+const settingsStore = useSettingsStore();
 
-onMounted(() => {
-  playlistClicked();
-});
 function cartClicked() {
   soundsStore.initializeCartMode();
+  settingsStore.lastUsedPlayerMode = 'cart';
+  settingsStore.saveSettings();
 }
 
 function playlistClicked() {
   soundsStore.initializePlaylistMode();
-}
-
-function playlistAndCartClicked() {
-  soundsStore.initializePlaylistAndCartMode();
+  settingsStore.lastUsedPlayerMode = 'playlist';
+  settingsStore.saveSettings();
 }
 
 function toggleSettings() {

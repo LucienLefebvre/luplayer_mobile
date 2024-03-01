@@ -59,6 +59,16 @@ onMounted(() => {
 
   settingsStore.loadSettings();
 
+  console.log('lastUsedPlayerMode', settingsStore.lastUsedPlayerMode);
+  switch (settingsStore.lastUsedPlayerMode) {
+    case 'playlist':
+      soundsStore.initializePlaylistMode();
+      break;
+    case 'cart':
+      soundsStore.initializeCartMode();
+      break;
+  }
+
   if (process.env.NODE_ENV === 'production') {
     window.addEventListener('beforeunload', (e) => {
       e.preventDefault();

@@ -7,6 +7,8 @@ export const useSettingsStore = defineStore('settingsStore', {
       vibration: true as boolean,
       audioContextLatencyHint: 'playback' as string,
 
+      lastUsedPlayerMode: 'playlist' as string,
+
       autoScroll: true as boolean,
 
       showMultiChannelWaveform: false as boolean,
