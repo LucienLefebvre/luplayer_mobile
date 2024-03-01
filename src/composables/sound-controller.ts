@@ -16,7 +16,8 @@ export function playSound(
   const audioContext = soundsStore.audioContext;
   if (audioContext === null) return;
 
-  initSoundAudio(sound, audioContext, soundsStore);
+  if (!sound.soundAudioHasBeenInitialized)
+    initSoundAudio(sound, audioContext, soundsStore);
   if (!sound.trimGainNode || !sound.volumeGainNode || !sound.enveloppeGainNode)
     return;
 
@@ -37,7 +38,7 @@ export function playSound(
 
   if (fadeIn) {
     const fadeTime = settingsStore.defaultFadeInTime / 1000;
-    sound.trimGainNode.gain.setValueAtTime(0.01, audioContext.currentTime);
+    sound.trimGainNode.gain.setValueAtTime(0.005, audioContext.currentTime);
     sound.trimGainNode.gain.exponentialRampToValueAtTime(
       dbToGain(sound.trimDb),
       audioContext.currentTime + fadeTime
@@ -112,34 +113,28 @@ function initSoundAudio(
   sound.trimGainNode.connect(sound.volumeGainNode);
   sound.volumeGainNode.connect(sound.enveloppeGainNode);
   sound.enveloppeGainNode.connect(soundsStore.outputGainNode);
+
+  sound.soundAudioHasBeenInitialized = true;
 }
 
 export function pauseSound(sound: SoundModel) {
   sound.audioElement.pause();
   sound.isPlaying = false;
+
   if (!isCartSound(sound)) sound.volumeDb = 0;
-  disconnectAndRemoveNodes(sound);
+
   clearTimeout(sound.timeOutId);
 }
 
 export function stopSound(sound: SoundModel, stoppedByFader = false) {
   sound.audioElement.pause();
-  //sound.audioElement.currentTime = sound.inTime ?? 0;
   sound.audioElement.currentTime = 0;
   sound.isPlaying = false;
+
   if (!isCartSound(sound)) sound.volumeDb = 0;
   if (stoppedByFader) sound.volumeDb = 0;
-  disconnectAndRemoveNodes(sound);
-  clearTimeout(sound.timeOutId);
-}
 
-export function disconnectAndRemoveNodes(sound: SoundModel) {
-  sound.trimGainNode?.disconnect();
-  sound.volumeGainNode?.disconnect();
-  sound.enveloppeGainNode?.disconnect();
-  sound.trimGainNode = null;
-  sound.volumeGainNode = null;
-  sound.enveloppeGainNode = null;
+  clearTimeout(sound.timeOutId);
 }
 
 export function playOrStopSound(
@@ -230,7 +225,7 @@ export function stopSoundWithFadeOut(sound: SoundModel) {
     remainingTime
   );
   sound.trimGainNode.gain.exponentialRampToValueAtTime(
-    0.01,
+    0.005,
     audioContext.currentTime + rampTime
   );
 
@@ -471,6 +466,9 @@ export function setName(sound: SoundModel, name: string) {
 
 export async function normalizeSound(sound: SoundModel, targetValue: number) {
   if (sound.integratedLoudness === null) {
+    const soundsStore = useSoundsStore();
+    soundsStore.loudnessBeingCalculatedSounds.push(sound.id);
+
     const buffer = await fetch(sound.audioElement.src).then((response) =>
       response.arrayBuffer()
     );
@@ -487,6 +485,11 @@ export async function normalizeSound(sound: SoundModel, targetValue: number) {
         rightChannelData === null ? leftChannelData : rightChannelData,
         audioBuffer.sampleRate
       );
+
+      soundsStore.loudnessBeingCalculatedSounds =
+        soundsStore.loudnessBeingCalculatedSounds.filter(
+          (id) => id !== sound.id
+        );
 
       setTrimGain(sound, getTrimValueFromLoudness(loudness, targetValue));
     });

@@ -30,7 +30,8 @@ export const useSoundsStore = defineStore('soundsStore', {
       cartSounds0: [] as SoundModel[],
       cartSounds1: [] as SoundModel[],
 
-      loadingSounds: [] as File[],
+      waveformBeingCalculatedSounds: [] as string[],
+      loudnessBeingCalculatedSounds: [] as string[],
 
       playerMode: 'playlist' as 'playlist' | 'cart' | 'playlistAndCart',
       arrayToAddSound: 'playlist' as 'playlist' | 'cart',
@@ -117,6 +118,7 @@ export const useSoundsStore = defineStore('soundsStore', {
             } */
 
             let addedSound: SoundModel = {
+              soundAudioHasBeenInitialized: false,
               id: uuidv4(),
               fileContent: fileContent,
               name: name,
@@ -182,6 +184,10 @@ export const useSoundsStore = defineStore('soundsStore', {
           } catch (error) {
             reject(error);
           }
+        };
+        audioElement.onerror = () => {
+          console.log('error');
+          reject();
         };
       });
     },

@@ -1,6 +1,8 @@
 import Konva from 'konva';
 
 export interface SoundModel {
+  soundAudioHasBeenInitialized: boolean;
+
   id: string;
 
   fileContent: ArrayBuffer;
@@ -56,6 +58,7 @@ export interface SoundModel {
 }
 
 export const dummySound: SoundModel = {
+  soundAudioHasBeenInitialized: false,
   id: '',
   name: '',
   color: '',

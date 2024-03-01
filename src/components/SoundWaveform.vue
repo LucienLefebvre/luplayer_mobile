@@ -10,6 +10,7 @@
 
 <script setup lang="ts">
 import { PropType, ref, onMounted, watch, onBeforeUnmount } from 'vue';
+import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from '../stores/settings-store';
 import { SoundModel } from './models';
 import { Waveform } from 'src/composables/waveform';
@@ -20,6 +21,7 @@ import {
   isPlaylistActiveSound,
 } from 'src/composables/sound-controller';
 
+const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 const props = defineProps({
   sound: { type: Object as PropType<SoundModel>, required: true },
@@ -42,9 +44,16 @@ onMounted(async () => {
     await waveform.setWaveformChunks(sound.value.waveformChunks);
     initWaveform();
   } else {
+    soundsStore.waveformBeingCalculatedSounds.push(sound.value.id);
+
     await waveform.calculateWaveformChunks().then((chunks) => {
       sound.value.waveformChunks = chunks;
       initWaveform();
+
+      soundsStore.waveformBeingCalculatedSounds =
+        soundsStore.waveformBeingCalculatedSounds.filter(
+          (id) => id !== sound.value.id
+        );
     });
   }
 });

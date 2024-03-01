@@ -1,6 +1,6 @@
 <template>
   <div class="toolbar">
-    <q-toolbar class="bg-accent">
+    <q-toolbar class="bg-accent q-pa-xs">
       <q-btn
         class="q-mr-sm"
         flat
@@ -18,10 +18,10 @@
       </div>
 
       <q-toolbar-title class="toolbar-title">LuPlayer </q-toolbar-title>
+      <main-tool-bar-busy-round />
       <q-btn-dropdown
         flat
         :label="soundsStore.playerMode"
-        class="q-mr-sm"
         style="color: orange"
         transition-duration="100"
       >
@@ -63,6 +63,7 @@
 </template>
 
 <script setup lang="ts">
+import MainToolBarBusyRound from './MainToolBarBusyRound.vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 
