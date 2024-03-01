@@ -23,17 +23,8 @@
       <DeleteSoundDialog :sound="soundsStore.selectedSound" />
     </div>
   </q-dialog>
-  <q-dialog v-model="soundsStore.showPlaylistLoadSaveWindow">
-    <div class="column fit centered-content">
-      <div style="color: orange; font-size: 1rem">
-        {{ soundsStore.playlistLoadSaveWindowText }}
-      </div>
-      <q-linear-progress
-        :value="soundsStore.playlistLoadSaveProgress"
-        color="orange"
-        size="15px"
-      />
-    </div>
+  <q-dialog v-model="settingsStore.showWelcomeDialog">
+    <WelcomeDialog />
   </q-dialog>
 </template>
 
@@ -44,6 +35,7 @@ import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 
 import MainToolBar from 'src/components/MainToolBar.vue';
+import WelcomeDialog from 'src/components/WelcomeDialog.vue';
 import SoundDetails from 'src/components/SoundDetails.vue';
 import ReorderPanel from 'src/components/ReorderPanel.vue';
 import SettingsDialog from 'src/components/SettingsDialog.vue';
@@ -58,6 +50,10 @@ onMounted(() => {
   if (settingsStore.keepScreenAwake) wakeLock.request('screen');
 
   settingsStore.loadSettings();
+
+  if (settingsStore.shouldShowWelcomeDialogNextTime) {
+    settingsStore.showWelcomeDialog = true;
+  }
 
   console.log('lastUsedPlayerMode', settingsStore.lastUsedPlayerMode);
   switch (settingsStore.lastUsedPlayerMode) {

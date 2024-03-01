@@ -3,8 +3,12 @@ import { reactive } from 'vue';
 export const useSettingsStore = defineStore('settingsStore', {
   state: () =>
     reactive({
+      showWelcomeDialog: false as boolean,
+      shouldShowWelcomeDialogNextTime: true as boolean,
+
       keepScreenAwake: true as boolean,
       vibration: true as boolean,
+
       audioContextLatencyHint: 'playback' as string,
 
       lastUsedPlayerMode: 'playlist' as string,

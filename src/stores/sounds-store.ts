@@ -15,7 +15,7 @@ import {
   findSoundArray,
   setPlaylistActiveSound as setPlaylistActiveSound,
 } from 'src/composables/sound-controller';
-import { Notify, getCssVar, Loading } from 'quasar';
+import { Notify, getCssVar } from 'quasar';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
 export const useSoundsStore = defineStore('soundsStore', {
@@ -73,8 +73,6 @@ export const useSoundsStore = defineStore('soundsStore', {
       this.audioContext = new AudioContext({
         latencyHint: latencyHint,
       });
-      console.log(this.audioContext.baseLatency);
-
       this.sampleRate = this.audioContext.sampleRate;
 
       this.outputGainNode = this.audioContext.createGain();
