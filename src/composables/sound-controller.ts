@@ -346,6 +346,14 @@ export function handlePauseEvent(sound: SoundModel) {
 export function handleTimeUpdateEvent(sound: SoundModel) {
   const outTime = sound.outTime ?? sound.audioElement.duration;
   sound.remainingTime = outTime - sound.audioElement.currentTime;
+
+  if (
+    (sound.enveloppePoints, sound.enveloppePoints.length > 0 && sound.isPlaying)
+  ) {
+    if (sound.enveloppeGainNode === null) return;
+    sound.enveloppeGainNode.gain.cancelScheduledValues(0);
+    setEnveloppeGainValues(sound);
+  }
 }
 
 export function getRemainingTime(sound: SoundModel) {
@@ -419,10 +427,13 @@ export function setEnveloppeGainValues(sound: SoundModel) {
 
     if (sound.enveloppeGainNode === null) return;
     if (nextPoint) {
-      sound.enveloppeGainNode.gain.exponentialRampToValueAtTime(
-        dbToGain(nextPoint.gainDb),
-        nextPoint.time + ctxCurrentTime - soundCurrentTime
-      );
+      const timteOfPoint = nextPoint.time + ctxCurrentTime - soundCurrentTime;
+      if (timteOfPoint > 0) {
+        sound.enveloppeGainNode.gain.exponentialRampToValueAtTime(
+          dbToGain(nextPoint.gainDb),
+          nextPoint.time + ctxCurrentTime - soundCurrentTime
+        );
+      }
     } else {
       sound.enveloppeGainNode.gain.setValueAtTime(gain, point.time);
     }

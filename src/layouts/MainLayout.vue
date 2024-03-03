@@ -26,6 +26,29 @@
   <q-dialog v-model="settingsStore.showWelcomeDialog">
     <WelcomeDialog />
   </q-dialog>
+  <q-dialog v-model="soundsStore.showPlaylistLoadSaveWindow">
+    <div class="column fit centered-content">
+      <div style="color: orange; font-size: 1rem">
+        {{ soundsStore.playlistLoadSaveWindowText }}
+      </div>
+      <q-linear-progress
+        instant-feedback
+        :value="soundsStore.playlistLoadSaveProgress"
+        color="orange"
+        size="15px"
+      >
+        <div class="absolute-full flex flex-center">
+          <q-badge
+            color="transparent"
+            text-color="white"
+            :label="
+              (soundsStore.playlistLoadSaveProgress * 100).toFixed(0) + '%'
+            "
+          />
+        </div>
+      </q-linear-progress>
+    </div>
+  </q-dialog>
 </template>
 
 <script setup lang="ts">
@@ -72,15 +95,6 @@ onMounted(() => {
     });
   }
 });
-
-watch(
-  () => soundsStore.playlistSounds.length,
-  (newValue) => {
-    if (newValue === 0) {
-      soundsStore.showReorderWindow = false;
-    }
-  }
-);
 
 watch(
   () => settingsStore.keepScreenAwake,

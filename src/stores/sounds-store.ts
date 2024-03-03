@@ -508,7 +508,11 @@ export const useSoundsStore = defineStore('soundsStore', {
     async saveSound(sound: SoundModel, uuid: string) {
       const start = performance.now();
 
-      const soundToSave = { ...sound, waveformChunks: null };
+      const soundToSave = {
+        ...sound,
+        waveformChunks: null,
+        soundAudioHasBeenInitialized: false,
+      };
       soundToSave.base64FileContent = this.arrayBufferToBase64(
         sound.fileContent
       );
@@ -578,6 +582,7 @@ export const useSoundsStore = defineStore('soundsStore', {
           this.numberOfLoadSaveSounds++;
           this.playlistLoadSaveProgress =
             this.numberOfLoadSaveSounds / numberOfSoundsToLoad;
+          console.log(this.playlistLoadSaveProgress);
         }
 
         this.showSettingsWindow = false;
@@ -635,11 +640,10 @@ export const useSoundsStore = defineStore('soundsStore', {
 
       loadedSound.base64FileContent = undefined;
 
-      console.log('size : ', this.estimateSizeInBytes(loadedSound.fileContent));
-
       audioElement.onloadedmetadata = () => {
         let sound: SoundModel = {
           ...loadedSound,
+          soundAudioHasBeenInitialized: false,
           audioElement: audioElement,
           path: audioElement.src,
           duration: audioElement.duration,
