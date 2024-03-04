@@ -280,7 +280,6 @@ onMounted(() => {
   zoomable.inTimeWidth = 2;
   zoomable.outTimeWidth = 2;
   zoomable.playHeadWidth = 2;
-  zoomable.freezed = false;
   zoomable.showHorizontalLine = true;
   zoomable?.setVerticalZoomFactor(
     dbToGain(sound.trimDb) * settingsStore.waveformVerticalZoomFactor
@@ -293,12 +292,12 @@ onMounted(() => {
   zoomable.setShowEnveloppeLine(true);
   zoomable.showLastClickedPoint = true;
 
+  minimap.name = 'minimap';
   minimap.setMinimapRangeRectangleOpacity(0.2);
   minimap.showInTime = true;
   minimap.showOutTime = true;
   minimap.inTimeColor = 'lightblue';
   minimap.outTimeColor = 'yellow';
-  minimap.freezed = false;
   minimap.showPlayHead = true;
   minimap.setPlayedWaveformFillColor(sound.color);
   minimap.setRemainingWaveformFillColor(sound.color);
@@ -352,14 +351,12 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (zoomable) {
-    zoomable.freezed = true;
     zoomable.cleanUp();
     zoomable.minimapWaveformReference = null;
     zoomable = null;
   }
 
   if (minimap) {
-    minimap.freezed = true;
     minimap.cleanUp();
     minimap.zoomableWaveformReference = null;
     minimap = null;

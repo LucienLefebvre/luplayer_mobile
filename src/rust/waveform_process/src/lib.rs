@@ -1,4 +1,5 @@
 use wasm_bindgen::prelude::*;
+use web_sys::console;
 
 #[wasm_bindgen]
 pub fn calculate_waveform_chunks(left_channel_data: Vec<f32>, right_channel_data: Vec<f32>,window_size: usize) -> Vec<f32> {
@@ -33,17 +34,12 @@ pub fn calculate_waveform_chunks(left_channel_data: Vec<f32>, right_channel_data
  pub fn calculate_y_value_array_from_chunks(
     global_waveform_chunks: Vec<f32>,
     multipliers: Vec<f32>,
-    start_time: f32,
-    end_time: f32,
-    sound_duration: f32,
+    start_index: f32,
+    end_index: f32,
+    clipped_start_index: f32,
+    clipped_end_index: f32,
     stage_width: usize,
 ) -> Vec<f32> {
-    let start_index = (global_waveform_chunks.len() as f32 * (start_time / sound_duration)).floor() as f32;
-    let end_index = (global_waveform_chunks.len() as f32 * (end_time / sound_duration)).floor() as f32;
-
-    let clipped_start_index =  (global_waveform_chunks.len() as f32 * (start_time.max(0.0) / sound_duration)).floor() as f32;
-    let clipped_end_index = (global_waveform_chunks.len() as f32 * (end_time.min(sound_duration) / sound_duration)).floor() as f32;
-
     let mut clipped_waveform_chunks = global_waveform_chunks[clipped_start_index as usize..clipped_end_index as usize].to_vec();
 
     if start_index < 0.0{
@@ -57,6 +53,10 @@ pub fn calculate_waveform_chunks(left_channel_data: Vec<f32>, right_channel_data
     }
 
     let display_chunk_size = clipped_waveform_chunks.len() as f32 / stage_width as f32;
+    //let message = format!("chunk size {} stage width {}", display_chunk_size, stage_width);
+    //console::log_1(&JsValue::from_str(&message));
+
+
 
     let mut last_max = 0.0;
     let mut chunks = Vec::with_capacity(stage_width);
@@ -66,10 +66,17 @@ pub fn calculate_waveform_chunks(left_channel_data: Vec<f32>, right_channel_data
     let end = start + display_chunk_size as usize;
     let current_chunk = &clipped_waveform_chunks[start..end];
 
+    //let message = format!("start {} end {} current chunk {:?}", start, end, current_chunk);
+    //console::log_1(&JsValue::from_str(&message));
+
     let max_value = current_chunk.iter().copied().fold(f32::NEG_INFINITY, f32::max) * multipliers[i];
     let actual_value = if max_value.is_finite() { max_value } else { last_max };
 
+    //let message = format!("max value {} actual value {}", max_value, actual_value);
+    //console::log_1(&JsValue::from_str(&message));
+
     chunks.push(actual_value);
+
     last_max = actual_value;
    }
 

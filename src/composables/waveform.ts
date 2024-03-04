@@ -8,9 +8,8 @@ import init, {
 } from 'src/rust/waveform_process/pkg';
 import { dbToGain } from './math-helpers';
 import { NormalizableRange } from './normalizable-range';
-import { useThrottledRefHistory } from '@vueuse/core';
 
-let WINDOW_SIZE = 256;
+let WINDOW_SIZE = 128;
 const TOUCH_MOUSE_CLICK_TIME = 200;
 const TOUCH_HOLD_TIME = 500;
 
@@ -19,6 +18,7 @@ export class Waveform {
   audioElement: HTMLAudioElement;
 
   public eventTarget = new EventTarget();
+  private resizeObserver: ResizeObserver;
 
   private anim: Konva.Animation;
   private stage: Konva.Stage;
@@ -118,7 +118,7 @@ export class Waveform {
   public lastClickedPointColor: string;
   public lastClickedPointIndex: number;
 
-  public freezed: boolean;
+  private hasBeenCleanedUp: boolean;
 
   constructor(
     waveformView: HTMLDivElement,
@@ -130,8 +130,16 @@ export class Waveform {
   ) {
     this.eventTarget = new EventTarget();
 
+    const handleResized = debounce(() => {
+      this.stage.width(this.waveformView.clientWidth);
+      this.updateWaveform();
+    }, 100);
+
     this.waveformView = waveformView;
     this.audioElement = audioElement;
+
+    this.resizeObserver = new ResizeObserver(handleResized);
+    this.resizeObserver.observe(this.waveformView);
 
     this.stage = new Konva.Stage({
       container: this.waveformView,
@@ -220,7 +228,6 @@ export class Waveform {
     this.outTimeWidth = 1;
 
     this.name = '';
-    this.freezed = false;
 
     this.showEnveloppeOnWaveform = false;
     //this.shouldRecalculateWaveformEnveloppe = false;
@@ -252,11 +259,12 @@ export class Waveform {
     this.stage.add(this.enveloppeLineLayer);
     this.stage.add(this.enveloppePointsLayer);
 
+    this.hasBeenCleanedUp = false;
+
     if (isMinimap) this.initMinimap();
     if (this.isPlayPositionAlwaysOnCenter) this.centerTimeRangeOnPlayPosition();
     this.registerEventsListeners();
     this.registerMouseEvents();
-    this.initializeResizeObserver();
 
     this.anim = new Konva.Animation(() => {
       this.draw();
@@ -266,18 +274,8 @@ export class Waveform {
     });
   }
 
-  private initializeResizeObserver() {
-    const handleResized = debounce(() => {
-      this.stage.width(this.waveformView.clientWidth);
-      this.updateWaveform();
-    }, 100);
-
-    const resizeObserver = new ResizeObserver(handleResized);
-    resizeObserver.observe(this.waveformView);
-  }
-
   public launchAnimation() {
-    if (!this.anim.isRunning()) {
+    if (!this.anim.isRunning() && this.diplayWaveformChunks) {
       this.waveformLayer.clearCache();
       this.anim.start();
     }
@@ -308,9 +306,11 @@ export class Waveform {
   }
 
   private handleAudioElementUpdate = () => {
+    if (this.hasBeenCleanedUp) return;
     if (this.isPlayPositionAlwaysOnCenter) this.centerTimeRangeOnPlayPosition();
     this.launchAnimation();
   };
+
   private registerEventsListeners() {
     this.audioElement.addEventListener('play', this.handleAudioElementUpdate);
     this.audioElement.addEventListener('pause', this.handleAudioElementUpdate);
@@ -431,7 +431,6 @@ export class Waveform {
   }
 
   public async calculateWaveformChunks(): Promise<Float32Array> {
-    console.log('calculateWaveformChunks');
     try {
       const buffer = await fetch(this.audioElement.src).then((response) =>
         response.arrayBuffer()
@@ -475,28 +474,46 @@ export class Waveform {
   }
 
   private async calculateYValueArrayFromChunks() {
-    const start = performance.now();
+    //const start = performance.now();
+
     const waveformEnveloppeMultipliers = new Float32Array(this.stage.width());
     waveformEnveloppeMultipliers.fill(1);
     if (this.showEnveloppeOnWaveform) {
       this.recalculateWaveformEnveloppe(waveformEnveloppeMultipliers);
     }
+
+    const startIndex = Math.floor(
+      this.globalWaveformChunks.length * (this.startTime / this.soundDuration)
+    );
+    const endIndex = Math.floor(
+      this.globalWaveformChunks.length * (this.endTime / this.soundDuration)
+    );
+
+    const clippedStartIndex = Math.floor(
+      this.globalWaveformChunks.length *
+        (Math.max(this.startTime, 0.0) / this.soundDuration)
+    );
+    const clippedEndIndex = Math.floor(
+      this.globalWaveformChunks.length *
+        (Math.min(this.endTime, this.soundDuration) / this.soundDuration)
+    );
+
     const wasmDisplayChunks = calculate_y_value_array_from_chunks(
       this.globalWaveformChunks,
       waveformEnveloppeMultipliers,
-      this.startTime,
-      this.endTime,
-      this.soundDuration,
+      startIndex,
+      endIndex,
+      clippedStartIndex,
+      clippedEndIndex,
       this.stage.width()
     );
 
     this.diplayWaveformChunks = wasmDisplayChunks;
-    this.displayChunkSize =
-      this.diplayWaveformChunks.length * (this.endTime - this.startTime);
-    const end = performance.now();
-    const duration = end - start;
 
-    //console.log('duration: ', duration);
+    this.displayChunkSize =
+      (clippedEndIndex - clippedStartIndex) / this.stage.width();
+    //console.log('displayChunkSize: ', this.displayChunkSize);
+    //console.log(this.endTime - this.startTime);
   }
 
   public recalculateWaveformEnveloppe(mutlipliers: Float32Array) {
@@ -506,12 +523,9 @@ export class Waveform {
       mutlipliers[i] = dbToGain(enveloppeValue);
     }
   }
+
   private draw() {
-    if (
-      !this.waveformCalculated ||
-      this.diplayWaveformChunks === null ||
-      this.freezed
-    ) {
+    if (!this.waveformCalculated || this.diplayWaveformChunks === null) {
       return;
     }
 
@@ -531,6 +545,7 @@ export class Waveform {
     const visibleDuration = this.endTime - this.startTime;
     const visibleStart = playPosition - visibleDuration / 2;
     const visibleEnd = playPosition + visibleDuration / 2;
+
     this.setStartEndTimes(visibleStart, visibleEnd, true, false);
   }
 
@@ -553,7 +568,7 @@ export class Waveform {
     //this.waveformLayer.batchDraw();
     //this.waveformLayer.cache();
 
-    if (this.audioElement.paused) {
+    if (this.audioElement.paused && !this.isPlayPositionAlwaysOnCenter) {
       this.stopAnimation();
     }
     //const frameRedrawEndTime = performance.now();
@@ -601,7 +616,7 @@ export class Waveform {
     playedPoints: number[];
     remainingPoints: number[];
   } {
-    const start = performance.now();
+    //const start = performance.now();
 
     const width = this.stage.width();
     const height = this.stage.height();
@@ -614,6 +629,7 @@ export class Waveform {
 
     const playedPoints = [0, middleY];
     const remainingPoints = [progressX, middleY];
+
     for (let i = 0; i < width; i += this.xResolution) {
       const yValue = middleY - this.diplayWaveformChunks[i] * middleY * ratio;
       const checkedYValue = Number.isNaN(yValue) ? middleY : yValue;
@@ -624,6 +640,7 @@ export class Waveform {
         remainingPoints.push(i, checkedYValue);
       }
     }
+
     playedPoints.push(progressX, middleY);
     remainingPoints.push(width, middleY);
 
@@ -639,9 +656,7 @@ export class Waveform {
         remainingPoints.push(i, checkedYValue);
       }
     }
-    const end = performance.now();
-    const duration = end - start;
-    //console.log('duration: ', duration);
+
     return { playedPoints, remainingPoints };
   }
 
@@ -876,14 +891,17 @@ export class Waveform {
     if (
       this.diplayWaveformChunks.length * (endTime - startTime) <
       this.stage.width() / 2
-    )
+    ) {
       return;
+    }
 
     this.startTime = startTime;
     this.endTime = endTime;
+
     if (updateZoomFactor) this.updateZoomFactor();
 
     this.updateWaveform();
+
     if (shouldEmit) {
       const event = new CustomEvent('waveformStartEndTimesChanged');
       this.eventTarget.dispatchEvent(event);
@@ -995,10 +1013,16 @@ export class Waveform {
   }
 
   private waveformZoom(direction: 'in' | 'out', coef = 1.2) {
-    if (this.isPlayPositionAlwaysOnCenter) {
+    if (direction === 'out' && this.horizontalZoomFactor < 1.2) {
+      this.setHorizontalZoomFactor(1);
+    } else if (this.isPlayPositionAlwaysOnCenter) {
       const playPosition = this.audioElement.currentTime;
       const visibleDuration = this.endTime - this.startTime;
 
+      if (this.displayChunkSize < 1.2 && direction === 'in') {
+        this.updateWaveform();
+        return;
+      }
       let newVisibleDuration;
       if (direction === 'in') {
         newVisibleDuration = visibleDuration / coef;
@@ -1010,7 +1034,7 @@ export class Waveform {
       const visibleEnd = playPosition + newVisibleDuration / 2;
 
       this.setStartEndTimes(visibleStart, visibleEnd, true, true);
-      //console.log('displayChunkSize: ', this.displayChunkSize);
+      this.updateZoomFactor();
     } else {
       if (direction === 'out' && this.horizontalZoomFactor < 1.2) {
         this.setHorizontalZoomFactor(1);
@@ -1020,7 +1044,6 @@ export class Waveform {
       const centerTime = (this.startTime + this.endTime) / 2;
       const timeDelta = (this.endTime - this.startTime) / 2;
 
-      coef = direction === 'in' ? coef : coef;
       const newStartTime = Math.max(0, centerTime - timeDelta * coef);
       const newEndTime = Math.min(
         this.soundDuration,
@@ -1030,8 +1053,7 @@ export class Waveform {
       this.setStartEndTimes(newStartTime, newEndTime);
       this.updateZoomFactor();
     }
-
-    this.updateWaveform();
+    //this.updateWaveform();
   }
 
   private setHorizontalZoomFactor(newZoomFactor: number) {
@@ -1059,6 +1081,7 @@ export class Waveform {
   private updateZoomFactor() {
     this.horizontalZoomFactor =
       1 / ((this.endTime - this.startTime) / this.soundDuration);
+    //console.log('horizontalZoomFactor: ', this.horizontalZoomFactor);
   }
 
   public setVerticalZoomFactor(newVerticalZoomFactor: number) {
@@ -1413,6 +1436,10 @@ export class Waveform {
   cleanUp() {
     this.unregisterEventsListeners();
     this.deregisterMouseEvents();
+    this.resizeObserver.unobserve(this.waveformView);
+    this.resizeObserver.disconnect();
+
+    this.anim.stop();
 
     this.stage.off('mousedown touchstart');
     this.stage.off('mouseup touchend');
@@ -1462,6 +1489,8 @@ export class Waveform {
     );
     this.minimapWaveformReference = null;
     this.zoomableWaveformReference = null;
+
+    this.hasBeenCleanedUp = true;
   }
 }
 

@@ -301,6 +301,8 @@ onMounted(() => {
   if (containerWidth.value) {
     swipeActionThreshold = containerWidth.value / 2;
   }
+
+  progressBar.value?.setSound(sound.value);
 });
 
 watch(

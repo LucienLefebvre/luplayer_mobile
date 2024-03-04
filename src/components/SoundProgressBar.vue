@@ -7,14 +7,30 @@ import { PropType, onMounted, ref } from 'vue';
 import { SoundModel } from './models';
 import Konva from 'konva';
 
-const props = defineProps({
-  sound: { type: Object as PropType<SoundModel | null> },
+defineExpose({
+  setSound,
+  setBarColor,
 });
+
+/* const props = defineProps({
+  sound: { type: Object as PropType<SoundModel | null> },
+}); */
+
+const sound = ref<SoundModel | null>(null);
+
+function setSound(s: SoundModel) {
+  sound.value = s;
+
+  sound.value?.audioElement.addEventListener('play', () => {
+    anim.start();
+  });
+}
 
 const bar = ref<HTMLDivElement | null>(null);
 let stage: Konva.Stage;
 let layer: Konva.Layer;
 let progressRect: Konva.Rect;
+let anim: Konva.Animation;
 
 const barColor = ref('orange');
 onMounted(() => {
@@ -34,7 +50,7 @@ onMounted(() => {
     fill: barColor.value,
   });
   layer.add(progressRect);
-  const anim = new Konva.Animation(() => {
+  anim = new Konva.Animation(() => {
     drawBar();
   }, stage);
 
@@ -42,9 +58,9 @@ onMounted(() => {
 });
 
 function drawBar() {
-  if (!props.sound) return;
-  const currentTime = props.sound.audioElement.currentTime;
-  const duration = props.sound.audioElement.duration;
+  if (!sound.value) return;
+  const currentTime = sound.value.audioElement.currentTime;
+  const duration = sound.value.audioElement.duration;
   let barWidth = (currentTime / duration) * stage.width();
   if (isNaN(barWidth)) barWidth = 0;
   const barHeight = stage.height();
@@ -54,15 +70,17 @@ function drawBar() {
   progressRect.fill(barColor.value);
 
   stage.draw();
+
+  if (!sound.value?.isPlaying) {
+    progressRect.width(0);
+    stage.draw();
+    anim.stop();
+  }
 }
 
 function setBarColor(color: string) {
   barColor.value = color;
 }
-
-defineExpose({
-  setBarColor,
-});
 </script>
 
 <style scoped>
