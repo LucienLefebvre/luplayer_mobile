@@ -99,7 +99,7 @@ import {
   isSelectedSound,
   playSound,
   stopSound,
-} from 'src/composables/sound-controller';
+} from 'src/scripts/sound-controller';
 import { getCssVar, colors, is } from 'quasar';
 import { onLongPress, tryOnBeforeUnmount, useSwipe } from '@vueuse/core';
 import type { SwipeDirection } from '@vueuse/core';

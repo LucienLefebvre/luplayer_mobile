@@ -39,6 +39,8 @@ export class Waveform {
   private soundDuration: number;
   private startTime: number;
   private endTime: number;
+  private previousStartTime: number;
+  private previousEndTime: number;
 
   //private waveformShouldBeRedrawn: boolean;
 
@@ -174,6 +176,8 @@ export class Waveform {
     this.soundDuration = audioElement.duration;
     this.startTime = 0;
     this.endTime = this.soundDuration;
+    this.previousStartTime = 0;
+    this.previousEndTime = 0;
     this.horizontalZoomFactor = 1;
     this.verticalZoomFactor = 1;
 
@@ -474,8 +478,6 @@ export class Waveform {
   }
 
   private async calculateYValueArrayFromChunks() {
-    //const start = performance.now();
-
     const waveformEnveloppeMultipliers = new Float32Array(this.stage.width());
     waveformEnveloppeMultipliers.fill(1);
     if (this.showEnveloppeOnWaveform) {
@@ -512,8 +514,6 @@ export class Waveform {
 
     this.displayChunkSize =
       (clippedEndIndex - clippedStartIndex) / this.stage.width();
-    //console.log('displayChunkSize: ', this.displayChunkSize);
-    //console.log(this.endTime - this.startTime);
   }
 
   public recalculateWaveformEnveloppe(mutlipliers: Float32Array) {
@@ -574,7 +574,6 @@ export class Waveform {
     //const frameRedrawEndTime = performance.now();
     //const frameRedrawDuration = frameRedrawEndTime - frameRedrawStartTime;
     //console.log('frameRedrawDuration: ', frameRedrawDuration);
-    //console.log(this.name);
   }
 
   private drawBarsWaveform() {
@@ -902,6 +901,9 @@ export class Waveform {
 
     this.updateWaveform();
 
+    this.previousStartTime = startTime;
+    this.previousEndTime = endTime;
+
     if (shouldEmit) {
       const event = new CustomEvent('waveformStartEndTimesChanged');
       this.eventTarget.dispatchEvent(event);
@@ -1081,7 +1083,6 @@ export class Waveform {
   private updateZoomFactor() {
     this.horizontalZoomFactor =
       1 / ((this.endTime - this.startTime) / this.soundDuration);
-    //console.log('horizontalZoomFactor: ', this.horizontalZoomFactor);
   }
 
   public setVerticalZoomFactor(newVerticalZoomFactor: number) {

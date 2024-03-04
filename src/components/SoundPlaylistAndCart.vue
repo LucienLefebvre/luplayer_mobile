@@ -45,14 +45,12 @@ const updateHeight = () => {
     heightToSubtract += cartRef.value?.clientHeight || 0;
   }
   scrollablePlaylistHeight.value = window.innerHeight - heightToSubtract;
-  console.log('scrollablePlaylistHeight', scrollablePlaylistHeight.value);
 };
 
 const panel = ref<HTMLDivElement | null>(null);
 const isDragging = ref(false);
 
 const handleTouchStart = (event: TouchEvent) => {
-  console.log('handleTouchStart');
   if (!panel.value) return;
 
   const panelRect = panel.value.getBoundingClientRect();

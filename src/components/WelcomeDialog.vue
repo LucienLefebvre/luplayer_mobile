@@ -16,7 +16,7 @@
           <br />
           <br />
 
-          <div v-show="isCapacitor()">
+          <div v-show="!isCapacitor()">
             It has only been tested on Chrome for Android. For better
             performance, download the app from the Play Store.
           </div>
@@ -65,6 +65,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useSettingsStore } from 'src/stores/settings-store';
+import { Capacitor } from '@capacitor/core';
 
 const settingsStore = useSettingsStore();
 
@@ -79,7 +80,7 @@ function okButtonClicked() {
 }
 
 function isCapacitor() {
-  return window.Capacitor;
+  return Capacitor.isNativePlatform();
 }
 </script>
 

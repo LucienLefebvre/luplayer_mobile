@@ -1,5 +1,11 @@
 <template>
   <div class="about-panel">
+    <div class="centered-icon">
+      <img
+        src="~assets\icon.png"
+        style="height: 30px; width: auto; object-fit: contain"
+      />
+    </div>
     <div class="blueText">LuPlayer Mobile v0.1</div>
     <br />
     <div class="orangeText">Developed by Lucien Lefebvre</div>
@@ -15,6 +21,7 @@
     </div>
     <br />
     <div class="orangeText">
+      For suggestions or bug reports, please contact me at
       <a href="mailto:contact@luplayer.org" style="color: inherit"
         >contact@luplayer.org</a
       >
@@ -29,7 +36,12 @@
   </div>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { Capacitor } from '@capacitor/core';
+function isCapacitor() {
+  return Capacitor.isNativePlatform();
+}
+</script>
 
 <style scoped>
 .about-panel {
@@ -39,7 +51,7 @@
   padding: 10px;
   border: 0px;
   text-align: center;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   background-color: var(--bkgColor);
 }
 

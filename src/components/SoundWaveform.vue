@@ -13,13 +13,13 @@ import { PropType, ref, onMounted, watch, onBeforeUnmount } from 'vue';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from '../stores/settings-store';
 import { SoundModel } from './models';
-import { Waveform } from 'src/composables/waveform';
-import { dbToGain } from 'src/composables/math-helpers';
+import { Waveform } from 'src/scripts/waveform';
+import { dbToGain } from 'src/scripts/math-helpers';
 import { getCssVar } from 'quasar';
 import {
   isCartSound,
   isPlaylistActiveSound,
-} from 'src/composables/sound-controller';
+} from 'src/scripts/sound-controller';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -136,7 +136,6 @@ watch(
 watch(
   () => sound.value.inTime,
   (newValue) => {
-    console.log('inTime changed to ' + newValue);
     if (newValue) {
       waveform.setInTime(newValue);
     } else {
@@ -147,7 +146,6 @@ watch(
 watch(
   () => sound.value.outTime,
   (newValue) => {
-    console.log('outTime changed to ' + newValue);
     if (newValue) {
       waveform.setOutTime(newValue);
     } else {

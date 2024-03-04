@@ -1,5 +1,5 @@
 import { SoundModel } from 'src/components/models';
-import { dbToGain, gainToDb, getMMSSfromS } from 'src/composables/math-helpers';
+import { dbToGain, gainToDb, getMMSSfromS } from 'src/scripts/math-helpers';
 import init, {
   calculate_r128_integrated_loudness,
 } from 'src/rust/waveform_process/pkg';
@@ -95,7 +95,7 @@ function loopSound(sound: SoundModel) {
   }
 }
 
-function initSoundAudio(
+export function initSoundAudio(
   sound: SoundModel,
   audioContext: AudioContext,
   soundsStore: ReturnType<typeof useSoundsStore>

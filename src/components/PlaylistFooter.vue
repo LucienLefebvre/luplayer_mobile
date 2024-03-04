@@ -18,7 +18,6 @@ const progressBar = ref<typeof SoundProgressBar | null>(null);
 watch(
   () => soundsStore.playlistActiveSound,
   () => {
-    console.log('playlistActiveSound changed');
     if (soundsStore.playlistActiveSound)
       progressBar.value?.setSound(soundsStore.playlistActiveSound);
   }

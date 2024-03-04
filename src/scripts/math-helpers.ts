@@ -46,15 +46,6 @@ export function logScaleWithinSameRange(
   return newScaledValue * range + min;
 }
 
-export function randomizePitch(pitch: number, percentage: number): number {
-  const maxDeviation = pitch * (percentage / 100);
-  const randomDeviation = Math.random() * maxDeviation;
-  const isNegative = Math.random() < 0.5;
-  const sign = isNegative ? -1 : 1;
-  const randomizedPitch = pitch + sign * randomDeviation;
-  return randomizedPitch;
-}
-
 export function getMMSSfromS(timeInSeconds: number) {
   const seconds = Math.floor(timeInSeconds);
   const minutes = Math.floor(seconds / 60);

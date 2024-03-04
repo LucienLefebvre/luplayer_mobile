@@ -14,7 +14,7 @@ import {
   normalizeSound,
   findSoundArray,
   setPlaylistActiveSound as setPlaylistActiveSound,
-} from 'src/composables/sound-controller';
+} from 'src/scripts/sound-controller';
 import { Notify, getCssVar } from 'quasar';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
@@ -184,7 +184,6 @@ export const useSoundsStore = defineStore('soundsStore', {
           }
         };
         audioElement.onerror = () => {
-          console.log('error');
           reject();
         };
       });
@@ -582,7 +581,6 @@ export const useSoundsStore = defineStore('soundsStore', {
           this.numberOfLoadSaveSounds++;
           this.playlistLoadSaveProgress =
             this.numberOfLoadSaveSounds / numberOfSoundsToLoad;
-          console.log(this.playlistLoadSaveProgress);
         }
 
         this.showSettingsWindow = false;
@@ -598,7 +596,6 @@ export const useSoundsStore = defineStore('soundsStore', {
           position: 'top',
         });
       } catch (error) {
-        console.log(error);
         Notify.create({
           message: 'Error while loading playlist',
           type: 'negative',

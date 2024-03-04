@@ -12,7 +12,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
-import { NormalizableRange } from 'src/composables/normalizable-range';
+import { NormalizableRange } from 'src/scripts/normalizable-range';
 
 const soundsStore = useSoundsStore();
 

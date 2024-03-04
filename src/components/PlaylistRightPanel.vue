@@ -30,14 +30,15 @@
 import { watch, onMounted } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
-import { NormalizableRange } from 'src/composables/normalizable-range';
+import { NormalizableRange } from 'src/scripts/normalizable-range';
 import AddSoundButton from './AddSoundButton.vue';
 import {
   isPlaylistSound,
   setSelectedSoundVolume,
   stopPlaylistActiveSound,
   stopSound,
-} from 'src/composables/sound-controller';
+} from 'src/scripts/sound-controller';
+import { is } from 'quasar';
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 
@@ -98,7 +99,8 @@ function faderTouchEnd() {
   if (soundsStore.selectedSound === null) return;
   if (
     soundsStore.faderTouchedDuringPlayback &&
-    !soundsStore.selectedSound.isPlaying
+    !soundsStore.selectedSound.isPlaying &&
+    isPlaylistSound(soundsStore.selectedSound)
   ) {
     soundsStore.selectedSoundVolume = 0;
   }

@@ -78,7 +78,6 @@ onMounted(() => {
     settingsStore.showWelcomeDialog = true;
   }
 
-  console.log('lastUsedPlayerMode', settingsStore.lastUsedPlayerMode);
   switch (settingsStore.lastUsedPlayerMode) {
     case 'playlist':
       soundsStore.initializePlaylistMode();
@@ -101,9 +100,7 @@ watch(
   (newValue) => {
     if (newValue === true) {
       wakeLock.request('screen');
-      console.log('wakeLock.request');
     } else {
-      console.log('wakeLock.release');
       wakeLock.release();
     }
   }

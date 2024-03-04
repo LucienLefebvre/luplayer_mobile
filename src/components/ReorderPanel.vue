@@ -119,22 +119,10 @@ onMounted(() => {
 
 let forceUpdate = 0;
 function updateCartArrays(evt: Sortable.SortableEvent) {
-  console.log('updateCartArrays');
   const oldArrayIndex = evt.from.id === 'listElements1' ? 0 : 1;
   const newArrayIndex = evt.to.id === 'listElements1' ? 0 : 1;
   const oldItemIndex = evt.oldIndex;
   const newItemIndex = evt.newIndex;
-
-  console.log(
-    'oldArrayIndex',
-    oldArrayIndex,
-    'newArrayIndex',
-    newArrayIndex,
-    'oldItemIndex',
-    oldItemIndex,
-    'newItemIndex',
-    newItemIndex
-  );
 
   if (
     oldItemIndex !== undefined &&
@@ -153,7 +141,6 @@ function updateCartArrays(evt: Sortable.SortableEvent) {
 
     if (oldArray && newArray) {
       const movedItem = oldArray[oldItemIndex];
-      console.log('movedItem', movedItem);
       oldArray.splice(oldItemIndex, 1);
       newArray.splice(newItemIndex, 0, movedItem);
     }

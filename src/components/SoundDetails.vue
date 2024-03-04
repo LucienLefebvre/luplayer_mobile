@@ -238,13 +238,10 @@ import { ref, onMounted, watch, onBeforeUnmount } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import { SoundModel, EnveloppePoint } from './models';
-import { Waveform } from 'src/composables/waveform';
+import { Waveform } from 'src/scripts/waveform';
+import { dbToGain, getMMSSfromS } from 'src/scripts/math-helpers';
 import {
-  isCartSound,
-  setEnveloppeGainValues,
-} from 'src/composables/sound-controller';
-import { dbToGain, getMMSSfromS } from 'src/composables/math-helpers';
-import {
+  initSoundAudio,
   deleteInTime,
   deleteOutTime,
   pauseSound,
@@ -255,7 +252,9 @@ import {
   stopSound,
   getSoundColor,
   setPlaylistActiveSound,
-} from 'src/composables/sound-controller';
+  isCartSound,
+  setEnveloppeGainValues,
+} from 'src/scripts/sound-controller';
 import { getCssVar } from 'quasar';
 
 const soundsStore = useSoundsStore();
@@ -273,7 +272,10 @@ const soundCurrentTime = ref(0);
 const soundRemainingTime = ref(sound.audioElement.duration);
 
 onMounted(() => {
-  console.log('sound-details onMounted');
+  if (!sound.soundAudioHasBeenInitialized && soundsStore.audioContext) {
+    initSoundAudio(sound, soundsStore.audioContext, soundsStore);
+  }
+
   if (!minimapWaveformView.value || !zoomableWaveformView.value) return;
   if (!sound) return;
 

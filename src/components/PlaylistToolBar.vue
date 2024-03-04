@@ -52,7 +52,7 @@ import {
   playSoundWithFadeIn,
   setPlaylistActiveSound,
   stopSoundWithFadeOut,
-} from 'src/composables/sound-controller';
+} from 'src/scripts/sound-controller';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import { onLongPress } from '@vueuse/core';

@@ -6,9 +6,9 @@
 import { useSettingsStore } from 'src/stores/settings-store';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { onMounted, ref, watch } from 'vue';
-import { gainToDb, dbToGain } from '../composables/math-helpers';
+import { gainToDb, dbToGain } from 'src/scripts/math-helpers';
 import { MeterBar, StereoAnalyserObject } from './models';
-import { NormalizableRange } from 'src/composables/normalizable-range';
+import { NormalizableRange } from 'src/scripts/normalizable-range';
 import Konva from 'konva';
 const analyser = ref<StereoAnalyserObject | null>(null);
 

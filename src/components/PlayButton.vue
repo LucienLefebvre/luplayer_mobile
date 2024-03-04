@@ -16,7 +16,7 @@ import {
   playButtonDoubleClicked,
   getRemainingTime,
   getSoundDurationLabel,
-} from 'src/composables/sound-controller';
+} from 'src/scripts/sound-controller';
 
 const soundsStore = useSoundsStore();
 

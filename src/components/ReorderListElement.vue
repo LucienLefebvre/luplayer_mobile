@@ -34,8 +34,8 @@ import { useSoundsStore } from '../stores/sounds-store';
 import {
   getRemainingTime,
   playOrStopSound,
-} from 'src/composables/sound-controller';
-import { getMMSSfromS } from 'src/composables/math-helpers';
+} from 'src/scripts/sound-controller';
+import { getMMSSfromS } from 'src/scripts/math-helpers';
 
 const soundsStore = useSoundsStore();
 
