@@ -47,7 +47,7 @@
     @change="onFileChange"
     hidden
     multiple
-    accept=".wav, .mp3"
+    accept=".wav, .mp3, .flac, .ogg, .WAV, .MP3, .FLAC, .OGG"
   />
   <q-dialog v-model="showLoadingDialog" persistent seamless position="bottom"
     ><q-linear-progress :value="progression" size="20px" />
@@ -100,7 +100,15 @@ async function processFiles(files: FileList, input: HTMLInputElement) {
   showLoadingDialog.value = true;
   soundsStore.numberOfSoundsToLoad = files.length;
 
-  const allowedExtensions = ['.wav', '.mp3', '.ogg', '.flac', '.WAV', '.MP3'];
+  const allowedExtensions = [
+    '.wav',
+    '.mp3',
+    '.ogg',
+    '.flac',
+    '.WAV',
+    '.MP3',
+    '.FLAC',
+  ];
 
   for (const file of Array.from(files)) {
     if (!allowedExtensions.some((ext) => file.name.endsWith(ext))) {
