@@ -121,6 +121,23 @@
       <div ref="minimapWaveformView" class="waveform-container"></div>
 
       <div ref="zoomableWaveformView" class="waveform-container"></div>
+      <div class="waveform-zoom-controls">
+        <q-btn
+          icon="remove"
+          size="sm"
+          class="zoom-control-buttons"
+          color="orange"
+          @click="zoomable?.waveformZoom('out')"
+        />
+        <q-btn
+          icon="add"
+          color="orange"
+          size="sm"
+          class="zoom-control-buttons"
+          @click="zoomable?.waveformZoom('in')"
+        />
+      </div>
+
       <div style="height: 10px"></div>
       <div class="buttons-row">
         <div class="buttons-row-group">
@@ -721,6 +738,18 @@ function setEditedSound(sound: SoundModel) {
   border-radius: 10px;
   overflow: hidden;
   background-color: rgba(0, 0, 0, 0.144);
+}
+.waveform-zoom-controls {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: center;
+  padding-top: 5px;
+
+  width: 100%;
+}
+.zoom-control-buttons {
+  width: 20px;
 }
 .time-display-row {
   display: flex;

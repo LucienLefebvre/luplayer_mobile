@@ -1012,7 +1012,7 @@ export class Waveform {
     );
   }
 
-  private waveformZoom(direction: 'in' | 'out', coef = 1.2) {
+  public waveformZoom(direction: 'in' | 'out', coef = 1.2) {
     if (direction === 'out' && this.horizontalZoomFactor < 1.2) {
       this.setHorizontalZoomFactor(1);
     } else if (this.isPlayPositionAlwaysOnCenter) {
