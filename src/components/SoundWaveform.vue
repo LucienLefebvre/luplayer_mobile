@@ -1,10 +1,6 @@
 <template>
   <div style="position: relative">
     <div ref="waveformNew" class="waveform-view"></div>
-    <!--     <div
-      v-show="!sound.displayWaveform"
-      :style="{ height: getWaveformHeight() + 'px' }"
-    ></div> -->
   </div>
 </template>
 
@@ -48,6 +44,7 @@ onMounted(async () => {
 
     await waveform.calculateWaveformChunks().then((chunks) => {
       sound.value.waveformChunks = chunks;
+      sound.value.waveformChunksHasBeenCalculated = true;
       initWaveform();
 
       soundsStore.waveformBeingCalculatedSounds =
@@ -85,7 +82,7 @@ function initWaveform() {
   waveform.waveformLayer.listening(false);
   waveform.name = sound.value.name;
   waveform.setEnveloppePoints(sound.value.enveloppePoints);
-  waveform.setShowEnveloppe(false);
+  waveform.setShowEnveloppe(sound.value.enveloppeIsEnabled);
   waveform.setShowEnveloppeLine(false);
   waveform.setShowEnveloppePoints(false);
 

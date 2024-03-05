@@ -28,7 +28,7 @@
         <sound-waveform
           v-show="
             settingsStore.playlistWaveformHeightFactor > 0.1 &&
-            sound.waveformChunks
+            sound.waveformChunksHasBeenCalculated
           "
           ref="soundWaveforms"
           :sound="sound"
@@ -391,7 +391,7 @@ onBeforeUnmount(() => {
 }
 .sound-duration {
   text-align: center;
-  width: 15%;
+  width: 50px;
   color: yellow;
   background-color: rgba(255, 255, 0, 0.1);
   border-top-left-radius: 5px;

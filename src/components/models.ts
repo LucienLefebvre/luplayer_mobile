@@ -23,6 +23,8 @@ export interface SoundModel {
   isFadingOut: boolean;
   fadeInStartTime: number;
   fadeOutStartTime: number;
+  fadeInTimeoutId?: ReturnType<typeof setTimeout>;
+  fadeOutTimeoutId?: ReturnType<typeof setTimeout>;
 
   audioElement: HTMLAudioElement;
   source: MediaElementAudioSourceNode | null;
@@ -52,7 +54,7 @@ export interface SoundModel {
   //hpfNode: BiquadFilterNode;
 
   waveformChunks: Float32Array | null;
-  displayWaveform: boolean;
+  waveformChunksHasBeenCalculated: boolean;
   enveloppePoints: EnveloppePoint[];
   enveloppeIsEnabled: boolean;
 }
@@ -87,7 +89,7 @@ export const dummySound: SoundModel = {
   hpfEnabled: false,
   hpfFrequency: 0,
   waveformChunks: null,
-  displayWaveform: false,
+  waveformChunksHasBeenCalculated: false,
   enveloppePoints: [],
   enveloppeIsEnabled: false,
   isFadingIn: false,

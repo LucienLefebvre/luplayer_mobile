@@ -1446,22 +1446,18 @@ export class Waveform {
     this.stage.off('mouseup touchend');
     this.stage.off('mousemove touchmove');
     this.stage.off('wheel');
-    this.stage.destroy();
     this.waveformLayer.destroy();
     this.playedLine.destroy();
     this.remainingLine.destroy();
     this.minimapRangeLayer?.destroy();
     this.minimapRangeRect?.destroy();
 
-    this.stage.destroy();
+    //this.stage.destroy();
     this.globalWaveformChunks = new Float32Array(0);
     this.diplayWaveformChunks = new Float32Array(0);
     this.displayChunkSize = 0;
     this.waveformCalculated = false;
-    this.waveformLayer.destroy();
     this.waveformLayerBackground.destroy();
-    this.playedLine.destroy();
-    this.remainingLine.destroy();
     this.remainingLine.closed(true);
     this.waveformBarsRect = [];
     this.enveloppePointsLayer.destroy();

@@ -2,6 +2,7 @@ import { reactive } from 'vue';
 import { defineStore } from 'pinia';
 import { useSettingsStore } from './settings-store';
 import { v4 as uuidv4 } from 'uuid';
+import path from 'path-browserify';
 import {
   SoundModel,
   dummySound,
@@ -111,15 +112,11 @@ export const useSoundsStore = defineStore('soundsStore', {
               { time: audioElement.duration, gainDb: 0 },
             ] as EnveloppePoint[];
 
-            /* if (audioElement.duration < 2000) {
-              await this.replaceAudioElement(audioElement);
-            } */
-
             let addedSound: SoundModel = {
               soundAudioHasBeenInitialized: false,
               id: uuidv4(),
               fileContent: fileContent,
-              name: name,
+              name: path.parse(name).name,
               audioElement: audioElement,
               path: audioElement.src,
               color: getCssVar('primary') ?? '#000000',
@@ -145,8 +142,8 @@ export const useSoundsStore = defineStore('soundsStore', {
               hpfFrequency: 80,
               launchTime: 0,
               waveformChunks: null,
+              waveformChunksHasBeenCalculated: false,
               enveloppePoints: defaultEnveloppePoints,
-              displayWaveform: true,
               enveloppeIsEnabled: false,
               isFadingIn: false,
               isFadingOut: false,
@@ -187,32 +184,6 @@ export const useSoundsStore = defineStore('soundsStore', {
           reject();
         };
       });
-    },
-
-    async replaceAudioElement(audioElement: HTMLAudioElement) {
-      const source = this.audioContext?.createMediaElementSource(audioElement);
-      await this.audioContext?.audioWorklet.addModule(
-        'src/scripts/audio-buffer-processor.js'
-      );
-      const processor = new AudioWorkletNode(
-        this.audioContext as AudioContext,
-        'audio-buffer-processor'
-      );
-
-      const response = await fetch(audioElement.src);
-      const buffer = await response.arrayBuffer();
-      const baseAudioBuffer = await this.audioContext?.decodeAudioData(buffer);
-      const audioBuffer = this.audioContext?.createBuffer(
-        2,
-        baseAudioBuffer!.sampleRate * 2,
-        baseAudioBuffer!.sampleRate
-      );
-      if (audioBuffer === undefined) return baseAudioBuffer!;
-      audioBuffer?.copyToChannel(baseAudioBuffer!.getChannelData(0), 0);
-      audioBuffer?.copyToChannel(baseAudioBuffer!.getChannelData(0), 1);
-
-      const sourceNode = this.audioContext?.createBufferSource();
-      if (sourceNode === undefined) return;
     },
 
     addSoundToCart(addedSound: SoundModel) {
@@ -486,12 +457,14 @@ export const useSoundsStore = defineStore('soundsStore', {
           message: `Playlist "${name}" saved`,
           type: 'positive',
           position: 'top',
+          timeout: 1000,
         });
       } catch (error) {
         Notify.create({
           message: 'Error while saving playlist',
           type: 'negative',
           position: 'top',
+          timeout: 1000,
         });
         this.showSettingsWindow = false;
         this.showPlaylistLoadSaveWindow = false;
@@ -594,12 +567,14 @@ export const useSoundsStore = defineStore('soundsStore', {
           message: `Playlist "${playlist}" loaded`,
           type: 'positive',
           position: 'top',
+          timeout: 1000,
         });
       } catch (error) {
         Notify.create({
           message: 'Error while loading playlist',
           type: 'negative',
           position: 'top',
+          timeout: 1000,
         });
         this.showSettingsWindow = false;
         this.showPlaylistLoadSaveWindow = false;
@@ -655,8 +630,8 @@ export const useSoundsStore = defineStore('soundsStore', {
           volumeGainNode: null,
           enveloppeGainNode: null,
           launchTime: 0,
-          displayWaveform: true,
           waveformChunks: null,
+          waveformChunksHasBeenCalculated: false,
         };
 
         sound = reactive(sound);

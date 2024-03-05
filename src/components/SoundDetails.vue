@@ -97,8 +97,7 @@
         />
         <div>+24</div>
       </div>
-      <q-separator class="separator" size="2px" color="secondary" />
-
+      <!-- <q-separator class="separator" size="2px" color="secondary" /> -->
       <div class="time-display-row">
         <div class="duration-group">
           <div class="duration-text">Elapsed :</div>

@@ -5,15 +5,16 @@
     ref="soundPlayers"
   >
     <div id="listElements">
-      <div
-        v-for="sound in soundsStore.playlistSounds"
-        :key="sound.id"
-        class="sound-player"
-        :id="sound.id"
-        ref="soundPlayerRefs"
-      >
-        <SoundPlayer :sound="sound" :id="sound.id" :key="sound.id" />
-      </div>
+      <TransitionGroup name="players">
+        <div
+          v-for="sound in soundsStore.playlistSounds"
+          :key="sound.id"
+          class="sound-player"
+          :id="sound.id"
+        >
+          <SoundPlayer :sound="sound" :id="sound.id" :key="sound.id" />
+        </div>
+      </TransitionGroup>
     </div>
   </div>
 </template>
@@ -22,7 +23,9 @@
 import { watch, ref, onMounted, Ref, nextTick } from 'vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
+
 import Sortable from 'sortablejs';
+import gsap from 'gsap';
 import SoundPlayer from './SoundPlayer.vue';
 
 const soundsStore = useSoundsStore();
@@ -139,15 +142,16 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@import 'src/css/players-transitions.css';
+
 .scrollable-playlist {
-  /*   height: calc(100vh - 224px); */
   overflow-y: auto;
   gap: 10px;
 }
+
 .sound-player {
   padding-top: 2px;
   padding-bottom: 5px;
-
   margin: 3px;
   font-size: 15px;
 }

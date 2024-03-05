@@ -13,7 +13,7 @@
       <div class="settings-row">
         <div class="settings-label">Playlist waveform size</div>
         <q-slider
-          style="height: 100%; width: 60%"
+          class="settings-slider"
           v-model="settingsStore.playlistWaveformHeightFactor"
           :min="0"
           :max="2"
@@ -24,7 +24,7 @@
       <div class="settings-row">
         <div class="settings-label">Playlist sound name size</div>
         <q-slider
-          style="height: 100%; width: 60%"
+          class="settings-slider"
           v-model="settingsStore.playlistSoundNameHeightFactor"
           :min="0.5"
           :max="2"
@@ -39,7 +39,7 @@
       >
         <div class="settings-label">Cart waveform size</div>
         <q-slider
-          style="height: 100%; width: 60%"
+          class="settings-slider"
           v-model="settingsStore.cartWaveformHeightFactor"
           :min="0"
           :max="2"
@@ -53,7 +53,7 @@
       >
         <div class="settings-label">Cart name size</div>
         <q-slider
-          style="height: 100%; width: 60%"
+          class="settings-slider"
           v-model="settingsStore.cartSoundNameHeightFactor"
           :min="0.5"
           :max="2"
@@ -124,7 +124,7 @@
         />
       </div>
       <div class="settings-row">
-        <div class="settings-label">Fader stop</div>
+        <div class="settings-label">Fader stop in playlist mode</div>
         <q-toggle v-model="settingsStore.faderStop" color="orange" />
       </div>
     </q-expansion-item>
@@ -328,5 +328,9 @@ function getPerformanceLabel() {
   text-transform: uppercase;
   font-size: 14px;
   font-weight: 500;
+}
+.settings-slider {
+  height: 100%;
+  width: 40%;
 }
 </style>

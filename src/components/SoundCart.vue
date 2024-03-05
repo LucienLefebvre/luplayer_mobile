@@ -6,26 +6,30 @@
     <div class="cart-row">
       <div class="cart-column">
         <div id="listElements0">
-          <div
-            v-for="sound in soundsStore.cartSounds0"
-            :key="sound.id"
-            class="sound-player-column"
-            :id="sound.id"
-          >
-            <SoundPlayer :sound="sound" :id="sound.id" />
-          </div>
+          <TransitionGroup name="players">
+            <div
+              v-for="sound in soundsStore.cartSounds0"
+              :key="sound.id"
+              class="sound-player-column"
+              :id="sound.id"
+            >
+              <SoundPlayer :sound="sound" :id="sound.id" />
+            </div>
+          </TransitionGroup>
         </div>
       </div>
       <div class="cart-column">
         <div id="listElements1">
-          <div
-            v-for="sound in soundsStore.cartSounds1"
-            :key="sound.id"
-            class="sound-player-column"
-            :id="sound.id"
-          >
-            <SoundPlayer :sound="sound" :id="sound.id" />
-          </div>
+          <TransitionGroup name="players">
+            <div
+              v-for="sound in soundsStore.cartSounds1"
+              :key="sound.id"
+              class="sound-player-column"
+              :id="sound.id"
+            >
+              <SoundPlayer :sound="sound" :id="sound.id" />
+            </div>
+          </TransitionGroup>
         </div>
       </div>
     </div>
@@ -148,6 +152,8 @@ watch(
 </script>
 
 <style scoped>
+@import 'src/css/players-transitions.css';
+
 .scrollable-cart {
   overflow-y: auto;
   display: flex;

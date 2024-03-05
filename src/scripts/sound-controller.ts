@@ -46,7 +46,7 @@ export function playSound(
     sound.isFadingIn = true;
     sound.fadeInStartTime = Date.now();
 
-    setTimeout(() => {
+    sound.fadeInTimeoutId = setTimeout(() => {
       sound.isFadingIn = false;
     }, fadeTime * 1000);
   }
@@ -135,6 +135,15 @@ export function stopSound(sound: SoundModel, stoppedByFader = false) {
   if (stoppedByFader) sound.volumeDb = 0;
 
   clearTimeout(sound.timeOutId);
+  clearFades(sound);
+}
+
+function clearFades(sound: SoundModel) {
+  sound.trimGainNode?.gain.cancelScheduledValues(0);
+  clearTimeout(sound.fadeInTimeoutId);
+  clearTimeout(sound.fadeOutTimeoutId);
+  sound.isFadingIn = false;
+  sound.isFadingOut = false;
 }
 
 export function playOrStopSound(
@@ -232,7 +241,7 @@ export function stopSoundWithFadeOut(sound: SoundModel) {
   sound.isFadingOut = true;
   sound.fadeOutStartTime = Date.now();
 
-  setTimeout(() => {
+  sound.fadeOutTimeoutId = setTimeout(() => {
     stopSound(sound);
     sound.isFadingOut = false;
   }, rampTime * 1000);

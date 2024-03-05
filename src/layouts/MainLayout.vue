@@ -56,6 +56,8 @@ import { useWakeLock } from '@vueuse/core';
 import { onMounted, watch, ref } from 'vue';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
+import { Capacitor } from '@capacitor/core';
+import { KeepAwake } from '@capacitor-community/keep-awake';
 
 import MainToolBar from 'src/components/MainToolBar.vue';
 import WelcomeDialog from 'src/components/WelcomeDialog.vue';
@@ -70,7 +72,7 @@ const settingsStore = useSettingsStore();
 const wakeLock = useWakeLock();
 
 onMounted(() => {
-  if (settingsStore.keepScreenAwake) wakeLock.request('screen');
+  if (settingsStore.keepScreenAwake) keepAwake();
 
   settingsStore.loadSettings();
 
@@ -99,13 +101,32 @@ watch(
   () => settingsStore.keepScreenAwake,
   (newValue) => {
     if (newValue === true) {
-      wakeLock.request('screen');
+      keepAwake();
     } else {
-      wakeLock.release();
+      allowSleep();
     }
   }
 );
 
+function keepAwake() {
+  if (isCapacitor()) {
+    KeepAwake.keepAwake();
+  } else {
+    wakeLock.request('screen');
+  }
+}
+
+function allowSleep() {
+  if (isCapacitor()) {
+    KeepAwake.allowSleep();
+  } else {
+    wakeLock.release();
+  }
+}
+
+function isCapacitor() {
+  return Capacitor.isNativePlatform();
+}
 const soundDetailsKey = ref(0);
 function remountSoundDetails() {
   soundDetailsKey.value += 1;

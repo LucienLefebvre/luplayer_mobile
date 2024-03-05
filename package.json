@@ -11,12 +11,15 @@
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
+    "@capacitor-community/keep-awake": "^4.0.0",
     "@capacitor/core": "^5.0.0",
     "@capacitor/filesystem": "^5.2.1",
     "@quasar/extras": "^1.0.0",
     "@vueuse/core": "^9.13.0",
+    "gsap": "^3.12.5",
     "konva": "^8.4.3",
     "lodash.debounce": "^4.0.8",
+    "path-browserify": "^1.0.1",
     "peaks.js": "^3.3.0",
     "pinia": "^2.0.11",
     "quasar": "^2.6.0",

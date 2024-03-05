@@ -33,6 +33,7 @@ import { useSettingsStore } from 'src/stores/settings-store';
 import { NormalizableRange } from 'src/scripts/normalizable-range';
 import AddSoundButton from './AddSoundButton.vue';
 import {
+  isCartSound,
   isPlaylistSound,
   setSelectedSoundVolume,
   stopPlaylistActiveSound,
@@ -61,10 +62,12 @@ watch(
     if (
       soundsStore.selectedSound &&
       newValue === -60 &&
-      settingsStore.faderStop
+      settingsStore.faderStop &&
+      soundsStore.playerMode === 'playlist'
     ) {
       stopSound(soundsStore.selectedSound, true);
       soundsStore.faderTouchedDuringPlayback = true;
+      soundsStore.selectedSoundVolume = 0;
     }
   }
 );
@@ -98,12 +101,13 @@ function faderTouchStart(phase: any) {
 function faderTouchEnd() {
   if (soundsStore.selectedSound === null) return;
   if (
+    isPlaylistSound(soundsStore.selectedSound) &&
     soundsStore.faderTouchedDuringPlayback &&
-    !soundsStore.selectedSound.isPlaying &&
-    isPlaylistSound(soundsStore.selectedSound)
+    !soundsStore.selectedSound.isPlaying
   ) {
     soundsStore.selectedSoundVolume = 0;
   }
+
   soundsStore.faderTouchedDuringPlayback = false;
   soundsStore.faderIsTouched = false;
 }
