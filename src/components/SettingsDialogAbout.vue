@@ -6,7 +6,7 @@
         style="height: 30px; width: auto; object-fit: contain"
       />
     </div>
-    <div class="blueText">LuPlayer Mobile v0.11</div>
+    <div class="blueText">LuPlayer Mobile v0.12</div>
     <br />
     <div class="orangeText">Developed by Lucien Lefebvre</div>
     <br />
@@ -31,6 +31,15 @@
       Desktop version available on
       <a href="https://luplayer.org" target="_blank" style="color: inherit"
         >luplayer.org</a
+      >
+    </div>
+    <div class="orangeText">
+      This software is licensed under the
+      <a
+        href="https://github.com/LucienLefebvre/luplayer_mobile/blob/master/license.md"
+        target="_blank"
+        style="color: inherit"
+        >GPLv3 license</a
       >
     </div>
   </div>

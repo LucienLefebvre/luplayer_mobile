@@ -1,4 +1,5 @@
 <template>
+  <div v-if="isCapacitor()"></div>
   <q-layout view="hhh lpR fFf">
     <q-header>
       <MainToolBar />
@@ -94,6 +95,14 @@ onMounted(() => {
       e.preventDefault();
       e.returnValue = '';
     });
+  }
+
+  if (!isCapacitor()) {
+    let script = document.createElement('script');
+    script.setAttribute('async', '');
+    script.setAttribute('data-id', '101443804');
+    script.src = '//static.getclicky.com/js';
+    document.body.appendChild(script);
   }
 });
 

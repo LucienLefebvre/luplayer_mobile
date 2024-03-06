@@ -277,10 +277,17 @@ onMounted(() => {
 
   if (!minimapWaveformView.value || !zoomableWaveformView.value) return;
   if (!sound) return;
+  if (!soundsStore.audioContext) return;
 
-  zoomable = new Waveform(zoomableWaveformView.value, sound.audioElement, 200);
+  zoomable = new Waveform(
+    soundsStore.audioContext,
+    zoomableWaveformView.value,
+    sound.audioElement,
+    200
+  );
 
   minimap = new Waveform(
+    soundsStore.audioContext,
     minimapWaveformView.value,
     sound.audioElement,
     30,
