@@ -13,6 +13,9 @@ Key features include:
 - Envelope points
 - Fade in & out
 - Save and load playlists
+
+
+![alt text]([screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/aaf01ab29a33d96cc55f735879f5001305aa4390/screenshots/1.jpg))
 ## Build instructions :
 
 This app is made with Vue and Quasar
