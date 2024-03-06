@@ -1,5 +1,5 @@
 # LuPlayer mobile
-LuPlayer Mobile is a lightweight adaptation of LuPlayer Desktop, an application designed for playing audio for radio, podcasts, or any other purpose.
+LuPlayer Mobile is a lightweight adaptation of [LuPlayer desktop](https://github.com/LucienLefebvre/LuPlayer), an application designed for playing audio for radio, podcasts, or any other purpose.
 
 Key features include:
 
@@ -14,8 +14,11 @@ Key features include:
 - Fade in & out
 - Save and load playlists
 
+![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/aaf01ab29a33d96cc55f735879f5001305aa4390/screenshots/1.jpg)
+![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/aaf01ab29a33d96cc55f735879f5001305aa4390/screenshots/2.jpg)
+![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/aaf01ab29a33d96cc55f735879f5001305aa4390/screenshots/3.jpg)
+![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/aaf01ab29a33d96cc55f735879f5001305aa4390/screenshots/4.jpg)
 
-![alt text]([screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/aaf01ab29a33d96cc55f735879f5001305aa4390/screenshots/1.jpg))
 ## Build instructions :
 
 This app is made with Vue and Quasar
