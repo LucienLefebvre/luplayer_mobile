@@ -52,15 +52,15 @@ quasar dev -m pwa
 ```bash
 Unexpected empty function '__wbg_init_memory'
 ```
-### Go to
+#### Go to
 ```bash
 src\rust\waveform_process\pkg\waveform_process.js
 ```
-### Find the function
+#### Find the function
 ```bash
 __wbg_init_memory(imports, maybe_memory)
 ```
-### And fill it with something, for example :
+#### And fill it with something, for example :
 ```bash
 function __wbg_init_memory(imports, maybe_memory) {
   let memory;
