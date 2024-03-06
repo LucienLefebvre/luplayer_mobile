@@ -14,10 +14,10 @@ Key features include:
 - Fade in & out
 - Save and load playlists
 
-![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/aaf01ab29a33d96cc55f735879f5001305aa4390/screenshots/screen1.jpg)
-![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/aaf01ab29a33d96cc55f735879f5001305aa4390/screenshots/screen2.jpg)
-![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/aaf01ab29a33d96cc55f735879f5001305aa4390/screenshots/screen3.jpg)
-![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/aaf01ab29a33d96cc55f735879f5001305aa4390/screenshots/screen4.jpg)
+![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/master/screenshots/screen1.jpg)
+![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/master/screenshots/screen2.jpg)
+![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/master/screenshots/screen3.jpg)
+![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/master/screenshots/screen4.jpg)
 
 ## Build instructions :
 
