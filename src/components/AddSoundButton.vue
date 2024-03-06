@@ -4,7 +4,7 @@
       v-if="soundsStore.playerMode !== 'playlistAndCart'"
       fab
       icon="add"
-      :color="soundsStore.playerMode === 'playlist' ? 'primary' : 'orange'"
+      :color="soundsStore.playerMode === 'playlist' ? 'primary' : 'secondary'"
       @click="chooseFile"
     />
     <q-fab

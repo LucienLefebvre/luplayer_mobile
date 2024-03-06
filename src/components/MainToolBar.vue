@@ -7,7 +7,7 @@
         round
         dense
         icon="menu"
-        style="color: orange"
+        style="color: var(--orangeColor)"
         @click="toggleSettings"
       />
       <div style="display: flex; align-items: center">
@@ -22,7 +22,7 @@
       <q-btn-dropdown
         flat
         :label="soundsStore.playerMode"
-        style="color: orange"
+        style="color: var(--orangeColor)"
         transition-duration="100"
       >
         <q-list style="background-color: var(--bkgColor)">
@@ -33,7 +33,7 @@
             :style="{
               'background-color':
                 soundsStore.playerMode === 'playlist'
-                  ? 'orange'
+                  ? 'var(--orangeColor)'
                   : 'var(--bkgColor)',
             }"
           >
@@ -48,7 +48,7 @@
             :style="{
               'background-color':
                 soundsStore.playerMode === 'cart'
-                  ? 'orange'
+                  ? 'var(--orangeColor)'
                   : 'var(--bkgColor)',
             }"
           >
@@ -89,7 +89,7 @@ function toggleSettings() {
 
 <style scoped>
 .toolbar {
-  border-bottom: 2px solid orange;
+  border-bottom: 2px solid var(--orangeColor);
 }
 .listLabel {
   color: var(--blueColor);

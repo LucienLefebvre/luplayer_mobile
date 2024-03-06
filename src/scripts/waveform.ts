@@ -1446,11 +1446,11 @@ export class Waveform {
     this.stage.off('mouseup touchend');
     this.stage.off('mousemove touchmove');
     this.stage.off('wheel');
-    this.waveformLayer.destroy();
+    /* this.waveformLayer.destroy();
     this.playedLine.destroy();
     this.remainingLine.destroy();
     this.minimapRangeLayer?.destroy();
-    this.minimapRangeRect?.destroy();
+    this.minimapRangeRect?.destroy(); */
 
     //this.stage.destroy();
     this.globalWaveformChunks = new Float32Array(0);

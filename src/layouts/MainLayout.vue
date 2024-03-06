@@ -141,6 +141,7 @@ html {
 :root {
   --bkgColor: rgb(50, 62, 68);
   --blueColor: rgb(40, 134, 189);
+  --orangeColor: orange;
 }
 body {
   background-color: rgb(50, 62, 68);

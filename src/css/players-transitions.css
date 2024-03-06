@@ -1,17 +1,20 @@
-.players-move,
+.players-move {
+  transition: 0.3s ease;
+  transition-delay: 0.2s;
+}
 .players-enter-active {
-  transition: all 0.5s ease;
+  transition: all 0.3s ease;
 }
 .players-leave-active {
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 .players-enter-from {
   opacity: 0;
-  transform: translateX(-50vw);
+  transform: translateX(-100vw);
 }
 .players-leave-to {
   opacity: 0;
-  transform: translateX(50vw);
+  transform: scale(0.1);
 }
 .players-leave-active {
   position: absolute;

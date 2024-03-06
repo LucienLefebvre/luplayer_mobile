@@ -29,33 +29,35 @@
     <div v-if="getSavedPlaylists().length > 0">
       <div class="section-name">Load playlist :</div>
       <div class="saved-playlist">
-        <div v-for="playlist in savedPlaylists" :key="playlist">
-          <div class="buttonRow">
-            <div class="playlistName font-roboto">
-              {{ playlist }}
-            </div>
-            <div class="playlist-buttons">
-              <q-btn
-                icon="folder_open"
-                class="openPlaylistButton"
-                @click="openButtonClicked(playlist)"
-                size="sm"
-              ></q-btn>
-              <q-btn
-                icon="add"
-                class="openPlaylistButton"
-                @click="addButtonClicked(playlist)"
-                size="sm"
-              ></q-btn>
-              <q-btn
-                icon="delete"
-                class="deletePlaylistButton"
-                @click="deleteButtonClicked(playlist)"
-                size="sm"
-              ></q-btn>
+        <TransitionGroup name="playlists-group">
+          <div v-for="playlist in savedPlaylists" :key="playlist">
+            <div class="buttonRow">
+              <div class="playlistName font-roboto">
+                {{ playlist }}
+              </div>
+              <div class="playlist-buttons">
+                <q-btn
+                  icon="folder_open"
+                  class="openPlaylistButton"
+                  @click="openButtonClicked(playlist)"
+                  size="sm"
+                ></q-btn>
+                <q-btn
+                  icon="add"
+                  class="openPlaylistButton"
+                  @click="addButtonClicked(playlist)"
+                  size="sm"
+                ></q-btn>
+                <q-btn
+                  icon="delete"
+                  class="deletePlaylistButton"
+                  @click="deleteButtonClicked(playlist)"
+                  size="sm"
+                ></q-btn>
+              </div>
             </div>
           </div>
-        </div>
+        </TransitionGroup>
       </div>
     </div>
     <div class="section-name">Clear playlist :</div>
@@ -71,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, TransitionGroup } from 'vue';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { Notify, Dialog } from 'quasar';
 
@@ -276,5 +278,23 @@ function clearSoundsClicked() {
   background-color: var(--blueColor);
   border-radius: 8px;
   width: 35px;
+}
+.playlists-group-move {
+  transition: 0.3s ease;
+  transition-delay: 0.2s;
+}
+.playlists-group-enter-active {
+  transition: none;
+}
+.playlists-group-leave-active {
+  transition: all 0.3s ease;
+}
+
+.playlists-group-leave-to {
+  opacity: 0;
+  transform: scale(0.1);
+}
+.playlists-group-leave-active {
+  position: absolute;
 }
 </style>

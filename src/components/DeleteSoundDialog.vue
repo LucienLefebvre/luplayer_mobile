@@ -48,6 +48,6 @@ function deleteButtonClicked() {
   gap: 10px;
 }
 .question {
-  color: orange;
+  color: var(--orangeColor);
 }
 </style>

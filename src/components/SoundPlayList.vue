@@ -4,18 +4,18 @@
     :style="{ height: scrollablePlaylistHeight + 'px' }"
     ref="soundPlayers"
   >
-    <div id="listElements">
-      <TransitionGroup name="players">
-        <div
-          v-for="sound in soundsStore.playlistSounds"
-          :key="sound.id"
-          class="sound-player"
-          :id="sound.id"
-        >
-          <SoundPlayer :sound="sound" :id="sound.id" :key="sound.id" />
-        </div>
-      </TransitionGroup>
-    </div>
+    <!-- <div id="listElements"> -->
+    <TransitionGroup name="players" id="listElements" tag="div">
+      <div
+        v-for="sound in soundsStore.playlistSounds"
+        :key="sound.id"
+        class="sound-player"
+        :id="sound.id"
+      >
+        <SoundPlayer :sound="sound" :id="sound.id" :key="sound.id" />
+      </div>
+    </TransitionGroup>
+    <!-- </div> -->
   </div>
 </template>
 
@@ -101,7 +101,6 @@ onMounted(() => {
     animation: 150,
     ghostClass: 'ghost',
     dragClass: 'dragging',
-    group: { name: 'shared' },
     sort: true,
     onEnd: (evt) => {
       dragEnd(evt);
@@ -113,6 +112,8 @@ onMounted(() => {
 function dragEnd(evt: Sortable.SortableEvent) {
   const oldIndex = evt.oldIndex;
   const newIndex = evt.newIndex;
+
+  console.log('dragEnd', oldIndex, newIndex);
 
   if (oldIndex === newIndex) return;
   if (oldIndex === undefined || newIndex === undefined) return;

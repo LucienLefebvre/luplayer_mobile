@@ -259,7 +259,7 @@ export const useSoundsStore = defineStore('soundsStore', {
         return;
       }
 
-      if (notify) {
+      /* if (notify) {
         const deleteNotifyString = `Sound "${sound.name}" deleted`;
         Notify.create({
           message: deleteNotifyString,
@@ -268,10 +268,9 @@ export const useSoundsStore = defineStore('soundsStore', {
           position: 'top',
           group: 'deleteSound',
         });
-
-        sound = dummySound;
-        this.toBeDeletedSound = null;
-      }
+      } */
+      sound = dummySound;
+      this.toBeDeletedSound = null;
     },
 
     checkIfThereAreLoadedSounds() {
