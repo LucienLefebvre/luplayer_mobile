@@ -1,5 +1,5 @@
 # LuPlayer mobile
-LuPlayer Mobile is a lightweight adaptation of LuPlayer Desktop, an application designed for playing audio for radio, podcasts, or any other purpose.
+LuPlayer Mobile is a lightweight adaptation of [LuPlayer desktop](https://github.com/LucienLefebvre/LuPlayer), an application designed for playing audio for radio, podcasts, or any other purpose.
 
 Key features include:
 
