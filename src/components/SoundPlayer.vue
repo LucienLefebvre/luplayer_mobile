@@ -281,7 +281,7 @@ function onLongPressCallback(e: PointerEvent) {
   }
 }
 
-onLongPress(playerCard, onLongPressCallback, { delay: 500 });
+onLongPress(playerCard, onLongPressCallback, { delay: 600 });
 
 function getSoundIndex() {
   const array = findSoundArray(sound.value);

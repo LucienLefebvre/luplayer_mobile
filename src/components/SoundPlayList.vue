@@ -4,7 +4,6 @@
     :style="{ height: scrollablePlaylistHeight + 'px' }"
     ref="soundPlayers"
   >
-    <!-- <div id="listElements"> -->
     <TransitionGroup name="players" id="listElements" tag="div">
       <div
         v-for="sound in soundsStore.playlistSounds"
@@ -15,7 +14,6 @@
         <SoundPlayer :sound="sound" :id="sound.id" :key="sound.id" />
       </div>
     </TransitionGroup>
-    <!-- </div> -->
   </div>
 </template>
 

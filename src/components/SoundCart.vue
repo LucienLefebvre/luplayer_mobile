@@ -4,33 +4,47 @@
     :style="{ height: scrollablePlaylistHeight + 'px' }"
   >
     <div class="cart-row">
-      <div class="cart-column">
-        <div id="listElements0">
-          <TransitionGroup name="players">
-            <div
-              v-for="sound in soundsStore.cartSounds0"
-              :key="sound.id"
-              class="sound-player-column"
+      <div class="cart-column" ref="cartColumn">
+        <TransitionGroup
+          :name="!soundsStore.isReordering ? 'players' : 'no-transition'"
+          id="listElements0"
+          tag="div"
+          style="max-width: 100%"
+        >
+          <div
+            v-for="sound in soundsStore.cartSounds0"
+            :key="sound.id"
+            class="sound-player-column"
+            :id="sound.id"
+            style="max-width: 100%"
+          >
+            <SoundPlayer
+              :sound="sound"
               :id="sound.id"
-            >
-              <SoundPlayer :sound="sound" :id="sound.id" />
-            </div>
-          </TransitionGroup>
-        </div>
+              :style="{ maxWidth: getPlayerColumnWidth() + 'px' }"
+            />
+          </div>
+        </TransitionGroup>
       </div>
       <div class="cart-column">
-        <div id="listElements1">
-          <TransitionGroup name="players">
-            <div
-              v-for="sound in soundsStore.cartSounds1"
-              :key="sound.id"
-              class="sound-player-column"
+        <TransitionGroup
+          :name="!soundsStore.isReordering ? 'players' : 'no-transition'"
+          id="listElements1"
+          tag="div"
+        >
+          <div
+            v-for="sound in soundsStore.cartSounds1"
+            :key="sound.id"
+            class="sound-player-column"
+            :id="sound.id"
+          >
+            <SoundPlayer
+              :sound="sound"
               :id="sound.id"
-            >
-              <SoundPlayer :sound="sound" :id="sound.id" />
-            </div>
-          </TransitionGroup>
-        </div>
+              :style="{ maxWidth: getPlayerColumnWidth() + 'px' }"
+            />
+          </div>
+        </TransitionGroup>
       </div>
     </div>
   </div>
@@ -131,7 +145,9 @@ function dragEnd(evt: Sortable.SortableEvent) {
 
   if (soundsStore.reorderLocked) return;
   if (soundsStore.isReordering) {
-    soundsStore.isReordering = false;
+    setTimeout(() => {
+      soundsStore.isReordering = false;
+    }, 50);
   }
 }
 
@@ -149,6 +165,17 @@ watch(
     sortable1.option('disabled', !soundsStore.isReordering);
   }
 );
+
+const cartColumn = ref<HTMLElement | null>(null);
+onMounted(() => {
+  cartColumn.value = document.getElementById('cartColumn');
+});
+
+function getPlayerColumnWidth() {
+  console.log('cartColumn.value', cartColumn.value?.clientWidth);
+  if (cartColumn.value === null) return 0;
+  return cartColumn.value.clientWidth;
+}
 </script>
 
 <style scoped>
@@ -164,11 +191,13 @@ watch(
   display: flex;
   flex-direction: row;
   width: 100%;
+  max-width: 100%;
 }
 .cart-column {
   display: flex;
   flex-direction: column;
   width: 50%;
+  max-width: 50%;
   padding: 2px;
 }
 .sound-player-column {
