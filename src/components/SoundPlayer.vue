@@ -16,7 +16,7 @@
     >
       <div class="column d-flex flex-center" style="width: 100%">
         <q-circular-progress
-          v-if="!sound.waveformChunks"
+          v-if="!sound.waveformChunksHasBeenCalculated"
           indeterminate
           rounded
           :size="75 * settingsStore.playlistWaveformHeightFactor + 'px'"

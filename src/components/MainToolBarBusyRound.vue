@@ -3,7 +3,7 @@
     <q-circular-progress
       v-if="shouldShowBusyRound"
       indeterminate
-      color="var(--orangeColor)"
+      color="orange"
       size="20px"
     />
   </div>

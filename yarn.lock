@@ -1294,6 +1294,11 @@
   resolved "https://registry.npmjs.org/@types/node/-/node-12.20.55.tgz"
   integrity sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==
 
+"@types/path-browserify@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.npmjs.org/@types/path-browserify/-/path-browserify-1.0.2.tgz"
+  integrity sha512-ZkC5IUqqIFPXx3ASTTybTzmQdwHwe2C0u3eL75ldQ6T9E9IWFJodn6hIfbZGab73DfyiHN4Xw15gNxUq2FbvBA==
+
 "@types/qs@*":
   version "6.9.11"
   resolved "https://registry.npmjs.org/@types/qs/-/qs-6.9.11.tgz"

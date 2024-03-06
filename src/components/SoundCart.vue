@@ -172,7 +172,6 @@ onMounted(() => {
 });
 
 function getPlayerColumnWidth() {
-  console.log('cartColumn.value', cartColumn.value?.clientWidth);
   if (cartColumn.value === null) return 0;
   return cartColumn.value.clientWidth;
 }

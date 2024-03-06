@@ -14,6 +14,8 @@ const TOUCH_MOUSE_CLICK_TIME = 200;
 const TOUCH_HOLD_TIME = 500;
 
 export class Waveform {
+  audioContext: AudioContext;
+
   private waveformView: HTMLDivElement;
   audioElement: HTMLAudioElement;
 
@@ -123,6 +125,7 @@ export class Waveform {
   private hasBeenCleanedUp: boolean;
 
   constructor(
+    audioContext: AudioContext,
     waveformView: HTMLDivElement,
     audioElement: HTMLAudioElement,
     height = 100,
@@ -130,6 +133,8 @@ export class Waveform {
     minimapWaveformReference = null as Waveform | null,
     zoomedWaveformReference = null as Waveform | null
   ) {
+    this.audioContext = audioContext;
+
     this.eventTarget = new EventTarget();
 
     const handleResized = debounce(() => {
@@ -439,7 +444,7 @@ export class Waveform {
       const buffer = await fetch(this.audioElement.src).then((response) =>
         response.arrayBuffer()
       );
-      const audioBuffer = await new AudioContext().decodeAudioData(buffer);
+      const audioBuffer = await this.audioContext.decodeAudioData(buffer);
       const leftChannelData = audioBuffer.getChannelData(0);
       let rightChannelData;
       if (audioBuffer.numberOfChannels > 1) {

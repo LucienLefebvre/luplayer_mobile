@@ -31,7 +31,12 @@ const emits = defineEmits(['click', 'doubleClick', 'long-touch']);
 
 onMounted(async () => {
   if (!waveformNew.value) return;
-  waveform = new Waveform(waveformNew.value, props.sound.audioElement);
+  if (!soundsStore.audioContext) return;
+  waveform = new Waveform(
+    soundsStore.audioContext,
+    waveformNew.value,
+    props.sound.audioElement
+  );
 
   waveform.addEventListener('click', handleClick);
   waveform.addEventListener('touchHold', handleTouchHold);

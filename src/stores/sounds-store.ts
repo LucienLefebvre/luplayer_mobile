@@ -16,7 +16,7 @@ import {
   findSoundArray,
   setPlaylistActiveSound as setPlaylistActiveSound,
 } from 'src/scripts/sound-controller';
-import { Notify, getCssVar } from 'quasar';
+import { Notify, getCssVar, Dialog } from 'quasar';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
 export const useSoundsStore = defineStore('soundsStore', {
@@ -210,7 +210,23 @@ export const useSoundsStore = defineStore('soundsStore', {
 
     askForSoundDeletion(sound: SoundModel) {
       this.toBeDeletedSound = sound;
-      this.showDeleteSoundWindow = true;
+
+      Dialog.create({
+        message: `Are you sure you want to delete this sound? ${sound.name}`,
+        style: 'background-color: var(--bkgColor); color: orange;',
+        ok: {
+          push: true,
+          color: 'red',
+          label: 'Delete',
+        },
+        cancel: {
+          push: true,
+          color: 'orange',
+          label: 'Cancel',
+        },
+      }).onOk(() => {
+        this.deleteSound(sound);
+      });
     },
 
     deleteSound(sound: SoundModel, notify = true) {
@@ -227,28 +243,26 @@ export const useSoundsStore = defineStore('soundsStore', {
         sound.fileContent = new ArrayBuffer(0);
 
         this.showEditWindow = false;
-        array.splice(index, 1);
 
         if (sound.isSelected) {
           this.selectedSound = null;
           if (
-            (this.playlistSounds.length > 0 &&
-              this.playerMode === 'playlist') ||
-            this.playerMode === 'playlistAndCart'
+            this.playlistSounds.length > 0 &&
+            this.playerMode === 'playlist'
           ) {
-            setSelectedSound(this.playlistSounds[0]);
+            console.log('playlistSounds.length > 0');
+            const index = this.playlistSounds.indexOf(sound);
+            const nextSound = this.playlistSounds[index + 1];
+            const previousSound = this.playlistSounds[index - 1];
+            if (nextSound) {
+              setPlaylistActiveSound(nextSound, true);
+            } else if (previousSound) {
+              setPlaylistActiveSound(previousSound, true);
+            }
           }
         }
-        if (sound.isPlaylistActiveSound) {
-          this.playlistActiveSound = null;
-          if (
-            (this.playlistSounds.length > 0 &&
-              this.playerMode === 'playlist') ||
-            this.playerMode === 'playlistAndCart'
-          ) {
-            setPlaylistActiveSound(this.playlistSounds[0]);
-          }
-        }
+
+        array.splice(index, 1);
       } else {
         Notify.create({
           message: "Can't delete a sound while it's playing",
@@ -458,6 +472,7 @@ export const useSoundsStore = defineStore('soundsStore', {
           position: 'top',
           timeout: 1000,
         });
+        this.numberOfLoadSaveSounds = 0;
       } catch (error) {
         Notify.create({
           message: 'Error while saving playlist',
@@ -530,7 +545,6 @@ export const useSoundsStore = defineStore('soundsStore', {
         if (typeof playlistFile.data === 'string') {
           soundList = JSON.parse(playlistFile.data);
         }
-        const numberOfSoundsToLoad = soundList.length;
 
         const playlistType = this.getPlaylistType(soundList);
 
@@ -541,6 +555,8 @@ export const useSoundsStore = defineStore('soundsStore', {
         }
 
         soundList.shift();
+        const numberOfSoundsToLoad = soundList.length;
+        
         let playlistToLoadTo =
           playlistType === 'playlist' ? this.playlistSounds : this.cartSounds0;
 
@@ -568,6 +584,7 @@ export const useSoundsStore = defineStore('soundsStore', {
           position: 'top',
           timeout: 1000,
         });
+        this.numberOfLoadSaveSounds = 0;
       } catch (error) {
         Notify.create({
           message: 'Error while loading playlist',

@@ -111,8 +111,6 @@ function dragEnd(evt: Sortable.SortableEvent) {
   const oldIndex = evt.oldIndex;
   const newIndex = evt.newIndex;
 
-  console.log('dragEnd', oldIndex, newIndex);
-
   if (oldIndex === newIndex) return;
   if (oldIndex === undefined || newIndex === undefined) return;
   soundsStore.playlistSounds.splice(

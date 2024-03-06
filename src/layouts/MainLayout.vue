@@ -35,7 +35,7 @@
         instant-feedback
         :value="soundsStore.playlistLoadSaveProgress"
         color="orange"
-        size="15px"
+        size="18px"
       >
         <div class="absolute-full flex flex-center">
           <q-badge
