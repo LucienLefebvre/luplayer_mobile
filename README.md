@@ -1,8 +1,23 @@
-# Luplayer-web (luplayer-web)
+# LuPlayer mobile
+LuPlayer Mobile is a lightweight adaptation of LuPlayer Desktop, an application designed for playing audio for radio, podcasts, or any other purpose.
 
-A Quasar Project
+Key features include:
 
-## Install the dependencies
+- Playlist and cart mode
+- Peak meter
+- Waveform display
+- Volume control with a fader
+- Trim gain for each sound
+- Normalization in Loudness Unit (LU)
+- In & Out points
+- Envelope points
+- Fade in & out
+- Save and load playlists
+## Build instructions :
+
+This app is made with Vue and Quasar
+
+### Install the dependencies
 
 ```bash
 yarn
@@ -10,34 +25,44 @@ yarn
 npm install
 ```
 
-### Start the app in development mode (hot-code reloading, error reporting, etc.)
+### Heavy processing tasks are executed by Rust compiled to WebAssembly (Wasm).
+#### Install Cargo if it's not already installed.
+#### Go to the Rust folder
+```bash
+src\rust\waveform_process
+```
+#### Install wasm-pack
+```bash
+cargo install wasm-pack
+```
+#### Build the rust library
+```bash
+wasm-pack build --target web --out-name waveform_process
+```
 
+### Now run in the root folder
 ```bash
 quasar dev
-```
-
-### Lint the files
-
-```bash
-yarn lint
 # or
-npm run lint
-```
-
-### Format the files
-
-```bash
-yarn format
+quasar dev -m pwa
 # or
-npm run format
+...
 ```
-
-### Build the app for production
-
+#### If you have this error :
 ```bash
-quasar build
+Unexpected empty function '__wbg_init_memory'
 ```
-
-### Customize the configuration
-
-See [Configuring quasar.config.js](https://v2.quasar.dev/quasar-cli-vite/quasar-config-js).
+#### Go to
+```bash
+src\rust\waveform_process\pkg\waveform_process.js
+```
+#### Find the function
+```bash
+__wbg_init_memory(imports, maybe_memory)
+```
+#### And fill it with something, for example :
+```bash
+function __wbg_init_memory(imports, maybe_memory) {
+  let memory;
+}
+```
