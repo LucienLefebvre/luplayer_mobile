@@ -16,7 +16,7 @@ Key features include:
 
 ![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/master/screenshots/screen1.jpg)
 ![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/master/screenshots/screen2.jpg)
-![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/master/screenshots/screen3.jpg)
+![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/master/screenshots/screen5.jpg)
 ![screenshots/1.jpg](https://github.com/LucienLefebvre/luplayer_mobile/blob/master/screenshots/screen4.jpg)
 
 ## Build instructions :
