@@ -8,11 +8,11 @@
       <div class="rightPanel" v-if="settingsStore.faderIsOtherSide">
         <PlaylistRightPanel />
       </div>
-      <div v-if="soundsStore.playerMode === 'playlist'" class="playlist">
+      <div v-if="soundsStore.appMode === 'playlist'" class="playlist">
         <SoundPlayList />
       </div>
       <div
-        v-if="soundsStore.playerMode === 'cart'"
+        v-if="soundsStore.appMode === 'cart'"
         style="min-width: 100%; max-width: 100%"
       >
         <SoundCart />
@@ -20,8 +20,7 @@
       <div
         class="rightPanel"
         v-if="
-          !settingsStore.faderIsOtherSide &&
-          soundsStore.playerMode === 'playlist'
+          !settingsStore.faderIsOtherSide && soundsStore.appMode === 'playlist'
         "
       >
         <PlaylistRightPanel />
@@ -30,8 +29,8 @@
 
     <PlaylistFooter
       v-if="
-        soundsStore.playerMode === 'playlist' ||
-        soundsStore.playerMode === 'playlistAndCart'
+        soundsStore.appMode === 'playlist' ||
+        soundsStore.appMode === 'playlistAndCart'
       "
     />
   </div>

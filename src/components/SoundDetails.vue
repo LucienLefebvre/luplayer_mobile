@@ -538,13 +538,13 @@ watch(
 );
 
 function getPreviousSound(): SoundModel | null {
-  if (soundsStore.playerMode === 'playlist') {
+  if (soundsStore.appMode === 'playlist') {
     const currentIndex = soundsStore.playlistSounds.indexOf(sound);
     if (soundsStore.playlistSounds[currentIndex - 1]) {
       return soundsStore.playlistSounds[currentIndex - 1];
     }
     return null;
-  } else if (soundsStore.playerMode === 'cart') {
+  } else if (soundsStore.appMode === 'cart') {
     if (soundsStore.cartSounds0.includes(sound)) {
       const currentIndex = soundsStore.cartSounds0.indexOf(sound);
       if (soundsStore.cartSounds1[currentIndex - 1]) {
@@ -570,7 +570,7 @@ const emits = defineEmits(['remount']);
 
 function showLeftArrow() {
   const isPlaylistAndPlaying =
-    soundsStore.playerMode === 'playlist' && sound.isPlaying;
+    soundsStore.appMode === 'playlist' && sound.isPlaying;
   return getPreviousSound() !== null && !isPlaylistAndPlaying;
 }
 
@@ -582,13 +582,13 @@ function leftArrowClicked() {
 }
 
 function getNextSound(): SoundModel | null {
-  if (soundsStore.playerMode === 'playlist') {
+  if (soundsStore.appMode === 'playlist') {
     const currentIndex = soundsStore.playlistSounds.indexOf(sound);
     if (soundsStore.playlistSounds[currentIndex + 1]) {
       return soundsStore.playlistSounds[currentIndex + 1];
     }
     return null;
-  } else if (soundsStore.playerMode === 'cart') {
+  } else if (soundsStore.appMode === 'cart') {
     if (soundsStore.cartSounds0.includes(sound)) {
       const currentIndex = soundsStore.cartSounds0.indexOf(sound);
       if (soundsStore.cartSounds1[currentIndex]) {
@@ -612,7 +612,7 @@ function getNextSound(): SoundModel | null {
 
 function showRightArrow() {
   const isPlaylistAndPlaying =
-    soundsStore.playerMode === 'playlist' && sound.isPlaying;
+    soundsStore.appMode === 'playlist' && sound.isPlaying;
   return getNextSound() !== null && !isPlaylistAndPlaying;
 }
 
@@ -624,11 +624,11 @@ function rightArrowClicked() {
 }
 
 function setEditedSound(sound: SoundModel) {
-  if (soundsStore.playerMode === 'cart') {
+  if (soundsStore.appMode === 'cart') {
     soundsStore.selectedSound = sound;
     emits('remount');
   } else if (
-    soundsStore.playerMode === 'playlist' &&
+    soundsStore.appMode === 'playlist' &&
     !soundsStore.selectedSound?.isPlaying
   ) {
     setPlaylistActiveSound(sound, true);

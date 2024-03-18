@@ -3,7 +3,7 @@
     <q-card
       class="soundBackground shadow-10"
       :style="{
-        width: soundsStore.playerMode === 'cart' ? '83%' : '100%',
+        width: soundsStore.appMode === 'cart' ? '83%' : '100%',
         borderColor: getBorderColor(),
         borderWidth: '2px',
         backgroundColor: getBackgroundColor(0.1),
@@ -72,7 +72,7 @@
       </div>
     </q-card>
     <SoundCartFader
-      v-if="soundsStore.playerMode === 'cart'"
+      v-if="soundsStore.appMode === 'cart'"
       class="sound-cart-fader"
       :sound="sound"
       :style="{
@@ -178,9 +178,9 @@ function getBackgroundColor(opa: number) {
 
 function getBorderColor() {
   if (
-    (soundsStore.playerMode === 'playlist' &&
+    (soundsStore.appMode === 'playlist' &&
       isPlaylistActiveSound(sound.value)) ||
-    (soundsStore.playerMode === 'cart' && isSelectedSound(sound.value))
+    (soundsStore.appMode === 'cart' && isSelectedSound(sound.value))
   )
     return 'yellow';
   else return getBackgroundColor(1);
@@ -234,9 +234,9 @@ const { direction, isSwiping, lengthX, lengthY } = useSwipe(playerCard, {
 });
 
 function canSwipeSound(direction: SwipeDirection) {
-  if (soundsStore.playerMode === 'cart' && !sound.value.isPlaying) return true;
+  if (soundsStore.appMode === 'cart' && !sound.value.isPlaying) return true;
   else if (
-    soundsStore.playerMode === 'playlist' &&
+    soundsStore.appMode === 'playlist' &&
     direction === 'RIGHT' &&
     sound.value.isPlaying
   )

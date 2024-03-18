@@ -283,10 +283,14 @@ watch(
   () => soundsStore.outputAnalyserNodes,
   (newValue) => {
     if (newValue) {
-      analyser.value = newValue;
+      setAnalyserObject(newValue);
     }
   }
 );
+
+function setAnalyserObject(a: StereoAnalyserObject) {
+  analyser.value = a;
+}
 
 watch(
   () => settingsStore.peakMeterRedThreshold,
@@ -301,6 +305,10 @@ watch(
     rangeOrangeThreshold = normRange.logScaleTo0to1(-newValue);
   }
 );
+
+defineExpose({
+  setAnalyserObject,
+});
 </script>
 
 <style scoped>

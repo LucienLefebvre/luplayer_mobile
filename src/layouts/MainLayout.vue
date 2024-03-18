@@ -5,7 +5,12 @@
       <MainToolBar />
     </q-header>
     <q-page-container class="gradient">
-      <PlayerMainPanel />
+      <PlayerMainPanel
+        v-if="
+          soundsStore.appMode === 'cart' || soundsStore.appMode === 'playlist'
+        "
+      />
+      <RecorderMainPanel v-if="soundsStore.appMode === 'recorder'" />
     </q-page-container>
   </q-layout>
   <q-dialog v-model="soundsStore.showEditWindow" full-width position="bottom">
@@ -67,6 +72,7 @@ import ReorderPanel from 'src/components/ReorderPanel.vue';
 import SettingsDialog from 'src/components/SettingsDialog.vue';
 import DeleteSoundDialog from 'src/components/DeleteSoundDialog.vue';
 import PlayerMainPanel from 'src/components/PlayerMainPanel.vue';
+import RecorderMainPanel from 'src/components/RecorderMainPanel.vue';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
@@ -87,6 +93,9 @@ onMounted(() => {
       break;
     case 'cart':
       soundsStore.initializeCartMode();
+      break;
+    case 'recorder':
+      soundsStore.initializeRecorderMode();
       break;
   }
 

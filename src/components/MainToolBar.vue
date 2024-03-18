@@ -21,7 +21,7 @@
       <main-tool-bar-busy-round />
       <q-btn-dropdown
         flat
-        :label="soundsStore.playerMode"
+        :label="soundsStore.appMode"
         style="color: var(--orangeColor)"
         transition-duration="100"
       >
@@ -29,10 +29,25 @@
           <q-item
             clickable
             v-close-popup
+            @click="recorderClicked()"
+            :style="{
+              'background-color':
+                soundsStore.appMode === 'recorder'
+                  ? 'var(--orangeColor)'
+                  : 'var(--bkgColor)',
+            }"
+          >
+            <q-item-section>
+              <q-item-label class="listLabel">Recorder</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item
+            clickable
+            v-close-popup
             @click="playlistClicked()"
             :style="{
               'background-color':
-                soundsStore.playerMode === 'playlist'
+                soundsStore.appMode === 'playlist'
                   ? 'var(--orangeColor)'
                   : 'var(--bkgColor)',
             }"
@@ -47,7 +62,7 @@
             @click="cartClicked()"
             :style="{
               'background-color':
-                soundsStore.playerMode === 'cart'
+                soundsStore.appMode === 'cart'
                   ? 'var(--orangeColor)'
                   : 'var(--bkgColor)',
             }"
@@ -69,6 +84,13 @@ import { useSettingsStore } from 'src/stores/settings-store';
 
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
+
+function recorderClicked() {
+  settingsStore.lastUsedPlayerMode = 'recorder';
+  settingsStore.saveSettings();
+
+  soundsStore.initializeRecorderMode();
+}
 
 function cartClicked() {
   soundsStore.initializeCartMode();

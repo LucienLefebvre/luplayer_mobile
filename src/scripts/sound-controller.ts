@@ -316,7 +316,7 @@ export function setSelectedSoundVolume(volume: number) {
   soundStore.selectedSoundVolume = volume;
 
   let selectedSound;
-  if (soundStore.playerMode === 'cart') {
+  if (soundStore.appMode === 'cart') {
     selectedSound = soundStore.selectedSound;
   } else {
     selectedSound = soundStore.playlistActiveSound;

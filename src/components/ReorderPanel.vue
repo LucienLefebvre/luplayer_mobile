@@ -12,7 +12,7 @@
       />
     </div>
     <q-card class="panel-class">
-      <div v-if="soundsStore.playerMode === 'playlist'">
+      <div v-if="soundsStore.appMode === 'playlist'">
         <div id="listElements">
           <div
             v-for="(player, index) in soundsStore.playlistSounds"
@@ -69,11 +69,11 @@ onMounted(() => {
   elements = document.getElementById('listElements');
   elements1 = document.getElementById('listElements1');
   elements2 = document.getElementById('listElements2');
-  if (!elements && soundsStore.playerMode === 'playlist') return;
-  if (!elements1 && soundsStore.playerMode === 'cart') return;
-  if (!elements2 && soundsStore.playerMode === 'cart') return;
+  if (!elements && soundsStore.appMode === 'playlist') return;
+  if (!elements1 && soundsStore.appMode === 'cart') return;
+  if (!elements2 && soundsStore.appMode === 'cart') return;
 
-  if (soundsStore.playerMode === 'playlist') {
+  if (soundsStore.appMode === 'playlist') {
     sortable = Sortable.create(elements!, {
       animation: 150,
       sort: true,
@@ -93,7 +93,7 @@ onMounted(() => {
         }
       },
     });
-  } else if (soundsStore.playerMode === 'cart') {
+  } else if (soundsStore.appMode === 'cart') {
     sortable1 = Sortable.create(elements1!, {
       animation: 150,
       ghostClass: 'ghost',

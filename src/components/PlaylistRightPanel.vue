@@ -63,7 +63,7 @@ watch(
       soundsStore.selectedSound &&
       newValue === -60 &&
       settingsStore.faderStop &&
-      soundsStore.playerMode === 'playlist'
+      soundsStore.appMode === 'playlist'
     ) {
       stopSound(soundsStore.selectedSound, true);
       soundsStore.faderTouchedDuringPlayback = true;

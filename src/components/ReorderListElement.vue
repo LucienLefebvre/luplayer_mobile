@@ -1,6 +1,6 @@
 <template>
   <div class="element-row" :style="{ color: getSoundColor() }">
-    <div v-if="soundsStore.playerMode === 'playlist'" class="sound-index">
+    <div v-if="soundsStore.appMode === 'playlist'" class="sound-index">
       {{ getSoundIndex() }}
     </div>
     <!--   <q-btn

@@ -34,7 +34,11 @@ export const useSoundsStore = defineStore('soundsStore', {
       waveformBeingCalculatedSounds: [] as string[],
       loudnessBeingCalculatedSounds: [] as string[],
 
-      playerMode: 'playlist' as 'playlist' | 'cart' | 'playlistAndCart',
+      appMode: 'playlist' as
+        | 'playlist'
+        | 'cart'
+        | 'playlistAndCart'
+        | 'recorder',
       arrayToAddSound: 'playlist' as 'playlist' | 'cart',
 
       audioContext: null as AudioContext | null,
@@ -156,11 +160,11 @@ export const useSoundsStore = defineStore('soundsStore', {
 
             registerEventListeners(addedSound);
 
-            if (this.playerMode === 'playlist') {
+            if (this.appMode === 'playlist') {
               this.addSoundToPlaylist(addedSound);
-            } else if (this.playerMode === 'cart') {
+            } else if (this.appMode === 'cart') {
               this.addSoundToCart(addedSound);
-            } else if (this.playerMode === 'playlistAndCart') {
+            } else if (this.appMode === 'playlistAndCart') {
               if (this.arrayToAddSound === 'playlist') {
                 this.addSoundToPlaylist(addedSound);
               } else {
@@ -201,8 +205,7 @@ export const useSoundsStore = defineStore('soundsStore', {
       arrayToAdd.push(addedSound);
       if (
         arrayToAdd.length === 1 &&
-        (this.playerMode === 'playlist' ||
-          this.playerMode === 'playlistAndCart')
+        (this.appMode === 'playlist' || this.appMode === 'playlistAndCart')
       ) {
         setSelectedSound(arrayToAdd[0]);
         setPlaylistActiveSound(arrayToAdd[0]);
@@ -247,10 +250,7 @@ export const useSoundsStore = defineStore('soundsStore', {
 
         if (sound.isSelected) {
           this.selectedSound = null;
-          if (
-            this.playlistSounds.length > 0 &&
-            this.playerMode === 'playlist'
-          ) {
+          if (this.playlistSounds.length > 0 && this.appMode === 'playlist') {
             console.log('playlistSounds.length > 0');
             const index = this.playlistSounds.indexOf(sound);
             const nextSound = this.playlistSounds[index + 1];
@@ -289,19 +289,19 @@ export const useSoundsStore = defineStore('soundsStore', {
     },
 
     checkIfThereAreLoadedSounds() {
-      if (this.playerMode === 'playlist') {
+      if (this.appMode === 'playlist') {
         return this.playlistSounds.length > 0;
       }
-      if (this.playerMode === 'cart') {
+      if (this.appMode === 'cart') {
         return this.cartSounds0.length > 0 || this.cartSounds1.length > 0;
       }
     },
 
     checkIfThereArePlayingSounds() {
-      if (this.playerMode === 'playlist') {
+      if (this.appMode === 'playlist') {
         return this.playlistSounds.some((sound) => sound.isPlaying);
       }
-      if (this.playerMode === 'cart') {
+      if (this.appMode === 'cart') {
         return (
           this.cartSounds0.some((sound) => sound.isPlaying) ||
           this.cartSounds1.some((sound) => sound.isPlaying)
@@ -310,13 +310,13 @@ export const useSoundsStore = defineStore('soundsStore', {
     },
 
     initializePlaylistMode() {
-      if (this.playerMode === 'playlist') return;
+      if (this.appMode === 'playlist') return;
 
-      if (this.playerMode === 'playlistAndCart') {
-        this.playerMode = 'playlist';
+      if (this.appMode === 'playlistAndCart') {
+        this.appMode = 'playlist';
         return;
       }
-      this.playerMode = 'playlist';
+      this.appMode = 'playlist';
 
       this.selectedSound = null;
       this.deselectAllSounds();
@@ -346,9 +346,9 @@ export const useSoundsStore = defineStore('soundsStore', {
     },
 
     initializeCartMode() {
-      if (this.playerMode === 'cart') return;
+      if (this.appMode === 'cart') return;
 
-      this.playerMode = 'cart';
+      this.appMode = 'cart';
       this.selectedSound = null;
       this.deselectAllSounds();
 
@@ -371,9 +371,9 @@ export const useSoundsStore = defineStore('soundsStore', {
     },
 
     initializePlaylistAndCartMode() {
-      if (this.playerMode === 'playlistAndCart') return;
+      if (this.appMode === 'playlistAndCart') return;
 
-      this.playerMode = 'playlistAndCart';
+      this.appMode = 'playlistAndCart';
 
       this.deselectAllSounds();
 
@@ -424,7 +424,7 @@ export const useSoundsStore = defineStore('soundsStore', {
         let soundList;
         let numberOfSoundsToSave = 0;
 
-        if (this.playerMode === 'playlist') {
+        if (this.appMode === 'playlist') {
           soundList = [] as string[];
           soundList.push('playlist');
           numberOfSoundsToSave = this.playlistSounds.length;
@@ -433,7 +433,7 @@ export const useSoundsStore = defineStore('soundsStore', {
             this.updateSavingProgress(numberOfSoundsToSave);
           }
         }
-        if (this.playerMode === 'cart') {
+        if (this.appMode === 'cart') {
           soundList = [] as string[];
           soundList.push('cart');
           numberOfSoundsToSave =
@@ -549,9 +549,9 @@ export const useSoundsStore = defineStore('soundsStore', {
 
         const playlistType = this.getPlaylistType(soundList);
 
-        if (playlistType === 'cart' && this.playerMode === 'playlist') {
+        if (playlistType === 'cart' && this.appMode === 'playlist') {
           this.initializeCartMode();
-        } else if (playlistType === 'playlist' && this.playerMode === 'cart') {
+        } else if (playlistType === 'playlist' && this.appMode === 'cart') {
           this.initializePlaylistMode();
         }
 
@@ -575,7 +575,7 @@ export const useSoundsStore = defineStore('soundsStore', {
         this.showSettingsWindow = false;
         this.showPlaylistLoadSaveWindow = false;
 
-        if (this.playerMode === 'playlist' && this.playlistSounds.length > 0) {
+        if (this.appMode === 'playlist' && this.playlistSounds.length > 0) {
           setPlaylistActiveSound(this.playlistSounds[0], true);
         }
 
@@ -733,6 +733,13 @@ export const useSoundsStore = defineStore('soundsStore', {
         bytes[i] = binaryString.charCodeAt(i);
       }
       return bytes.buffer;
+    },
+
+    initializeRecorderMode() {
+      this.appMode = 'recorder';
+      this.selectedSound = null;
+      this.deselectAllSounds();
+      this.deleteAllSounds(false);
     },
   },
 });

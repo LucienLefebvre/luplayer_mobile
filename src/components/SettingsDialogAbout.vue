@@ -6,7 +6,7 @@
         style="height: 30px; width: auto; object-fit: contain"
       />
     </div>
-    <div class="blueText">LuPlayer Mobile v0.12</div>
+    <div class="blueText">LuPlayer Mobile v0.13</div>
     <br />
     <div class="orangeText">Developed by Lucien Lefebvre</div>
     <br />

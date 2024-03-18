@@ -41,7 +41,7 @@ const updateHeight = () => {
   if (settings.showLuMeter) {
     heightToSubtract += meterHeight;
   }
-  if (soundsStore.playerMode === 'playlistAndCart') {
+  if (soundsStore.appMode === 'playlistAndCart') {
     heightToSubtract += cartRef.value?.clientHeight || 0;
   }
   scrollablePlaylistHeight.value = window.innerHeight - heightToSubtract;

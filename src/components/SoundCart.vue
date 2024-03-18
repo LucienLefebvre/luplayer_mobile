@@ -67,7 +67,7 @@ onMounted(() => {
 
 const scrollablePlaylistHeight = ref(0);
 const updateHeight = () => {
-  if (soundsStore.playerMode === 'playlistAndCart') {
+  if (soundsStore.appMode === 'playlistAndCart') {
     scrollablePlaylistHeight.value = settingsStore.playlistAndCartCartSize;
     return;
   }

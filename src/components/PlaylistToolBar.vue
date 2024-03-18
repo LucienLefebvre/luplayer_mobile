@@ -62,8 +62,8 @@ const settingsStore = useSettingsStore();
 
 function shouldDisplayPlaylistControl() {
   return (
-    (soundsStore.playerMode === 'playlist' ||
-      soundsStore.playerMode === 'playlistAndCart') &&
+    (soundsStore.appMode === 'playlist' ||
+      soundsStore.appMode === 'playlistAndCart') &&
     settingsStore.displayPlaylistControls
   );
 }

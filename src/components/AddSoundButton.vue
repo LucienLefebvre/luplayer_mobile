@@ -1,13 +1,13 @@
 <template>
   <q-page-sticky
     position="bottom-right"
-    v-if="soundsStore.playerMode === 'cart'"
+    v-if="soundsStore.appMode === 'cart'"
     style="padding: 4px"
   >
     <q-btn size="50px" fab icon="add" @click="chooseFile" color="secondary" />
   </q-page-sticky>
   <q-btn
-    v-if="soundsStore.playerMode === 'playlist'"
+    v-if="soundsStore.appMode === 'playlist'"
     size="50px"
     fab
     icon="add"
