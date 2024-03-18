@@ -149,6 +149,7 @@ export const useSoundsStore = defineStore('soundsStore', {
               isFadingOut: false,
               fadeInStartTime: 0,
               fadeOutStartTime: 0,
+              shouldShowVolume: false,
             };
 
             addedSound = reactive(addedSound);
@@ -556,7 +557,7 @@ export const useSoundsStore = defineStore('soundsStore', {
 
         soundList.shift();
         const numberOfSoundsToLoad = soundList.length;
-        
+
         let playlistToLoadTo =
           playlistType === 'playlist' ? this.playlistSounds : this.cartSounds0;
 

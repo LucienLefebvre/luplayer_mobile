@@ -3,7 +3,7 @@
     <q-card
       class="soundBackground shadow-10"
       :style="{
-        width: '100%',
+        width: soundsStore.playerMode === 'cart' ? '83%' : '100%',
         borderColor: getBorderColor(),
         borderWidth: '2px',
         backgroundColor: getBackgroundColor(0.1),
@@ -25,6 +25,9 @@
             color: getWaveformColor(),
           }"
         />
+        <div v-show="sound.shouldShowVolume" class="volume-label">
+          {{ sound.volumeDb.toFixed(1) }} dB
+        </div>
         <sound-waveform
           v-show="
             settingsStore.playlistWaveformHeightFactor > 0.1 &&
@@ -68,6 +71,14 @@
         </div>
       </div>
     </q-card>
+    <SoundCartFader
+      v-if="soundsStore.playerMode === 'cart'"
+      class="sound-cart-fader"
+      :sound="sound"
+      :style="{
+        height: settingsStore.cartWaveformHeightFactor * 100 + 'px',
+      }"
+    />
   </div>
 </template>
 
@@ -86,6 +97,7 @@ import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import SoundWaveform from './SoundWaveform.vue';
 import SoundProgressBar from './SoundProgressBar.vue';
+import SoundCartFader from './SoundCartFader.vue';
 import {
   playOrStopSound,
   getSoundDurationLabel,
@@ -336,6 +348,10 @@ onBeforeUnmount(() => {
   nameBar.value = null;
   progressBar.value = null;
 });
+
+function getFaderHeight() {
+  return settingsStore.cartWaveformHeightFactor * 100;
+}
 </script>
 
 <style scoped>
@@ -397,5 +413,19 @@ onBeforeUnmount(() => {
   border-top-left-radius: 5px;
   border-bottom-right-radius: 10px;
   position: relative;
+}
+.sound-cart-fader {
+  width: 17%;
+  margin-left: 2px;
+}
+.volume-label {
+  font-size: 1.7rem;
+  font-weight: 500;
+
+  color: orange;
+
+  user-select: none;
+  position: absolute;
+  z-index: 1;
 }
 </style>

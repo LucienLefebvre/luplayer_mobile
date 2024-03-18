@@ -1,46 +1,53 @@
 <template>
-  <div>
-    <q-btn
-      v-if="soundsStore.playerMode !== 'playlistAndCart'"
-      fab
-      icon="add"
-      :color="soundsStore.playerMode === 'playlist' ? 'primary' : 'secondary'"
-      @click="chooseFile"
-    />
-    <q-fab
-      v-if="soundsStore.playerMode === 'playlistAndCart'"
-      fab
-      icon="add"
+  <q-page-sticky
+    position="bottom-right"
+    v-if="soundsStore.playerMode === 'cart'"
+    style="padding: 4px"
+  >
+    <q-btn size="50px" fab icon="add" @click="chooseFile" color="secondary" />
+  </q-page-sticky>
+  <q-btn
+    v-if="soundsStore.playerMode === 'playlist'"
+    size="50px"
+    fab
+    icon="add"
+    color="primary"
+    @click="chooseFile"
+  />
+  <!--  <q-fab
+    v-if="soundsStore.playerMode === 'playlistAndCart'"
+    fab
+    icon="add"
+    color="primary"
+    direction="up"
+    text-color="secondary"
+  >
+    <q-fab-action
       color="primary"
-      direction="up"
       text-color="secondary"
-    >
-      <q-fab-action
-        color="primary"
-        text-color="secondary"
-        @click="
-          {
-            soundsStore.arrayToAddSound = 'playlist';
-            chooseFile();
-          }
-        "
-        icon="splitscreen"
-        style="transform: rotate(90)"
-      />
-      <q-fab-action
-        color="primary"
-        text-color="secondary"
-        @click="
-          {
-            soundsStore.arrayToAddSound = 'cart';
-            chooseFile();
-          }
-        "
-        icon="window"
-        style="transform: rotate(90)"
-      />
-    </q-fab>
-  </div>
+      @click="
+        {
+          soundsStore.arrayToAddSound = 'playlist';
+          chooseFile();
+        }
+      "
+      icon="splitscreen"
+      style="transform: rotate(90)"
+    />
+    <q-fab-action
+      color="primary"
+      text-color="secondary"
+      @click="
+        {
+          soundsStore.arrayToAddSound = 'cart';
+          chooseFile();
+        }
+      "
+      icon="window"
+      style="transform: rotate(90)"
+    />
+  </q-fab>
+ -->
   <input
     ref="fileInput"
     type="file"

@@ -47,12 +47,14 @@
         </TransitionGroup>
       </div>
     </div>
+    <AddSoundButton class="add-button" />
   </div>
 </template>
 
 <script setup lang="ts">
 import Sortable from 'sortablejs';
 import SoundPlayer from './SoundPlayer.vue';
+import AddSoundButton from './AddSoundButton.vue';
 import { useSoundsStore } from '../stores/sounds-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import { ref, onMounted, watch } from 'vue';
@@ -197,9 +199,18 @@ function getPlayerColumnWidth() {
   flex-direction: column;
   width: 50%;
   max-width: 50%;
-  padding: 2px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  margin-right: 2px;
 }
 .sound-player-column {
-  padding: 2px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.add-button {
+  bottom: 0;
+  right: 0;
+  margin: 10px;
+  height: 50px;
 }
 </style>

@@ -49,6 +49,8 @@ export const useSettingsStore = defineStore('settingsStore', {
       playlistAndCartCartSize: 150 as number,
 
       selectLastPlayedCartSound: true as boolean,
+
+      cartVolumeSwipeMultiplier: 2 as number,
     }),
 
   actions: {

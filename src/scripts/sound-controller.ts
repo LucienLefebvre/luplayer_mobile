@@ -281,7 +281,7 @@ export function findSoundArray(sound: SoundModel): SoundModel[] | null {
 
 export function setSelectedSound(sound: SoundModel, resetVolume = true) {
   if (sound === null || sound === undefined) return;
-
+  console.log('setSelectedSound', sound);
   const soundStore = useSoundsStore();
 
   soundStore.playlistSounds.forEach((sound) => (sound.isSelected = false));
@@ -290,13 +290,19 @@ export function setSelectedSound(sound: SoundModel, resetVolume = true) {
 
   sound.isSelected = true;
   soundStore.selectedSound = sound;
-  if (resetVolume) {
+  if (resetVolume && !isCartSound(sound)) {
     sound.volumeDb = 0;
     resetSelectedSoundVolume();
   }
   if (sound.volumeGainNode !== null) {
     soundStore.selectedSoundVolume = gainToDb(sound.volumeGainNode.gain.value);
   }
+}
+
+export function setSoundVolumeDB(sound: SoundModel, volume: number) {
+  sound.volumeDb = volume;
+  if (sound.volumeGainNode === null) return;
+  sound.volumeGainNode.gain.value = dbToGain(volume);
 }
 
 export function resetSelectedSoundVolume() {

@@ -42,6 +42,8 @@ export interface SoundModel {
 
   integratedLoudness: number | null;
 
+  shouldShowVolume: boolean;
+
   volumeDb: number;
   trimDb: number;
   trimGainNode: GainNode | null;
@@ -96,6 +98,7 @@ export const dummySound: SoundModel = {
   isFadingOut: false,
   fadeInStartTime: 0,
   fadeOutStartTime: 0,
+  shouldShowVolume: false,
 };
 
 export interface EnveloppePoint {

@@ -13,17 +13,17 @@
       </div>
       <div
         v-if="soundsStore.playerMode === 'cart'"
-        style="min-width: 85%; max-width: 85%"
+        style="min-width: 100%; max-width: 100%"
       >
         <SoundCart />
       </div>
       <div
-        v-if="soundsStore.playerMode === 'playlistAndCart'"
-        style="min-width: 85%; max-width: 85%"
+        class="rightPanel"
+        v-if="
+          !settingsStore.faderIsOtherSide &&
+          soundsStore.playerMode === 'playlist'
+        "
       >
-        <SoundPlaylistAndCart />
-      </div>
-      <div class="rightPanel" v-if="!settingsStore.faderIsOtherSide">
         <PlaylistRightPanel />
       </div>
     </div>

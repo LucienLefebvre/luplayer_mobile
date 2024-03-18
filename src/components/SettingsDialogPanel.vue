@@ -113,7 +113,7 @@
         <q-toggle v-model="settingsStore.faderIsOtherSide" color="orange" />
       </div>
       <div class="settings-row">
-        <div class="settings-label">Fader curve</div>
+        <div class="settings-label">Playlist Fader curve</div>
         <q-slider
           style="height: 100%; width: 60%"
           v-model="settingsStore.faderSkewFactor"
@@ -126,6 +126,17 @@
       <div class="settings-row">
         <div class="settings-label">Fader stop in playlist mode</div>
         <q-toggle v-model="settingsStore.faderStop" color="orange" />
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Cart fader sensitivity</div>
+        <q-slider
+          style="height: 100%; width: 60%"
+          v-model="settingsStore.cartVolumeSwipeMultiplier"
+          :min="0.1"
+          :max="4"
+          :step="0.01"
+          color="orange"
+        />
       </div>
     </q-expansion-item>
     <q-expansion-item
