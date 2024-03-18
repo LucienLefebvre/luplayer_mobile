@@ -131,8 +131,10 @@ export function stopSound(sound: SoundModel, stoppedByFader = false) {
   sound.audioElement.currentTime = 0;
   sound.isPlaying = false;
 
-  if (!isCartSound(sound)) sound.volumeDb = 0;
-  if (stoppedByFader) sound.volumeDb = 0;
+  if (!isCartSound(sound) || stoppedByFader) {
+    if (sound.volumeGainNode !== null) sound.volumeGainNode.gain.value = 1;
+    sound.volumeDb = 0;
+  }
 
   clearTimeout(sound.timeOutId);
   clearFades(sound);
@@ -288,7 +290,10 @@ export function setSelectedSound(sound: SoundModel, resetVolume = true) {
 
   sound.isSelected = true;
   soundStore.selectedSound = sound;
-  if (resetVolume) resetSelectedSoundVolume();
+  if (resetVolume) {
+    sound.volumeDb = 0;
+    resetSelectedSoundVolume();
+  }
   if (sound.volumeGainNode !== null) {
     soundStore.selectedSoundVolume = gainToDb(sound.volumeGainNode.gain.value);
   }

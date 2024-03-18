@@ -39,7 +39,7 @@ import {
   stopPlaylistActiveSound,
   stopSound,
 } from 'src/scripts/sound-controller';
-import { is } from 'quasar';
+
 const soundsStore = useSoundsStore();
 const settingsStore = useSettingsStore();
 
@@ -67,7 +67,6 @@ watch(
     ) {
       stopSound(soundsStore.selectedSound, true);
       soundsStore.faderTouchedDuringPlayback = true;
-      soundsStore.selectedSoundVolume = 0;
     }
   }
 );
