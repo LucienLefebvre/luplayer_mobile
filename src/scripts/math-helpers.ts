@@ -61,3 +61,16 @@ export function getMMSSfromS(timeInSeconds: number) {
 
   return minutesString + "'" + secondsString + "''";
 }
+
+export function getMMSSMSfromMS(timeInMS: number) {
+  const seconds = Math.floor(timeInMS / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds - minutes * 60;
+  const minutesString = minutes < 10 ? '' + minutes : minutes;
+  const secondsString =
+    Math.floor(remainingSeconds) < 10 && Math.floor(remainingSeconds) > 0
+      ? '0' + remainingSeconds.toFixed(0)
+      : remainingSeconds.toFixed(0);
+  const milliseconds = (timeInMS % 100).toFixed(0);
+  return minutesString + "'" + secondsString + "''" + milliseconds;
+}

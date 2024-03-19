@@ -24,11 +24,16 @@ export class Recorder {
     };
 
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('MediaDevices or getUserMedia is not supported');
+      }
+
       navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
         this.recorder = new MediaRecorder(stream);
 
         this.mediaStreamSource =
           this.audioContext.createMediaStreamSource(stream);
+
         if (this.stereoAnalyser) {
           this.mediaStreamSource.connect(this.stereoAnalyser.splitter);
           this.stereoAnalyser.splitter.connect(
@@ -39,7 +44,11 @@ export class Recorder {
             this.stereoAnalyser.analysers[1],
             1
           );
+
+          this.stereoAnalyser.analysers[0].minDecibels = -100;
+          this.stereoAnalyser.analysers[0].maxDecibels = 0;
         }
+
         this.recorder.ondataavailable = (e) => {
           this.chunks.push(e.data);
         };

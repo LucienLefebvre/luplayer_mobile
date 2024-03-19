@@ -133,3 +133,17 @@ export interface MeterBar {
   orange: Konva.Rect;
   red: Konva.Rect;
 }
+
+export interface RecordedSound {
+  id: string;
+  name: string;
+  path?: string;
+  markers: SoundMarker[];
+}
+
+export interface SoundMarker {
+  id: number;
+  name: string;
+  positionInMs: number;
+  color?: string;
+}
