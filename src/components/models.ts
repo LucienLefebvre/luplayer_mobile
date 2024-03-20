@@ -134,11 +134,18 @@ export interface MeterBar {
   red: Konva.Rect;
 }
 
+export enum RecorderState {
+  INITIALIZING = 'initializing',
+  READY = 'ready',
+  RECORDING = 'recording',
+  STOPPED = 'stopped',
+}
 export interface RecordedSound {
   id: string;
   name: string;
   path?: string;
   markers: SoundMarker[];
+  totalLengthInMs?: number;
 }
 
 export interface SoundMarker {
@@ -146,4 +153,6 @@ export interface SoundMarker {
   name: string;
   positionInMs: number;
   color?: string;
+  nameHasBeenEdited: boolean;
+  showDialog: boolean;
 }

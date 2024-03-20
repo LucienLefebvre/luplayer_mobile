@@ -6,39 +6,104 @@
       ref="peakMeter"
     />
     <div class="recorder-panel">
-      <q-btn
+      <!-- <q-btn
         @click="enableButtonClicked()"
         color="primary"
         :label="getEnabledButtonLabel()"
-      />
+      /> -->
       <div ref="waveformView" class="waveform-view"></div>
-      <div class="recording-button-row">
-        <div class="recording-button">
-          <q-btn size="xl" round @click="recordButtonClicked()" color="red">
-            <q-icon :name="getRecordButtonIcon" size="xl" />
-          </q-btn>
+      <div ref="controlPanel" class="control-panel">
+        <div class="recording-button-row">
+          <div class="stop-delete-button">
+            <q-btn size="25px" round color="orange" icon="square" />
+          </div>
+          <div class="recording-button">
+            <q-btn
+              size="45px"
+              round
+              @click="recordButtonClicked()"
+              color="red"
+              :label="recordingLengthLabel"
+            >
+            </q-btn>
+          </div>
+          <div class="stop-delete-button">
+            <q-btn size="25px" round color="orange" icon="delete" />
+          </div>
         </div>
-        <div class="recording-time-label">{{ recordingLength }}</div>
-      </div>
-      <div>
-        <q-input label="Recording name" v-model="soundName" />
-      </div>
-      <div>
+        <div class="sound-name-row">
+          <div class="sound-name" @click="nameClicked()">
+            {{ currentSound.name }}
+            <q-dialog
+              v-model="showNameDialog"
+              auto-save
+              :cover="false"
+              :offset="[0, 20]"
+            >
+              <q-card class="name-dialog q-pa-md" style="padding: 10px">
+                <q-input
+                  :input-style="{ color: 'orange', fontSize: '1.5rem' }"
+                  color="orange"
+                  clearable
+                  v-model="currentSound.name"
+                  dense
+                  autofocus
+                  @keyup.enter="
+                    currentSound.name.trim() !== ''
+                      ? (showNameDialog = false)
+                      : null
+                  "
+                />
+              </q-card>
+            </q-dialog>
+          </div>
+        </div>
         <div class="markers-panel">
-          <q-btn
-            @click="addMarker()"
-            color="primary"
-            icon="add"
-            size="sm"
-            class="markers-button"
-          />
-          <div>
+          <div class="markers-control">
+            <div class="markers-control-label">Markers</div>
+            <q-btn
+              @click="addMarker()"
+              color="secondary"
+              icon="add"
+              class="markers-button"
+            />
+          </div>
+          <div class="markers-display">
             <div
-              v-for="marker in currentSound?.markers"
+              v-for="marker in currentSound?.markers.slice().reverse()"
               :key="marker.id"
               class="markers-table"
             >
-              {{ marker.name }}
+              <div class="markers-table-id">{{ marker.id + 1 }}</div>
+              <div class="markers-table-name" @click="markerClicked(marker)">
+                {{ marker.name }}
+                <q-dialog
+                  v-model="marker.showDialog"
+                  auto-save
+                  :cover="false"
+                  :offset="[0, 20]"
+                >
+                  <q-card class="name-dialog q-pa-md" style="padding: 10px">
+                    <q-input
+                      :input-style="{ color: 'orange', fontSize: '1.5rem' }"
+                      color="orange"
+                      clearable
+                      v-model="marker.name"
+                      dense
+                      autofocus
+                      @keyup.enter="
+                        marker.name.trim() !== ''
+                          ? (marker.showDialog = false)
+                          : null
+                      "
+                    />
+                  </q-card>
+                </q-dialog>
+              </div>
+
+              <div class="markers-table-time">
+                {{ getMMSSfromS(marker.positionInMs / 1000) }}
+              </div>
             </div>
           </div>
         </div>
@@ -52,21 +117,26 @@ import { v4 as uuidv4 } from 'uuid';
 import { computed, onMounted, ref, watch } from 'vue';
 import { Recorder } from 'src/scripts/recorder';
 import { RecorderWaveform } from 'src/scripts/recorder-waveform';
-import { getMMSSMSfromMS, getMMSSfromS } from 'src/scripts/math-helpers';
+import { getMMSSfromS } from 'src/scripts/math-helpers';
 import PeakMeter from './PeakMeter.vue';
 import { RecordedSound, SoundMarker } from './models';
+import { RecorderState } from 'src/components/models';
 
-let r = ref(null as Recorder | null);
-let waveformView = ref<HTMLDivElement | null>(null);
+const r = ref(null as Recorder | null);
+const waveformView = ref<HTMLDivElement | null>(null);
 let waveform: RecorderWaveform;
-let intervalId: ReturnType<typeof setTimeout> | null = null;
 const peakMeter = ref<typeof PeakMeter | null>(null);
 
-let currentSound: RecordedSound | null = null;
+let currentSound: RecordedSound = {
+  id: uuidv4(),
+  name: 'New recording',
+  markers: [],
+};
+
 let soundName = ref('');
 onMounted(() => {
-  intervalId = setInterval(() => {
-    getRecordingLengthLabel();
+  setInterval(() => {
+    updateRecodingLength();
   }, 50);
 });
 
@@ -82,8 +152,9 @@ function enableButtonClicked() {
     initRecorder();
   }
 }
-function initRecorder() {
+async function initRecorder() {
   r.value = new Recorder();
+  await r.value.init();
   peakMeter.value?.setAnalyserObject(r.value.stereoAnalyser);
 
   if (waveformView.value === null) return;
@@ -91,11 +162,11 @@ function initRecorder() {
   waveform = new RecorderWaveform(waveformView.value, r.value.stereoAnalyser);
 }
 
-function recordButtonClicked() {
+async function recordButtonClicked() {
   if (r.value === null) {
-    initRecorder();
+    await initRecorder();
   }
-  if (r.value?.recorder?.state === 'recording') {
+  if (r.value?.state === RecorderState.RECORDING) {
     stopRecording();
   } else {
     startRecording();
@@ -103,46 +174,44 @@ function recordButtonClicked() {
 }
 
 function startRecording() {
+  currentSound.id = uuidv4();
+  (currentSound.name = 'New recording'),
+    (currentSound.markers = []),
+    r.value?.setRecordedSound(currentSound);
   r.value?.startRecording();
   waveform.setWaveformColor('red');
-  waveform.addMarker('red');
-
-  const newRecordedSound: RecordedSound = {
-    id: uuidv4(),
-    name: soundName.value,
-    markers: [] as SoundMarker[],
-  };
-
-  currentSound = newRecordedSound;
+  waveform.addMarker('lightblue');
 }
 
 function stopRecording() {
+  currentSound.totalLengthInMs = getCurrentRecordingLength();
   r.value?.stopRecording();
   waveform.setWaveformColor('orange');
-  waveform.addMarker('red');
+  waveform.addMarker('yellow');
 }
 
-const getRecordButtonIcon = computed(() => {
-  if (r.value?.recording) {
-    return 'stop';
-  }
-  return '';
-});
-
-const recordingLength = ref('0');
+const recordingLength = ref(0);
+const recordingLengthLabel = ref('');
 
 function getCurrentRecordingLength() {
-  if (!r.value?.recording) {
+  if (r.value?.state !== RecorderState.RECORDING) {
     return 0;
   } else {
     return Date.now() - r.value.startTime;
   }
 }
-function getRecordingLengthLabel() {
-  if (!r.value?.recording) {
-    return getMMSSMSfromMS(0);
+function updateRecodingLength() {
+  if (r.value?.state === RecorderState.STOPPED) {
+    recordingLength.value = currentSound.totalLengthInMs ?? 0;
+    recordingLengthLabel.value = getMMSSfromS(recordingLength.value / 1000);
+  } else if (r.value?.state !== RecorderState.RECORDING) {
+    recordingLength.value = 0;
+    recordingLengthLabel.value = '';
   } else {
-    recordingLength.value = getMMSSfromS(getCurrentRecordingLength() / 1000);
+    recordingLength.value = getCurrentRecordingLength();
+    recordingLengthLabel.value = getMMSSfromS(
+      getCurrentRecordingLength() / 1000
+    );
   }
 }
 
@@ -152,7 +221,9 @@ function addMarker() {
   currentSound?.markers?.push({
     id: currentSound.markers.length,
     positionInMs: getCurrentRecordingLength(),
-    name: 'marker ' + id,
+    name: 'Marker ' + id,
+    showDialog: false,
+    nameHasBeenEdited: false,
   });
   console.log(currentSound?.markers);
 }
@@ -160,8 +231,21 @@ function addMarker() {
 watch(soundName, (newVal, oldVal) => {
   if (currentSound === null) return;
   currentSound.name = newVal;
-  console.log(currentSound);
 });
+
+const showNameDialog = ref(false);
+function nameClicked() {
+  currentSound.name = soundName.value;
+  showNameDialog.value = !showNameDialog.value;
+}
+
+function markerClicked(marker: SoundMarker) {
+  if (!marker.nameHasBeenEdited) {
+    marker.name = '';
+    marker.nameHasBeenEdited = true;
+  }
+  marker.showDialog = !marker.showDialog;
+}
 </script>
 
 <style scoped>
@@ -172,29 +256,7 @@ watch(soundName, (newVal, oldVal) => {
   align-items: center;
   height: 100%;
   flex-wrap: nowrap;
-  padding: 5px;
-}
-.recording-button-row {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  flex-wrap: nowrap;
-  width: 100%;
-  color: orange;
-}
-.recording-button {
-  padding: 5px;
-  width: 50%;
-  font-size: 3rem;
-  justify-content: center;
-}
-.recording-time-label {
-  padding: 5px;
-  width: 50%;
-  font-size: 3rem;
-  justify-content: center;
+  padding: 7px;
 }
 .meter-style {
   height: 30px;
@@ -203,27 +265,124 @@ watch(soundName, (newVal, oldVal) => {
 .waveform-view {
   width: 100%;
   height: 200px;
-  margin-top: 3px;
-  margin-bottom: 3px;
   border-radius: 10px;
   overflow: hidden;
   background-color: rgba(0, 0, 0, 0.144);
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+  margin-bottom: 10px;
 }
-.markers-panel {
+.control-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.recording-button-row {
   display: flex;
   flex-direction: row;
+  justify-content: space-evenly;
+  height: 100%;
   width: 100%;
+  padding: 5px;
+}
+.record-button {
+  padding: 5px;
+  font-size: 3rem;
+  justify-content: center;
+}
+.stop-delete-button {
+  padding: 5px;
+  font-size: 3rem;
+  justify-content: center;
+}
+.sound-name-row {
   padding: 5px;
   margin-top: 5px;
   margin-bottom: 5px;
 }
-.markers-button {
-  width: 10%;
-  height: 20px;
+.sound-name {
+  color: var(--blueColor);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 1.7rem;
+  font-family: 'Roboto', sans-serif;
+  font-weight: bold;
+  background-color: rgba(0, 0, 0, 0.137);
+  border-radius: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
 }
-.markes-table {
-  width: 90%;
-  max-height: 200px;
+.name-dialog {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  background-color: var(--bkgColor);
+}
+.markers-panel {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: center;
+  width: 100%;
+  padding: 5px;
+  height: 120px;
+}
+.markers-control {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 30%;
+  gap: 10px;
+}
+.markers-control-label {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: orange;
+}
+.markers-button {
+  width: 60px;
+  height: 60px;
+}
+.markers-display {
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  height: 120px;
+  max-height: 120px;
+  width: 70%;
+  background-color: rgba(0, 0, 0, 0.137);
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+  padding: 7px;
+}
+.markers-table {
+  font-size: 1.1rem;
+  font-weight: bold;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+.markers-table-id {
+  width: 10%;
+  text-align: left;
+  color: var(--blueColor);
+}
+.markers-table-name {
+  color: orange;
+  width: 75%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.markers-table-time {
+  width: 15%;
+  text-align: right;
+  color: var(--blueColor);
 }
 </style>

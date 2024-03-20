@@ -59,13 +59,13 @@ export class RecorderWaveform {
 
   private drawWaveform() {
     const bufferLength = this.stereoAnalyser.analysers[0].frequencyBinCount;
-    const dataArrayL = new Uint8Array(bufferLength);
-    const dataArrayR = new Uint8Array(bufferLength);
-    this.stereoAnalyser.analysers[0].getByteTimeDomainData(dataArrayL);
-    this.stereoAnalyser.analysers[1].getByteTimeDomainData(dataArrayR);
+    const dataArrayL = new Float32Array(bufferLength);
+    const dataArrayR = new Float32Array(bufferLength);
+    this.stereoAnalyser.analysers[0].getFloatTimeDomainData(dataArrayL);
+    this.stereoAnalyser.analysers[1].getFloatTimeDomainData(dataArrayR);
 
-    const maxValueL = Math.max(...dataArrayL) - 128;
-    const maxValueR = Math.max(...dataArrayR) - 128;
+    const maxValueL = Math.max(...dataArrayL);
+    const maxValueR = Math.max(...dataArrayR);
 
     this.peakValuesL.push(maxValueL);
     this.peakValuesR.push(maxValueR);
@@ -80,14 +80,14 @@ export class RecorderWaveform {
     for (let i = 0; i < this.peakValuesL.length; i++) {
       points.push(
         i,
-        (this.peakValuesR[i] / 128) * this.waveformView.clientHeight +
+        (this.peakValuesR[i] / 2) * this.waveformView.clientHeight +
           this.waveformView.clientHeight / 2
       );
     }
     for (let i = this.peakValuesL.length - 1; i >= 0; i--) {
       points.push(
         i,
-        (-this.peakValuesL[i] / 128) * this.waveformView.clientHeight +
+        (-this.peakValuesL[i] / 2) * this.waveformView.clientHeight +
           this.waveformView.clientHeight / 2
       );
     }
@@ -125,7 +125,7 @@ export class RecorderWaveform {
           this.waveformView.clientHeight,
         ],
         stroke: color,
-        strokeWidth: 1,
+        strokeWidth: 2,
       }),
     });
 
