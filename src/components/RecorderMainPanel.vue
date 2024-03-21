@@ -108,19 +108,34 @@
           </div>
         </div>
       </div>
+      <div class="recorded-sounds-panel-label">
+        Recorded sounds :
+        <q-btn
+          color="orange"
+          icon="open_in_new"
+          size="xs"
+          dense
+          @click="openRecordedSoundsDialog()"
+        />
+      </div>
+      <RecordedSoundsPanel class="recorded-sounds-panel" />
     </div>
   </div>
+  <q-dialog v-model="showRecordedSoundsDialog">
+    <div class="recorded-sounds-dialog"><RecordedSoundsPanel /></div>
+  </q-dialog>
 </template>
 
 <script setup lang="ts">
 import { v4 as uuidv4 } from 'uuid';
-import { computed, onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch, TransitionGroup } from 'vue';
 import { Recorder } from 'src/scripts/recorder';
 import { RecorderWaveform } from 'src/scripts/recorder-waveform';
 import { getMMSSfromS } from 'src/scripts/math-helpers';
-import PeakMeter from './PeakMeter.vue';
 import { RecordedSound, SoundMarker } from './models';
 import { RecorderState } from 'src/components/models';
+import PeakMeter from './PeakMeter.vue';
+import RecordedSoundsPanel from './RecordedSoundsPanel.vue';
 
 const r = ref(null as Recorder | null);
 const waveformView = ref<HTMLDivElement | null>(null);
@@ -131,6 +146,8 @@ let currentSound: RecordedSound = {
   id: uuidv4(),
   name: 'New recording',
   markers: [],
+  totalLengthInMs: 0,
+  peakData: [],
 };
 
 let soundName = ref('');
@@ -140,18 +157,6 @@ onMounted(() => {
   }, 50);
 });
 
-function getEnabledButtonLabel() {
-  if (r.value === null) {
-    return 'Monitor input';
-  }
-  return 'Input monitored';
-}
-
-function enableButtonClicked() {
-  if (r.value === null) {
-    initRecorder();
-  }
-}
 async function initRecorder() {
   r.value = new Recorder();
   await r.value.init();
@@ -174,20 +179,28 @@ async function recordButtonClicked() {
 }
 
 function startRecording() {
+  waveform.setWaveformToDraw('realtime');
   currentSound.id = uuidv4();
   (currentSound.name = 'New recording'),
     (currentSound.markers = []),
     r.value?.setRecordedSound(currentSound);
   r.value?.startRecording();
   waveform.setWaveformColor('red');
-  waveform.addMarker('lightblue');
+  waveform.addMarker('red');
+  waveform.resetWaveform();
+  waveform.startCollectingPeakValues();
 }
 
 function stopRecording() {
   currentSound.totalLengthInMs = getCurrentRecordingLength();
+
+  waveform.stopCollectingPeakValues();
+  currentSound.peakData = waveform.getPeakValues();
+
   r.value?.stopRecording();
+
   waveform.setWaveformColor('orange');
-  waveform.addMarker('yellow');
+  waveform.setWaveformToDraw('recorded');
 }
 
 const recordingLength = ref(0);
@@ -225,7 +238,14 @@ function addMarker() {
     showDialog: false,
     nameHasBeenEdited: false,
   });
-  console.log(currentSound?.markers);
+}
+
+function markerClicked(marker: SoundMarker) {
+  if (!marker.nameHasBeenEdited) {
+    marker.name = '';
+    marker.nameHasBeenEdited = true;
+  }
+  marker.showDialog = !marker.showDialog;
 }
 
 watch(soundName, (newVal, oldVal) => {
@@ -239,12 +259,9 @@ function nameClicked() {
   showNameDialog.value = !showNameDialog.value;
 }
 
-function markerClicked(marker: SoundMarker) {
-  if (!marker.nameHasBeenEdited) {
-    marker.name = '';
-    marker.nameHasBeenEdited = true;
-  }
-  marker.showDialog = !marker.showDialog;
+const showRecordedSoundsDialog = ref(false);
+function openRecordedSoundsDialog() {
+  showRecordedSoundsDialog.value = true;
 }
 </script>
 
@@ -264,7 +281,7 @@ function markerClicked(marker: SoundMarker) {
 }
 .waveform-view {
   width: 100%;
-  height: 200px;
+  height: 170px;
   border-radius: 10px;
   overflow: hidden;
   background-color: rgba(0, 0, 0, 0.144);
@@ -329,7 +346,7 @@ function markerClicked(marker: SoundMarker) {
   align-items: center;
   width: 100%;
   padding: 5px;
-  height: 120px;
+  height: 110px;
 }
 .markers-control {
   display: flex;
@@ -337,7 +354,7 @@ function markerClicked(marker: SoundMarker) {
   justify-content: center;
   align-items: center;
   width: 30%;
-  gap: 10px;
+  gap: 5px;
 }
 .markers-control-label {
   font-size: 1.2rem;
@@ -345,20 +362,19 @@ function markerClicked(marker: SoundMarker) {
   color: orange;
 }
 .markers-button {
-  width: 60px;
-  height: 60px;
+  width: 40px;
+  height: 40px;
 }
 .markers-display {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  height: 120px;
-  max-height: 120px;
+  height: 100%;
   width: 70%;
   background-color: rgba(0, 0, 0, 0.137);
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
   border-radius: 5px;
-  padding: 7px;
+  padding: 5px;
 }
 .markers-table {
   font-size: 1.1rem;
@@ -384,5 +400,30 @@ function markerClicked(marker: SoundMarker) {
   width: 15%;
   text-align: right;
   color: var(--blueColor);
+}
+.recorded-sounds-panel-label {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: orange;
+  margin-top: 10px;
+  width: 100%;
+  text-align: left;
+}
+.recorded-sounds-panel {
+  width: 100%;
+  height: 150px;
+  overflow-y: auto;
+  background-color: rgba(0, 0, 0, 0.137);
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+}
+.recorded-sounds-dialog {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-height: 60%;
+  background-color: var(--bkgColor);
 }
 </style>

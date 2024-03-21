@@ -1,5 +1,6 @@
 import { StereoAnalyserObject } from 'src/components/models';
 import Konva from 'konva';
+import { RecordedSound } from 'src/components/models';
 
 export interface Marker {
   xPos: number;
@@ -22,6 +23,13 @@ export class RecorderWaveform {
 
   private markers: Marker[] = [];
 
+  private shouldCollectPeakValues = false;
+
+  private peaksValues = [new DynamicFloat32Array(), new DynamicFloat32Array()];
+  private recordedPeaksValues = [new Float32Array(), new Float32Array()];
+
+  private waveformToDraw = 'realtime' as 'realtime' | 'recorded';
+
   constructor(
     waveformView: HTMLDivElement,
     stereoAnalyser: StereoAnalyserObject
@@ -40,7 +48,8 @@ export class RecorderWaveform {
     this.layer.add(this.waveform);
 
     this.anim = new Konva.Animation(() => {
-      this.drawWaveform();
+      if (this.waveformToDraw === 'realtime') this.drawRealTimeWaveform();
+      else if (this.waveformToDraw === 'recorded') this.drawRecordedWaveform();
     }, this.layer);
 
     this.peakValuesL = new Array(this.waveformView.clientWidth).fill(0);
@@ -57,7 +66,13 @@ export class RecorderWaveform {
     this.anim.stop();
   }
 
-  private drawWaveform() {
+  public setWaveformToDraw(waveformToDraw: 'realtime' | 'recorded') {
+    this.waveformToDraw = waveformToDraw;
+    this.deleteAllMarkers();
+    this.start();
+  }
+
+  private drawRealTimeWaveform() {
     const bufferLength = this.stereoAnalyser.analysers[0].frequencyBinCount;
     const dataArrayL = new Float32Array(bufferLength);
     const dataArrayR = new Float32Array(bufferLength);
@@ -69,6 +84,11 @@ export class RecorderWaveform {
 
     this.peakValuesL.push(maxValueL);
     this.peakValuesR.push(maxValueR);
+
+    if (this.shouldCollectPeakValues) {
+      this.peaksValues[0].addData(new Float32Array([maxValueL]));
+      this.peaksValues[1].addData(new Float32Array([maxValueR]));
+    }
 
     if (this.peakValuesL.length > this.waveformView.clientWidth) {
       this.peakValuesL.shift();
@@ -113,6 +133,40 @@ export class RecorderWaveform {
     });
   }
 
+  private drawRecordedWaveform() {
+    const startTime = performance.now();
+    const points = [] as number[];
+    const peaksLength = this.recordedPeaksValues[0].length;
+    const valuesToFind = peaksLength / this.waveformView.clientWidth;
+    for (let i = 0; i < this.waveformView.clientWidth; i++) {
+      const peakValueL =
+        this.recordedPeaksValues[0][Math.floor(i * valuesToFind)];
+      const peakValueR =
+        this.recordedPeaksValues[1][Math.floor(i * valuesToFind)];
+      points.push(
+        i,
+        (peakValueR / 2) * this.waveformView.clientHeight +
+          this.waveformView.clientHeight / 2
+      );
+      points.push(
+        i,
+        (-peakValueL / 2) * this.waveformView.clientHeight +
+          this.waveformView.clientHeight / 2
+      );
+    }
+
+    this.waveform.points(points);
+    this.waveform.stroke(this.color);
+    this.waveform.fill(this.color);
+    this.waveform.strokeWidth(1);
+    this.waveform.closed(true);
+
+    this.stop();
+
+    const endTime = performance.now();
+    console.log('Drawing waveform took', endTime - startTime, 'ms');
+  }
+
   public addMarker(color: string) {
     this.markers.push({
       xPos: this.waveformView.clientWidth - 1,
@@ -137,7 +191,66 @@ export class RecorderWaveform {
     this.markers = this.markers.filter((m) => m !== marker);
   }
 
+  private deleteAllMarkers() {
+    this.markers.forEach((marker) => {
+      marker.line.destroy();
+    });
+    this.markers = [];
+  }
+
   public setWaveformColor(color: string) {
     this.color = color;
+  }
+
+  public resetWaveform() {
+    this.peakValuesL = new Array(this.waveformView.clientWidth).fill(0);
+    this.peakValuesR = new Array(this.waveformView.clientWidth).fill(0);
+  }
+
+  public startCollectingPeakValues() {
+    this.shouldCollectPeakValues = true;
+  }
+
+  public stopCollectingPeakValues() {
+    this.shouldCollectPeakValues = false;
+    this.recordedPeaksValues[0] = new Float32Array(
+      this.peaksValues[0].getData()
+    );
+    this.recordedPeaksValues[1] = new Float32Array(
+      this.peaksValues[1].getData()
+    );
+    this.peaksValues[0].clearData();
+    this.peaksValues[1].clearData();
+  }
+
+  public getPeakValues() {
+    const peakValues = [
+      this.recordedPeaksValues[0],
+      this.recordedPeaksValues[1],
+    ];
+    return peakValues;
+  }
+}
+
+export class DynamicFloat32Array {
+  private buffer: Float32Array;
+
+  constructor() {
+    this.buffer = new Float32Array(0);
+  }
+
+  addData(data: Float32Array) {
+    const newBuffer = new Float32Array(this.buffer.length + data.length);
+    newBuffer.set(this.buffer);
+    newBuffer.set(data, this.buffer.length);
+    this.buffer = newBuffer;
+  }
+
+  getData(): Float32Array {
+    return this.buffer;
+  }
+
+  clearData() {
+    this.buffer = new Float32Array(0);
   }
 }

@@ -4,6 +4,7 @@ import {
   StereoAnalyserObject,
 } from 'src/components/models';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { useSoundLibraryStore } from 'src/stores/sound-library-store';
 import write_blob from 'capacitor-blob-writer';
 export class Recorder {
   state = RecorderState.INITIALIZING;
@@ -63,7 +64,6 @@ export class Recorder {
 
       this.recorder.ondataavailable = (e) => {
         this.chunks?.push(e.data);
-        //console.log(e.data);
         this.saveRecording();
       };
 
@@ -97,6 +97,9 @@ export class Recorder {
       try {
         const fileName = this.recordedSound?.name + '.ogg';
         const newFileName = await this.getUniqueFileName(fileName);
+        if (newFileName && fileName !== newFileName) {
+          this.recordedSound!.name = newFileName;
+        }
         if (!newFileName) {
           console.error('Failed to get unique filename.');
           return;
@@ -106,6 +109,9 @@ export class Recorder {
           path: newFileName,
           blob: this.chunks[0],
         });
+
+        const soundLibraryStore = useSoundLibraryStore();
+        soundLibraryStore.addRecordedSoundToLibrary(this.recordedSound!);
       } catch (error) {
         console.error('saveRecording', error);
       }
