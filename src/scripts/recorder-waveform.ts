@@ -1,6 +1,6 @@
 import { StereoAnalyserObject } from 'src/components/models';
 import Konva from 'konva';
-import { RecordedSound } from 'src/components/models';
+import { SoundMarker } from 'src/components/models';
 
 export interface Marker {
   xPos: number;
@@ -13,6 +13,7 @@ export class RecorderWaveform {
 
   private stage: Konva.Stage;
   private layer: Konva.Layer;
+  private layerBackground: Konva.Rect;
   private waveform: Konva.Line;
   private anim: Konva.Animation;
 
@@ -30,6 +31,10 @@ export class RecorderWaveform {
 
   private waveformToDraw = 'realtime' as 'realtime' | 'recorded';
 
+  private audioElement?: HTMLAudioElement;
+  private soundDuration = 0;
+  private playHeadMarker: Konva.Line;
+
   constructor(
     waveformView: HTMLDivElement,
     stereoAnalyser: StereoAnalyserObject
@@ -42,8 +47,19 @@ export class RecorderWaveform {
       width: this.waveformView.clientWidth,
       height: this.waveformView.clientHeight,
     });
+
     this.layer = new Konva.Layer();
     this.stage.add(this.layer);
+
+    this.layerBackground = new Konva.Rect({
+      x: 0,
+      y: 0,
+      width: this.stage.width(),
+      height: this.stage.height(),
+      fill: 'transparent',
+    });
+    this.layer.add(this.layerBackground);
+
     this.waveform = new Konva.Line();
     this.layer.add(this.waveform);
 
@@ -54,6 +70,15 @@ export class RecorderWaveform {
 
     this.peakValuesL = new Array(this.waveformView.clientWidth).fill(0);
     this.peakValuesR = new Array(this.waveformView.clientWidth).fill(0);
+
+    this.playHeadMarker = new Konva.Line();
+    this.playHeadMarker.points([0, 0, 0, this.waveformView.clientHeight]);
+    this.playHeadMarker.stroke('green');
+    this.playHeadMarker.strokeWidth(2);
+    this.layer.add(this.playHeadMarker);
+    this.playHeadMarker.visible(false);
+
+    this.registerTouchEvents();
 
     this.start();
   }
@@ -68,7 +93,7 @@ export class RecorderWaveform {
 
   public setWaveformToDraw(waveformToDraw: 'realtime' | 'recorded') {
     this.waveformToDraw = waveformToDraw;
-    this.deleteAllMarkers();
+    if (waveformToDraw === 'realtime') this.playHeadMarker.visible(false);
     this.start();
   }
 
@@ -134,13 +159,15 @@ export class RecorderWaveform {
   }
 
   private drawRecordedWaveform() {
-    const startTime = performance.now();
+    if (this.audioElement?.paused) this.playHeadMarker.visible(false);
+    else this.playHeadMarker.visible(true);
+
     const points = [] as number[];
     const peaksLength = this.recordedPeaksValues[0].length;
     const valuesToFind = peaksLength / this.waveformView.clientWidth;
+
+    points.push(0, this.waveformView.clientHeight / 2);
     for (let i = 0; i < this.waveformView.clientWidth; i++) {
-      const peakValueL =
-        this.recordedPeaksValues[0][Math.floor(i * valuesToFind)];
       const peakValueR =
         this.recordedPeaksValues[1][Math.floor(i * valuesToFind)];
       points.push(
@@ -148,12 +175,17 @@ export class RecorderWaveform {
         (peakValueR / 2) * this.waveformView.clientHeight +
           this.waveformView.clientHeight / 2
       );
+    }
+    for (let i = this.waveformView.clientWidth - 1; i >= 0; i--) {
+      const peakValueL =
+        this.recordedPeaksValues[0][Math.floor(i * valuesToFind)];
       points.push(
         i,
         (-peakValueL / 2) * this.waveformView.clientHeight +
           this.waveformView.clientHeight / 2
       );
     }
+    points.push(0, this.waveformView.clientHeight / 2);
 
     this.waveform.points(points);
     this.waveform.stroke(this.color);
@@ -161,10 +193,17 @@ export class RecorderWaveform {
     this.waveform.strokeWidth(1);
     this.waveform.closed(true);
 
-    this.stop();
-
-    const endTime = performance.now();
-    console.log('Drawing waveform took', endTime - startTime, 'ms');
+    if (this.audioElement) {
+      const playHeadXPosition =
+        (this.audioElement.currentTime / this.soundDuration) *
+        this.waveformView.clientWidth;
+      this.playHeadMarker.points([
+        playHeadXPosition,
+        0,
+        playHeadXPosition,
+        this.waveformView.clientHeight,
+      ]);
+    }
   }
 
   public addMarker(color: string) {
@@ -186,16 +225,34 @@ export class RecorderWaveform {
     this.layer.add(this.markers[this.markers.length - 1].line);
   }
 
-  private deleteMarker(marker: Marker) {
+  public deleteMarker(marker: Marker) {
     marker.line.destroy();
     this.markers = this.markers.filter((m) => m !== marker);
   }
 
-  private deleteAllMarkers() {
+  public deleteAllMarkers() {
     this.markers.forEach((marker) => {
       marker.line.destroy();
     });
     this.markers = [];
+  }
+
+  public setMarkers(markers: SoundMarker[]) {
+    this.deleteAllMarkers();
+    markers.forEach((marker) => {
+      const x = this.timeToX(marker.positionInMs / 1000);
+      const m: Marker = {
+        xPos: x,
+        color: 'rgb(40, 134, 189)',
+        line: new Konva.Line({
+          points: [x, 0, x, this.waveformView.clientHeight],
+          stroke: 'rgb(40, 134, 189)',
+          strokeWidth: 2,
+        }),
+      };
+      this.markers.push(m);
+      this.layer.add(m.line);
+    });
   }
 
   public setWaveformColor(color: string) {
@@ -212,6 +269,8 @@ export class RecorderWaveform {
   }
 
   public stopCollectingPeakValues() {
+    this.deleteAllMarkers();
+
     this.shouldCollectPeakValues = false;
     this.recordedPeaksValues[0] = new Float32Array(
       this.peaksValues[0].getData()
@@ -225,10 +284,67 @@ export class RecorderWaveform {
 
   public getPeakValues() {
     const peakValues = [
-      this.recordedPeaksValues[0],
-      this.recordedPeaksValues[1],
+      new Float32Array(this.recordedPeaksValues[0]),
+      new Float32Array(this.recordedPeaksValues[1]),
     ];
     return peakValues;
+  }
+
+  public setPeakValues(peakValues: Float32Array[]) {
+    this.recordedPeaksValues = [
+      new Float32Array(peakValues[0]),
+      new Float32Array(peakValues[1]),
+    ];
+  }
+
+  public setAudioElement(audioElement: HTMLAudioElement) {
+    this.audioElement = audioElement;
+
+    this.audioElement.onplay = () => {
+      this.playHeadMarker.visible(true);
+    };
+    this.audioElement.onended = () => {
+      this.playHeadMarker.visible(false);
+    };
+  }
+
+  public setSoundDuration(duration: number) {
+    this.soundDuration = duration;
+  }
+
+  private registerTouchEvents() {
+    this.layer.on('touchstart', this.handleTouchStart);
+    this.layer.on('touchmove', this.handleTouchMove);
+  }
+
+  private handleTouchStart = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    e.evt.preventDefault();
+    if (this.waveformToDraw === 'recorded' && this.audioElement) {
+      const touch = e.evt.touches[0];
+      const x = touch.clientX;
+      this.audioElement.currentTime = this.xToTime(x);
+    }
+  };
+
+  private handleTouchMove = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    e.evt.preventDefault();
+    if (this.waveformToDraw === 'recorded' && this.audioElement) {
+      const touch = e.evt.touches[0];
+      const x = touch.clientX;
+      this.audioElement.currentTime = this.xToTime(x);
+    }
+  };
+
+  private xToTime(x: number) {
+    if (this.waveformToDraw === 'recorded' && this.audioElement)
+      return (x / this.waveformView.clientWidth) * this.soundDuration;
+    else return 0;
+  }
+
+  private timeToX(time: number) {
+    if (this.waveformToDraw === 'recorded')
+      return (time / this.soundDuration) * this.waveformView.clientWidth;
+    else return 0;
   }
 }
 

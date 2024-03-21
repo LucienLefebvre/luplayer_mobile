@@ -139,6 +139,7 @@ export enum RecorderState {
   READY = 'ready',
   RECORDING = 'recording',
   STOPPED = 'stopped',
+  PLAYING_RECORDED_SOUND = 'playing-recorded-sound',
 }
 export interface RecordedSound {
   id: string;
@@ -147,6 +148,9 @@ export interface RecordedSound {
   markers: SoundMarker[];
   totalLengthInMs: number;
   peakData: Float32Array[];
+  peakDataAsStandardArray?: number[][];
+  audioElement?: HTMLAudioElement;
+  isPlaying: boolean;
 }
 
 export interface SoundMarker {

@@ -3,9 +3,7 @@ import {
   RecorderState,
   StereoAnalyserObject,
 } from 'src/components/models';
-import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
-import write_blob from 'capacitor-blob-writer';
 export class Recorder {
   state = RecorderState.INITIALIZING;
   audioContext?: AudioContext;
@@ -17,6 +15,7 @@ export class Recorder {
 
   recording = false;
   startTime = 0;
+  shouldSaveSound = true;
 
   recordedSound?: RecordedSound;
 
@@ -64,7 +63,10 @@ export class Recorder {
 
       this.recorder.ondataavailable = (e) => {
         this.chunks?.push(e.data);
-        this.saveRecording();
+        const soundLibraryStore = useSoundLibraryStore();
+        if (this.shouldSaveSound)
+          soundLibraryStore.saveRecording(this.recordedSound!, this.chunks!);
+        else this.shouldSaveSound = true;
       };
 
       this.state = RecorderState.READY;
@@ -82,62 +84,14 @@ export class Recorder {
     this.recorder?.start();
     this.startTime = Date.now();
     this.state = RecorderState.RECORDING;
-    console.log('Recording started');
+    this.shouldSaveSound = true;
   }
 
-  public stopRecording() {
+  public stopRecording(save = true) {
     if (this.recorder) {
       this.recorder.stop();
       this.state = RecorderState.STOPPED;
-    }
-  }
-
-  public async saveRecording() {
-    if (this.chunks) {
-      try {
-        const fileName = this.recordedSound?.name + '.ogg';
-        const newFileName = await this.getUniqueFileName(fileName);
-        if (newFileName && fileName !== newFileName) {
-          this.recordedSound!.name = newFileName;
-        }
-        if (!newFileName) {
-          console.error('Failed to get unique filename.');
-          return;
-        }
-        write_blob({
-          directory: Directory.External,
-          path: newFileName,
-          blob: this.chunks[0],
-        });
-
-        const soundLibraryStore = useSoundLibraryStore();
-        soundLibraryStore.addRecordedSoundToLibrary(this.recordedSound!);
-      } catch (error) {
-        console.error('saveRecording', error);
-      }
-    }
-  }
-
-  private async getUniqueFileName(
-    fileName: string,
-    attempt = 0
-  ): Promise<string | null> {
-    try {
-      const files = await Filesystem.readdir({
-        path: '',
-        directory: Directory.External,
-      });
-      const existingFileNames = files.files.map((file) => file.name);
-      let newFileName = fileName;
-      while (existingFileNames.includes(newFileName)) {
-        const [name, extension] = fileName.split('.');
-        newFileName = `${name}_${attempt}.${extension}`;
-        attempt++;
-      }
-      return newFileName;
-    } catch (error) {
-      console.error('getUniqueFileName', error);
-      return null;
+      if (!save) this.shouldSaveSound = false;
     }
   }
 }

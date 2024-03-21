@@ -6,29 +6,36 @@
       ref="peakMeter"
     />
     <div class="recorder-panel">
-      <!-- <q-btn
-        @click="enableButtonClicked()"
-        color="primary"
-        :label="getEnabledButtonLabel()"
-      /> -->
       <div ref="waveformView" class="waveform-view"></div>
       <div ref="controlPanel" class="control-panel">
         <div class="recording-button-row">
           <div class="stop-delete-button">
-            <q-btn size="25px" round color="orange" icon="square" />
+            <q-btn
+              size="25px"
+              round
+              :color="getStopButtonColor()"
+              :icon="getStopButtonIcon()"
+              @click="stopButtonClicked()"
+            />
           </div>
           <div class="recording-button">
             <q-btn
               size="45px"
               round
               @click="recordButtonClicked()"
-              color="red"
+              :color="getRecordButtonColor()"
               :label="recordingLengthLabel"
             >
             </q-btn>
           </div>
           <div class="stop-delete-button">
-            <q-btn size="25px" round color="orange" icon="delete" />
+            <q-btn
+              size="25px"
+              round
+              :color="getStopButtonColor()"
+              icon="delete"
+              @click="deleteButtonClicked()"
+            />
           </div>
         </div>
         <div class="sound-name-row">
@@ -70,13 +77,22 @@
           </div>
           <div class="markers-display">
             <div
-              v-for="marker in currentSound?.markers.slice().reverse()"
+              v-for="marker in getMarkerArray()"
               :key="marker.id"
               class="markers-table"
             >
               <div class="markers-table-id">{{ marker.id + 1 }}</div>
-              <div class="markers-table-name" @click="markerClicked(marker)">
+              <div class="markers-table-name">
+                <q-btn
+                  color="orange"
+                  icon="edit"
+                  size="xs"
+                  dense
+                  style="margin-right: 8px"
+                  @click="markerClicked(marker)"
+                />
                 {{ marker.name }}
+
                 <q-dialog
                   v-model="marker.showDialog"
                   auto-save
@@ -136,24 +152,27 @@ import { RecordedSound, SoundMarker } from './models';
 import { RecorderState } from 'src/components/models';
 import PeakMeter from './PeakMeter.vue';
 import RecordedSoundsPanel from './RecordedSoundsPanel.vue';
+import { Dialog } from 'quasar';
+import { useSoundLibraryStore } from 'src/stores/sound-library-store';
+const soundLibraryStore = useSoundLibraryStore();
 
 const r = ref(null as Recorder | null);
 const waveformView = ref<HTMLDivElement | null>(null);
 let waveform: RecorderWaveform;
 const peakMeter = ref<typeof PeakMeter | null>(null);
 
-let currentSound: RecordedSound = {
+const currentSound = ref<RecordedSound>({
   id: uuidv4(),
-  name: 'New recording',
+  name: 'Recording',
   markers: [],
   totalLengthInMs: 0,
   peakData: [],
-};
+  isPlaying: false,
+});
 
-let soundName = ref('');
 onMounted(() => {
   setInterval(() => {
-    updateRecodingLength();
+    updateTimeLabel();
   }, 50);
 });
 
@@ -178,12 +197,100 @@ async function recordButtonClicked() {
   }
 }
 
+function getRecordButtonColor() {
+  switch (r.value?.state) {
+    case RecorderState.RECORDING:
+      return 'red';
+    case RecorderState.PLAYING_RECORDED_SOUND:
+      return 'green';
+    default:
+      return 'orange';
+  }
+}
+
+function stopButtonClicked() {
+  if (r.value?.state === RecorderState.RECORDING) {
+    stopRecording();
+  } else if (r.value?.state === RecorderState.PLAYING_RECORDED_SOUND) {
+    if (!soundLibraryStore.selectedSound?.isPlaying) {
+      soundLibraryStore.playSelectedSound();
+    } else {
+      soundLibraryStore.pauseSelectedSound();
+    }
+  }
+}
+
+function getStopButtonColor() {
+  switch (r.value?.state) {
+    case RecorderState.RECORDING:
+      return 'red';
+    case RecorderState.PLAYING_RECORDED_SOUND:
+      return 'green';
+    default:
+      return 'orange';
+  }
+}
+function getStopButtonIcon() {
+  if (r.value?.state === RecorderState.PLAYING_RECORDED_SOUND) {
+    if (soundLibraryStore.selectedSound?.isPlaying) {
+      return 'pause';
+    } else {
+      return 'play_arrow';
+    }
+  } else {
+    return 'square';
+  }
+}
+
+function deleteButtonClicked() {
+  Dialog.create({
+    message: getDeleteDialogLabel(),
+    style: 'background-color: var(--bkgColor); color: orange;',
+    ok: {
+      label: 'Yes',
+      color: 'red',
+    },
+    cancel: {
+      label: 'No',
+      color: 'blue',
+    },
+  }).onOk(() => {
+    switch (r.value?.state) {
+      case RecorderState.RECORDING:
+        resetState();
+        stopRecording(false);
+      case RecorderState.STOPPED:
+        soundLibraryStore.deleteRecordedSoundFromLibrary(currentSound.value);
+        resetState();
+      case RecorderState.PLAYING_RECORDED_SOUND:
+        const sound = soundLibraryStore.selectedSound;
+        if (sound !== null) {
+          soundLibraryStore.stopSelectedSound();
+          soundLibraryStore.deleteRecordedSoundFromLibrary(sound);
+          resetState();
+        }
+      default:
+        resetState();
+        stopRecording(false);
+    }
+  });
+}
+
+function getDeleteDialogLabel() {
+  switch (r.value?.state) {
+    case RecorderState.RECORDING:
+      return 'Stop recording and delete sound ?';
+    case RecorderState.STOPPED:
+      return 'Delete sound ?';
+    default:
+      return 'Delete sound ?';
+  }
+}
+
 function startRecording() {
   waveform.setWaveformToDraw('realtime');
-  currentSound.id = uuidv4();
-  (currentSound.name = 'New recording'),
-    (currentSound.markers = []),
-    r.value?.setRecordedSound(currentSound);
+  resetState();
+  r.value?.setRecordedSound(currentSound.value);
   r.value?.startRecording();
   waveform.setWaveformColor('red');
   waveform.addMarker('red');
@@ -191,16 +298,36 @@ function startRecording() {
   waveform.startCollectingPeakValues();
 }
 
-function stopRecording() {
-  currentSound.totalLengthInMs = getCurrentRecordingLength();
-
+function stopRecording(save = true) {
   waveform.stopCollectingPeakValues();
-  currentSound.peakData = waveform.getPeakValues();
 
-  r.value?.stopRecording();
+  currentSound.value.totalLengthInMs = getCurrentRecordingLength();
+  r.value?.stopRecording(save);
+
+  currentSound.value.peakData = waveform.getPeakValues();
 
   waveform.setWaveformColor('orange');
-  waveform.setWaveformToDraw('recorded');
+  if (!save) resetState();
+}
+
+function setRecordingMode() {
+  waveform.setWaveformToDraw('realtime');
+  waveform.setWaveformColor('orange');
+  if (r.value?.state) r.value.state = RecorderState.READY;
+}
+
+function resetState() {
+  currentSound.value = {
+    id: uuidv4(),
+    name: 'Recording',
+    markers: [],
+    totalLengthInMs: 0,
+    peakData: [],
+    isPlaying: false,
+  };
+  waveform.resetWaveform();
+  waveform.deleteAllMarkers();
+  setRecordingMode();
 }
 
 const recordingLength = ref(0);
@@ -213,10 +340,14 @@ function getCurrentRecordingLength() {
     return Date.now() - r.value.startTime;
   }
 }
-function updateRecodingLength() {
+function updateTimeLabel() {
   if (r.value?.state === RecorderState.STOPPED) {
-    recordingLength.value = currentSound.totalLengthInMs ?? 0;
+    recordingLength.value = currentSound.value.totalLengthInMs ?? 0;
     recordingLengthLabel.value = getMMSSfromS(recordingLength.value / 1000);
+  } else if (r.value?.state === RecorderState.PLAYING_RECORDED_SOUND) {
+    const position =
+      soundLibraryStore.selectedSound?.audioElement?.currentTime ?? 0;
+    recordingLengthLabel.value = getMMSSfromS(position);
   } else if (r.value?.state !== RecorderState.RECORDING) {
     recordingLength.value = 0;
     recordingLengthLabel.value = '';
@@ -228,11 +359,20 @@ function updateRecodingLength() {
   }
 }
 
+function getMarkerArray() {
+  if (r.value?.state === RecorderState.RECORDING)
+    return currentSound.value.markers.slice().reverse();
+  else if (r.value?.state === RecorderState.PLAYING_RECORDED_SOUND)
+    return soundLibraryStore.selectedSound?.markers.slice().reverse();
+  else return [];
+}
+
 function addMarker() {
+  if (r.value?.state !== RecorderState.RECORDING) return;
   waveform.addMarker('green');
-  const id = currentSound?.markers?.length ?? 0;
-  currentSound?.markers?.push({
-    id: currentSound.markers.length,
+  const id = currentSound.value.markers?.length ?? 0;
+  currentSound.value.markers?.push({
+    id: currentSound.value.markers.length,
     positionInMs: getCurrentRecordingLength(),
     name: 'Marker ' + id,
     showDialog: false,
@@ -248,20 +388,64 @@ function markerClicked(marker: SoundMarker) {
   marker.showDialog = !marker.showDialog;
 }
 
-watch(soundName, (newVal, oldVal) => {
-  if (currentSound === null) return;
-  currentSound.name = newVal;
-});
-
 const showNameDialog = ref(false);
 function nameClicked() {
-  currentSound.name = soundName.value;
   showNameDialog.value = !showNameDialog.value;
 }
+
+watch(
+  () => currentSound.value.name,
+  (newValue, oldValue) => {
+    console.log('currentSound.value.name', newValue);
+    if (r.value?.state === RecorderState.PLAYING_RECORDED_SOUND) {
+      soundLibraryStore.updateSelectedSoundName(newValue, oldValue);
+    }
+  }
+);
 
 const showRecordedSoundsDialog = ref(false);
 function openRecordedSoundsDialog() {
   showRecordedSoundsDialog.value = true;
+}
+
+watch(
+  () => soundLibraryStore.recordingSaved,
+  async (newValue) => {
+    if (newValue === true) {
+      const lastRecordedSound = soundLibraryStore.recordedSounds[0];
+      await soundLibraryStore.setSelectedSound(lastRecordedSound);
+
+      initializePlayerMode(lastRecordedSound);
+      soundLibraryStore.recordingSaved = false;
+    }
+  }
+);
+
+watch(
+  () => soundLibraryStore.selectedSoundChanged,
+  async (newValue) => {
+    if (newValue === true && soundLibraryStore.selectedSound !== null) {
+      initializePlayerMode(soundLibraryStore.selectedSound);
+    }
+    soundLibraryStore.selectedSoundChanged = false;
+  }
+);
+
+async function initializePlayerMode(sound: RecordedSound) {
+  const audioElement = sound.audioElement;
+  if (r.value === null) {
+    await initRecorder();
+  }
+  if (audioElement && r.value) {
+    waveform.setAudioElement(audioElement);
+    waveform.setSoundDuration(sound.totalLengthInMs / 1000);
+    waveform.setPeakValues(sound.peakData);
+    waveform.setWaveformToDraw('recorded');
+    waveform.setWaveformColor('orange');
+    waveform.deleteAllMarkers();
+    waveform.setMarkers(sound.markers);
+    r.value.state = RecorderState.PLAYING_RECORDED_SOUND;
+  }
 }
 </script>
 
@@ -389,6 +573,9 @@ function openRecordedSoundsDialog() {
   color: var(--blueColor);
 }
 .markers-table-name {
+  display: flex;
+  justify-content: left;
+  align-items: center;
   color: orange;
   width: 75%;
   overflow: hidden;

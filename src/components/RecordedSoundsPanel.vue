@@ -10,9 +10,10 @@
           <div class="buttons">
             <q-btn
               color="green"
-              icon="play_arrow"
+              :icon="getPlayButtonIcon(sound)"
               class="button play-button"
               size="xs"
+              @click="playButtonClicked(sound)"
             />
             <q-btn
               color="red"
@@ -55,6 +56,27 @@ function deleteButtonClicked(sound: RecordedSound) {
   }).onOk(() => {
     soundLibraryStore.deleteRecordedSoundFromLibrary(sound);
   });
+}
+
+function getPlayButtonIcon(sound: RecordedSound) {
+  if (sound.audioElement) {
+    return sound.isPlaying ? 'pause' : 'play_arrow';
+  } else {
+    return 'play_arrow';
+  }
+}
+async function playButtonClicked(sound: RecordedSound) {
+  if (soundLibraryStore.selectedSound !== sound) {
+    if (!(await soundLibraryStore.setSelectedSound(sound))) return;
+  }
+
+  if (sound.audioElement) {
+    if (sound.isPlaying) {
+      soundLibraryStore.pauseSelectedSound();
+    } else {
+      soundLibraryStore.playSelectedSound();
+    }
+  }
 }
 </script>
 
