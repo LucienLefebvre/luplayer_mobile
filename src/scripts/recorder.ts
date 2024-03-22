@@ -5,7 +5,7 @@ import {
 } from 'src/components/models';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
 export class Recorder {
-  state = RecorderState.INITIALIZING;
+  state = RecorderState.NOT_INITIALIZED;
   audioContext?: AudioContext;
   chunks?: Blob[];
 
@@ -82,15 +82,13 @@ export class Recorder {
   public async startRecording() {
     this.chunks = [];
     this.recorder?.start();
-    this.startTime = Date.now();
-    this.state = RecorderState.RECORDING;
     this.shouldSaveSound = true;
   }
 
   public stopRecording(save = true) {
     if (this.recorder) {
       this.recorder.stop();
-      this.state = RecorderState.STOPPED;
+
       if (!save) this.shouldSaveSound = false;
     }
   }

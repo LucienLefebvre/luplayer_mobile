@@ -135,7 +135,7 @@ export interface MeterBar {
 }
 
 export enum RecorderState {
-  INITIALIZING = 'initializing',
+  NOT_INITIALIZED = 'not-initialized',
   READY = 'ready',
   RECORDING = 'recording',
   STOPPED = 'stopped',

@@ -1,9 +1,12 @@
 import { defineStore } from 'pinia';
 import { reactive } from 'vue';
-import { RecordedSound } from 'src/components/models';
+
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-import write_blob from 'capacitor-blob-writer';
 import { Capacitor } from '@capacitor/core';
+import write_blob from 'capacitor-blob-writer';
+import { openDB, IDBPDatabase } from 'idb';
+
+import { RecordedSound } from 'src/components/models';
 
 export const useSoundLibraryStore = defineStore('soundlibrarystore', {
   state: () =>
@@ -15,15 +18,33 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
       recordingSaved: false,
       selectedSoundChanged: false,
+
+      db: null as IDBPDatabase | null,
     }),
 
   getters: {},
 
   actions: {
-    getRecordedSounds(): RecordedSound[] {
-      this.recordedSounds = JSON.parse(
-        localStorage.getItem('recordedSounds') || '[]'
-      ) as RecordedSound[];
+    async openDB() {
+      await openDB('recorded-sound-library', 1, {
+        upgrade(db) {
+          db.createObjectStore('sounds', {
+            keyPath: 'id',
+            autoIncrement: true,
+          });
+        },
+      }).then((db) => {
+        this.db = db;
+      });
+    },
+
+    async getRecordedSounds(): Promise<RecordedSound[]> {
+      if (!this.db) await this.openDB();
+
+      this.db?.getAll('sounds').then((sounds: RecordedSound[]) => {
+        this.recordedSounds = sounds;
+      });
+
       return this.recordedSounds;
     },
 
@@ -47,15 +68,18 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       sound.name = newName;
       sound.path = newPath;
 
-      this.updateRecordedSound(sound);
+      const dbSound = await this.db?.get('sounds', sound.id);
+      if (!dbSound) return;
+      dbSound.name = newName;
+      dbSound.path = newPath;
+      await this.db?.put('sounds', dbSound);
+      //this.updateRecordedSound(sound);
     },
 
-    async updateSelectedSoundName(
-      newName: string,
-      oldName: string
-    ): Promise<void> {
+    async updateSelectedSoundName(newName: string): Promise<void> {
       if (!this.selectedSound) return;
 
+      const oldName = this.selectedSound.name;
       await this.updateSoundName(this.selectedSound, oldName, newName);
     },
 
@@ -115,27 +139,55 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
         Array.from(peakData)
       );
 
-      const soundToStore = {
+      const soundToStore: RecordedSound = {
         ...sound,
-        peakData: [],
-        peakDataAsStandardArray: peakDataAsStandardArray,
+        //peakData: [],
+        //peakDataAsStandardArray: peakDataAsStandardArray,
+        isPlaying: false,
       };
+
+      const a = this.createObjectToStore(sound);
 
       recordedSounds.unshift(soundToStore);
 
       localStorage.setItem('recordedSounds', JSON.stringify(recordedSounds));
+
+      if (!this.db) await this.openDB();
+      await this.db?.add('sounds', a);
+      console.log(this.db);
+    },
+
+    createObjectToStore(sound: RecordedSound) {
+      const peakDataAsStandardArray = sound.peakData.map((peakData) =>
+        Array.from(peakData)
+      );
+
+      const serializedMarkers = sound.markers.map((marker) => ({
+        id: marker.id,
+        name: marker.name,
+        positionInMs: marker.positionInMs,
+        color: marker.color,
+        nameHasBeenEdited: marker.nameHasBeenEdited,
+        showDialog: marker.showDialog,
+      }));
+
+      const objectToStore = {
+        ...sound,
+        peakData: [],
+        peakDataAsStandardArray: peakDataAsStandardArray,
+        isPlaying: false,
+        markers: serializedMarkers,
+        audioElement: undefined,
+      };
+
+      return objectToStore;
     },
 
     async deleteRecordedSoundFromLibrary(sound: RecordedSound) {
-      const index = this.recordedSounds.findIndex((s) => s.id === sound.id);
-      if (index > -1) {
-        this.recordedSounds.splice(index, 1);
-      }
+      if (!this.db) await this.openDB();
 
-      localStorage.setItem(
-        'recordedSounds',
-        JSON.stringify(this.recordedSounds)
-      );
+      await this.db?.delete('sounds', sound.id);
+      await this.deleteSoundFile(sound);
 
       if (sound === this.selectedSound) {
         this.selectedSound = null;
@@ -143,10 +195,23 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       }
     },
 
+    async deleteSoundFile(sound: RecordedSound) {
+      if (sound.path) {
+        await Filesystem.deleteFile({
+          path: sound.path,
+          directory: Directory.External,
+        });
+      }
+    },
+
     async updateRecordedSound(sound: RecordedSound) {
+      if (!this.db) await this.openDB();
+
+      //await this.db?.put('sounds', this.createObjectToStore(sound));
+
       const index = this.recordedSounds.findIndex((s) => s.id === sound.id);
       if (index > -1) {
-        this.recordedSounds[index] = sound;
+        this.recordedSounds[index] = { ...sound, isPlaying: false };
       }
 
       localStorage.setItem(
@@ -170,19 +235,8 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
           audioElement = document.createElement('audio');
           audioElement.src = url;
-
-          audioElement.onended = () => {
-            sound.isPlaying = false;
-          };
-          audioElement.onpause = () => {
-            sound.isPlaying = false;
-          };
-          audioElement.onplay = () => {
-            sound.isPlaying = true;
-          };
-          return audioElement;
         } catch (error) {
-          console.error('playRecordedSound', error);
+          console.error('getAudioElement', error);
         }
       } else if (Capacitor.getPlatform() === 'android' && sound.path) {
         try {
@@ -192,26 +246,47 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
           }).then(function ({ uri }) {
             audioElement.src = Capacitor.convertFileSrc(uri);
           });
+
+          this.registerAudioElementCallbacks(sound);
         } catch (error) {
-          console.error('playRecordedSound', error);
+          console.error('getAudioElement', error);
         }
       }
 
-      audioElement.onended = () => {
-        sound.isPlaying = false;
-      };
-      audioElement.onpause = () => {
-        sound.isPlaying = false;
-      };
-      audioElement.onplay = () => {
+      audioElement.addEventListener('play', () => {
         sound.isPlaying = true;
-      };
+      });
+      audioElement.addEventListener('ended', () => {
+        sound.isPlaying = false;
+      });
+      audioElement.addEventListener('pause', () => {
+        sound.isPlaying = false;
+      });
+
       return audioElement;
     },
 
+    registerAudioElementCallbacks(sound: RecordedSound) {
+      if (!sound.audioElement) return;
+      console.log('registerAudioElementCallbacks', sound.name);
+      sound.audioElement.addEventListener('play', () => {
+        sound.isPlaying = true;
+      });
+      sound.audioElement.addEventListener('ended', () => {
+        sound.isPlaying = false;
+      });
+      sound.audioElement.addEventListener('pause', () => {
+        sound.isPlaying = false;
+      });
+    },
+
     async setSelectedSound(sound: RecordedSound) {
+      this.stopSelectedSound();
       this.selectedSound = sound;
+
       const audioElement = await this.getAudioElement(sound);
+
+      if (!audioElement) return false;
 
       const peakData = sound.peakDataAsStandardArray?.map(
         (peakData) => new Float32Array(peakData)
@@ -219,29 +294,26 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
       sound.peakData = peakData || [];
 
-      if (!audioElement) return false;
       this.selectedSound.audioElement = audioElement;
       this.selectedSoundChanged = true;
       return true;
     },
 
     playSelectedSound() {
-      if (!this.selectedSound || !this.selectedSound.audioElement) return;
-      this.selectedSound.audioElement?.play();
-      this.selectedSound.isPlaying = true;
+      if (this.selectedSound?.audioElement)
+        this.selectedSound.audioElement?.play();
     },
 
     pauseSelectedSound() {
-      if (!this.selectedSound || !this.selectedSound.audioElement) return;
-      this.selectedSound.audioElement.pause();
-      this.selectedSound.isPlaying = false;
+      if (this.selectedSound?.audioElement)
+        this.selectedSound.audioElement.pause();
     },
 
     stopSelectedSound() {
-      if (!this.selectedSound || !this.selectedSound.audioElement) return;
-      this.selectedSound.audioElement.pause();
-      this.selectedSound.audioElement.currentTime = 0;
-      this.selectedSound.isPlaying = false;
+      if (this.selectedSound?.audioElement) {
+        this.selectedSound.audioElement.pause();
+        this.selectedSound.audioElement.currentTime = 0;
+      }
     },
   },
 });

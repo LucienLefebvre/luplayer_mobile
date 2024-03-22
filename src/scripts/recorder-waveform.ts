@@ -93,7 +93,8 @@ export class RecorderWaveform {
 
   public setWaveformToDraw(waveformToDraw: 'realtime' | 'recorded') {
     this.waveformToDraw = waveformToDraw;
-    if (waveformToDraw === 'realtime') this.playHeadMarker.visible(false);
+    if (waveformToDraw === 'recorded') this.playHeadMarker.visible(true);
+    else if (waveformToDraw === 'realtime') this.playHeadMarker.visible(false);
     this.start();
   }
 
@@ -159,9 +160,6 @@ export class RecorderWaveform {
   }
 
   private drawRecordedWaveform() {
-    if (this.audioElement?.paused) this.playHeadMarker.visible(false);
-    else this.playHeadMarker.visible(true);
-
     const points = [] as number[];
     const peaksLength = this.recordedPeaksValues[0].length;
     const valuesToFind = peaksLength / this.waveformView.clientWidth;
@@ -170,20 +168,22 @@ export class RecorderWaveform {
     for (let i = 0; i < this.waveformView.clientWidth; i++) {
       const peakValueR =
         this.recordedPeaksValues[1][Math.floor(i * valuesToFind)];
-      points.push(
-        i,
+
+      const value =
         (peakValueR / 2) * this.waveformView.clientHeight +
-          this.waveformView.clientHeight / 2
-      );
+        this.waveformView.clientHeight / 2;
+
+      if (!isNaN(value)) points.push(i, value);
     }
     for (let i = this.waveformView.clientWidth - 1; i >= 0; i--) {
       const peakValueL =
         this.recordedPeaksValues[0][Math.floor(i * valuesToFind)];
-      points.push(
-        i,
+
+      const value =
         (-peakValueL / 2) * this.waveformView.clientHeight +
-          this.waveformView.clientHeight / 2
-      );
+        this.waveformView.clientHeight / 2;
+
+      if (!isNaN(value)) points.push(i, value);
     }
     points.push(0, this.waveformView.clientHeight / 2);
 
