@@ -6,7 +6,12 @@ import { Capacitor } from '@capacitor/core';
 import write_blob from 'capacitor-blob-writer';
 import { openDB, IDBPDatabase } from 'idb';
 
-import { RecordedSound, SoundMarker } from 'src/components/models';
+import {
+  RecordedSound,
+  RecorderState,
+  SoundMarker,
+} from 'src/components/models';
+import { Recorder } from 'src/scripts/recorder';
 
 export const useSoundLibraryStore = defineStore('soundlibrarystore', {
   state: () =>
@@ -18,6 +23,8 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
       recordingSaved: false,
       selectedSoundChanged: false,
+
+      recorder: null as Recorder | null,
 
       db: null as IDBPDatabase | null,
     }),
@@ -286,7 +293,9 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
     },
 
     playSelectedSound() {
-      if (this.selectedSound?.audioElement)
+      if (
+        this.selectedSound?.audioElement &&
+      )
         this.selectedSound.audioElement?.play();
     },
 

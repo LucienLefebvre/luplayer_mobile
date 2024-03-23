@@ -233,6 +233,8 @@ async function initRecorder() {
       waveform.setWaveformColor('orange');
       r.value.state = RecorderState.STOPPED;
     };
+
+    soundLibraryStore.recorder = r.value;
   }
 }
 

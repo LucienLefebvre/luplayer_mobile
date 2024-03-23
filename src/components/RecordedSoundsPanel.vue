@@ -69,6 +69,7 @@ import { getMMSSfromS } from 'src/scripts/math-helpers';
 import { onMounted, ref } from 'vue';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
 import { Dialog } from 'quasar';
+import { RecorderState } from 'src/components/models';
 const soundLibraryStore = useSoundLibraryStore();
 
 onMounted(() => {
@@ -108,6 +109,9 @@ function getPlayButtonIcon(sound: RecordedSound) {
   }
 }
 async function playButtonClicked(sound: RecordedSound) {
+  if (soundLibraryStore.recorder?.state === RecorderState.RECORDING) {
+    return;
+  }
   if (soundLibraryStore.selectedSound !== sound) {
     if (!(await soundLibraryStore.setSelectedSound(sound))) return;
   }
