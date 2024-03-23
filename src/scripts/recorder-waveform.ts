@@ -134,6 +134,19 @@ export class RecorderWaveform {
     while (this.peakValuesL.length > this.waveformView.clientWidth) {
       this.peakValuesL.shift();
       this.peakValuesR.shift();
+
+      this.markers.forEach((marker) => {
+        marker.xPos--;
+        marker.line.points([
+          marker.xPos,
+          0,
+          marker.xPos,
+          this.waveformView.clientHeight,
+        ]);
+        if (marker.xPos < 0) {
+          this.deleteMarker(marker);
+        }
+      });
     }
 
     const points = [] as number[];
@@ -159,19 +172,6 @@ export class RecorderWaveform {
     this.waveform.fill(this.color);
     this.waveform.strokeWidth(1);
     this.waveform.closed(true);
-
-    this.markers.forEach((marker) => {
-      marker.xPos--;
-      marker.line.points([
-        marker.xPos,
-        0,
-        marker.xPos,
-        this.waveformView.clientHeight,
-      ]);
-      if (marker.xPos < 0) {
-        this.deleteMarker(marker);
-      }
-    });
   }
 
   private drawRecordedWaveform() {

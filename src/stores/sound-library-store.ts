@@ -137,11 +137,14 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
     async updateSoundName(
       sound: RecordedSound,
-      oldName: string,
       newName: string
     ): Promise<void> {
-      const oldPath = oldName + '.ogg';
-      const newPath = newName + '.ogg';
+      const oldPath = sound.path ?? '';
+      const newPath = await this.getUniqueFileName(newName + '.ogg');
+      if (!newPath) {
+        console.error('Failed to get unique filename.');
+        return;
+      }
 
       await Filesystem.rename({
         from: oldPath,
@@ -157,14 +160,12 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       dbSound.name = newName;
       dbSound.path = newPath;
       await this.db?.put('sounds', dbSound);
-      //this.updateRecordedSound(sound);
     },
 
     async updateSelectedSoundName(newName: string): Promise<void> {
       if (!this.selectedSound) return;
 
-      const oldName = this.selectedSound.name;
-      await this.updateSoundName(this.selectedSound, oldName, newName);
+      await this.updateSoundName(this.selectedSound, newName);
     },
 
     async saveRecording(sound: RecordedSound, chunks: Blob[]) {

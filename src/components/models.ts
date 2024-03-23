@@ -146,6 +146,7 @@ export interface RecordedSound {
   name: string;
   path?: string;
   markers: SoundMarker[];
+  numberOfMarkersCreated: number;
   totalLengthInMs: number;
   peakData: Float32Array[];
   peakDataAsStandardArray?: number[][];
@@ -156,7 +157,7 @@ export interface RecordedSound {
 }
 
 export interface SoundMarker {
-  id: number;
+  id: string;
   name: string;
   positionInMs: number;
   color?: string;

@@ -6,7 +6,20 @@
       ref="peakMeter"
     />
     <div class="recorder-panel">
-      <div ref="waveformView" class="waveform-view"></div>
+      <div
+        class="waveform-view not-initialized-waveform"
+        :style="{ height: getWaveformViewHeight() }"
+        v-if="r.state === RecorderState.NOT_INITIALIZED"
+        @click="init()"
+      >
+        <div>Tap here to monitor input...</div>
+      </div>
+      <div
+        v-else
+        ref="waveformView"
+        class="waveform-view"
+        :style="{ height: getWaveformViewHeight() }"
+      ></div>
       <div ref="controlPanel" class="control-panel">
         <div class="recording-button-row">
           <div class="stop-delete-button">
@@ -79,18 +92,10 @@
           </div>
         </div>
         <div class="markers-panel">
-          <div class="markers-control">
-            <div class="markers-control-label">Markers</div>
-            <q-btn
-              @click="addMarker()"
-              color="secondary"
-              icon="add"
-              size="md"
-              dense
-            />
-          </div>
           <div class="markers-display">
-            <TransitionGroup name="markers-transition">
+            <TransitionGroup
+              :name="markersTransitionEnabled ? 'markers-transition' : ''"
+            >
               <div
                 v-for="(marker, index) in getMarkerArray()"
                 :key="marker.id"
@@ -101,6 +106,7 @@
                 </div>
                 <div class="markers-table-button">
                   <q-btn
+                    v-if="r.state === RecorderState.RECORDING"
                     color="orange"
                     icon="edit"
                     size="xs"
@@ -139,30 +145,52 @@
                 </div>
                 <div class="markers-table-button">
                   <q-btn
+                    v-if="r.state === RecorderState.RECORDING"
                     color="red"
                     icon="delete"
                     size="xs"
                     dense
                     @click="deleteMarker(marker)"
                   />
+                  <q-btn
+                    v-if="r.state === RecorderState.PLAYING_RECORDED_SOUND"
+                    color="green"
+                    icon="play_arrow"
+                    size="xs"
+                    dense
+                    @click="markerPlayButtonClicked(marker)"
+                  />
                 </div>
               </div>
             </TransitionGroup>
           </div>
+          <TransitionGroup name="markers-transition">
+            <div class="markers-control" key="m">
+              <div class="markers-control-label">Markers</div>
+              <q-btn
+                v-if="r.state === RecorderState.RECORDING"
+                @click="addMarker()"
+                color="secondary"
+                icon="add"
+                size="md"
+                dense
+              />
+            </div>
+          </TransitionGroup>
           <div></div>
         </div>
+        <div class="recorded-sounds-panel-label">
+          Recorded sounds :
+          <q-btn
+            color="orange"
+            icon="open_in_new"
+            size="xs"
+            dense
+            @click="openRecordedSoundsDialog()"
+          />
+        </div>
+        <RecordedSoundsPanel class="recorded-sounds-panel" />
       </div>
-      <div class="recorded-sounds-panel-label">
-        Recorded sounds :
-        <q-btn
-          color="orange"
-          icon="open_in_new"
-          size="xs"
-          dense
-          @click="openRecordedSoundsDialog()"
-        />
-      </div>
-      <RecordedSoundsPanel class="recorded-sounds-panel" />
     </div>
   </div>
   <q-dialog v-model="showRecordedSoundsDialog">
@@ -172,7 +200,7 @@
 
 <script setup lang="ts">
 import { v4 as uuidv4 } from 'uuid';
-import { onMounted, ref, watch, TransitionGroup } from 'vue';
+import { onMounted, ref, watch, TransitionGroup, computed } from 'vue';
 import { Recorder } from 'src/scripts/recorder';
 import { RecorderWaveform } from 'src/scripts/recorder-waveform';
 import { getMMSSMSfromMS, getMMSSfromS } from 'src/scripts/math-helpers';
@@ -202,6 +230,7 @@ function getDefaultSound() {
     id: uuidv4(),
     name: 'Recording',
     markers: [],
+    numberOfMarkersCreated: 0,
     totalLengthInMs: 0,
     peakData: [],
     isPlaying: false,
@@ -216,25 +245,32 @@ async function init() {
 }
 
 async function initRecorder() {
-  await r.value.init();
-  peakMeter.value?.setAnalyserObject(r.value.stereoAnalyser);
+  try {
+    await r.value.init();
+    peakMeter.value?.setAnalyserObject(r.value.stereoAnalyser);
 
-  if (r.value.recorder) {
-    r.value.recorder.onstart = () => {
-      waveform.startCollectingPeakValues();
-      currentSound.value.createdTimestamp = Date.now();
-      r.value.startTime = Date.now();
-      r.value.state = RecorderState.RECORDING;
-    };
-    r.value.recorder.onstop = () => {
-      currentSound.value.totalLengthInMs = getCurrentRecordingLengthInMS();
-      waveform.stopCollectingPeakValues();
-      currentSound.value.peakData = waveform.getPeakValues();
-      waveform.setWaveformColor('orange');
-      r.value.state = RecorderState.STOPPED;
-    };
+    if (r.value.recorder) {
+      r.value.recorder.onstart = () => {
+        waveform.startCollectingPeakValues();
+        currentSound.value.createdTimestamp = Date.now();
+        r.value.startTime = Date.now();
+        r.value.state = RecorderState.RECORDING;
+      };
+      r.value.recorder.onstop = () => {
+        currentSound.value.totalLengthInMs = getCurrentRecordingLengthInMS();
+        waveform.stopCollectingPeakValues();
+        currentSound.value.peakData = waveform.getPeakValues();
+        waveform.setWaveformColor('orange');
+        r.value.state = RecorderState.STOPPED;
+      };
 
-    soundLibraryStore.recorder = r.value;
+      soundLibraryStore.recorder = r.value;
+    }
+  } catch (error) {
+    Dialog.create({
+      title: 'Microphone access is not allowed',
+      style: 'background-color: var(--bkgColor); color: orange',
+    });
   }
 }
 
@@ -249,6 +285,13 @@ async function initWaveform() {
   );
 
   await waveform.initWorklet();
+}
+
+const controlPanel = ref<HTMLDivElement | null>(null);
+function getWaveformViewHeight() {
+  if (controlPanel.value === null) return 0;
+  const height = window.innerHeight - controlPanel.value.clientHeight - 80;
+  return height + 'px';
 }
 
 async function recordButtonClicked() {
@@ -380,7 +423,11 @@ function setRecordingMode() {
 }
 
 function resetState() {
+  let preEnteredName = currentSound.value.name;
   currentSound.value = getDefaultSound();
+  if (r.value.state === RecorderState.READY) {
+    currentSound.value.name = preEnteredName;
+  }
   waveform.resetWaveform();
   waveform.deleteAllMarkers();
   setRecordingMode();
@@ -396,6 +443,7 @@ function getCurrentRecordingLengthInMS() {
     return Date.now() - r.value.startTime;
   }
 }
+
 function updateTimeLabel() {
   if (r.value.state === RecorderState.STOPPED) {
     recordingLength.value = currentSound.value.totalLengthInMs ?? 0;
@@ -415,47 +463,37 @@ function updateTimeLabel() {
   }
 }
 
+const markersTransitionEnabled = computed(() => {
+  return r.value.state === RecorderState.RECORDING;
+});
+
 function getMarkerArray(): SoundMarker[] {
   if (r.value.state === RecorderState.RECORDING) {
     const proxy = [...currentSound.value.markers];
-    return sortMarkersArrayByTimeAndReverse(proxy);
+    return sortMarkersArrayByTime(proxy);
   } else if (r.value.state === RecorderState.PLAYING_RECORDED_SOUND) {
     const proxy = [...(soundLibraryStore.selectedSound?.markers ?? [])];
-    return sortMarkersArrayByTimeAndReverse(proxy);
+    return sortMarkersArrayByTime(proxy, false);
   } else {
     return [];
   }
 }
 
-function sortMarkersArrayByTimeAndReverse(array: SoundMarker[]) {
+function sortMarkersArrayByTime(array: SoundMarker[], reverse = true) {
+  if (!reverse) return array.sort((a, b) => a.positionInMs - b.positionInMs);
   return array.sort((a, b) => b.positionInMs - a.positionInMs);
 }
 function addMarker() {
   if (r.value.state === RecorderState.RECORDING) {
     waveform.addMarker('rgb(40, 134, 189)');
-    const id = currentSound.value.markers?.length + 1 ?? 0;
     currentSound.value.markers?.push({
-      id: id,
+      id: uuidv4(),
       positionInMs: getCurrentRecordingLengthInMS(),
-      name: 'Marker ' + id,
+      name: 'Marker ' + (currentSound.value.numberOfMarkersCreated + 1),
       showDialog: false,
       nameHasBeenEdited: false,
     });
-  } else if (r.value.state === RecorderState.PLAYING_RECORDED_SOUND) {
-    const time =
-      soundLibraryStore.selectedSound?.audioElement?.currentTime ?? 0;
-    console.log(time);
-    const id = (soundLibraryStore.selectedSound?.markers?.length ?? 0) + 1;
-    soundLibraryStore.selectedSound?.markers?.push({
-      id: id,
-      positionInMs:
-        (soundLibraryStore.selectedSound?.audioElement?.currentTime ?? 0) *
-        1000,
-      name: 'Marker ' + id,
-      showDialog: false,
-      nameHasBeenEdited: false,
-    });
-    waveform.setMarkers(soundLibraryStore.selectedSound?.markers ?? []);
+    currentSound.value.numberOfMarkersCreated++;
   }
 }
 
@@ -481,6 +519,16 @@ function markerClicked(marker: SoundMarker) {
     marker.nameHasBeenEdited = true;
   }
   marker.showDialog = !marker.showDialog;
+}
+
+function markerPlayButtonClicked(marker: SoundMarker) {
+  const audioElement = soundLibraryStore.selectedSound?.audioElement;
+  if (audioElement) {
+    audioElement.currentTime = marker.positionInMs / 1000;
+    if (audioElement.paused) {
+      soundLibraryStore.playSelectedSound();
+    }
+  }
 }
 
 watch(
@@ -586,6 +634,7 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
   if (newValue.trim() === '') return;
   recordedSoundVModel.value = newValue;
   soundLibraryStore.updateSelectedSoundName(newValue);
+  console.log('update');
 };
 </script>
 
@@ -602,6 +651,15 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
 .meter-style {
   height: 30px;
   width: 100%;
+  border-bottom: 2px solid orange;
+}
+.not-initialized-waveform {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: orange;
 }
 .waveform-view {
   width: 100%;
@@ -611,6 +669,7 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
   background-color: rgba(0, 0, 0, 0.144);
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
   margin-bottom: 10px;
+  justify-content: center;
 }
 .control-panel {
   width: 100%;
@@ -641,6 +700,7 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
   padding: 5px;
   margin-top: 5px;
   margin-bottom: 5px;
+  height: 50px;
 }
 .sound-name {
   color: var(--blueColor);
@@ -666,7 +726,7 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
 .markers-panel {
   display: flex;
   flex-direction: row;
-  justify-content: space-evenly;
+  justify-content: center;
   align-items: center;
   width: 100%;
   padding: 3px;
@@ -678,6 +738,7 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
   justify-content: center;
   align-items: center;
   gap: 5px;
+  width: 30%;
 }
 .markers-control-label {
   font-size: 1.2rem;
@@ -689,7 +750,7 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  width: 70%;
+  width: 65%;
   background-color: rgba(0, 0, 0, 0.137);
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
   border-radius: 5px;

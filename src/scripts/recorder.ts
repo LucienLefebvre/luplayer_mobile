@@ -77,7 +77,7 @@ export class Recorder {
 
       this.state = RecorderState.READY;
     } catch (error) {
-      console.error('initialize ', error);
+      throw error;
     }
   }
 

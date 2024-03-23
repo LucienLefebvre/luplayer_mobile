@@ -15,8 +15,9 @@
             auto-save
             :cover="false"
             :offset="[0, 20]"
+            persistent
           >
-            <q-card class="name-dialog q-pa-md" style="padding: 10px">
+            <q-card class="name-dialog" style="padding: 10px">
               <q-input
                 :input-style="{
                   color: 'orange',
@@ -30,10 +31,15 @@
                 autofocus
                 @keyup.enter="
                   sound.name.trim() !== ''
-                    ? (sound.showNameDialog = false)
+                    ? handleSoundNameDialogModelUpdate(sound)
                     : null
                 "
-                @update:model-value="handleSoundNameDialogModelUpdate(sound)"
+              />
+              <q-btn
+                :disable="sound.name.trim() === ''"
+                color="primary"
+                label="Rename"
+                @click="handleSoundNameDialogModelUpdate(sound)"
               />
             </q-card>
           </q-dialog>
@@ -81,7 +87,8 @@ function renameButtonClicked(sound: RecordedSound) {
 }
 
 function handleSoundNameDialogModelUpdate(sound: RecordedSound) {
-  //update
+  sound.showNameDialog = false;
+  soundLibraryStore.updateSoundName(sound, sound.name);
 }
 
 function deleteButtonClicked(sound: RecordedSound) {
@@ -156,6 +163,7 @@ async function playButtonClicked(sound: RecordedSound) {
   font-size: 1.1rem;
   font-weight: bold;
   color: var(--blueColor);
+  gap: 3px;
 }
 .recorded-sound-name {
   width: 60%;
@@ -172,6 +180,7 @@ async function playButtonClicked(sound: RecordedSound) {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  gap: 7px;
 }
 .name-dialog {
   display: flex;
@@ -179,5 +188,7 @@ async function playButtonClicked(sound: RecordedSound) {
   align-items: center;
   flex-direction: column;
   background-color: var(--bkgColor);
+  margin: 5px;
+  gap: 10px;
 }
 </style>
