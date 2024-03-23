@@ -152,6 +152,7 @@ export interface RecordedSound {
   audioElement?: HTMLAudioElement;
   isPlaying: boolean;
   showNameDialog: boolean;
+  createdTimestamp: number;
 }
 
 export interface SoundMarker {

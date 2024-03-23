@@ -175,7 +175,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { onMounted, ref, watch, TransitionGroup } from 'vue';
 import { Recorder } from 'src/scripts/recorder';
 import { RecorderWaveform } from 'src/scripts/recorder-waveform';
-import { getMMSSfromS } from 'src/scripts/math-helpers';
+import { getMMSSMSfromMS, getMMSSfromS } from 'src/scripts/math-helpers';
 import { RecordedSound, SoundMarker } from './models';
 import { RecorderState } from 'src/components/models';
 import PeakMeter from './PeakMeter.vue';
@@ -194,7 +194,7 @@ const currentSound = ref<RecordedSound>(getDefaultSound());
 onMounted(() => {
   setInterval(() => {
     updateTimeLabel();
-  }, 50);
+  }, 100);
 });
 
 function getDefaultSound() {
@@ -206,6 +206,7 @@ function getDefaultSound() {
     peakData: [],
     isPlaying: false,
     showNameDialog: false,
+    createdTimestamp: 0,
   } as RecordedSound;
 }
 
@@ -221,11 +222,12 @@ async function initRecorder() {
   if (r.value.recorder) {
     r.value.recorder.onstart = () => {
       waveform.startCollectingPeakValues();
+      currentSound.value.createdTimestamp = Date.now();
       r.value.startTime = Date.now();
       r.value.state = RecorderState.RECORDING;
     };
     r.value.recorder.onstop = () => {
-      currentSound.value.totalLengthInMs = getCurrentRecordingLength();
+      currentSound.value.totalLengthInMs = getCurrentRecordingLengthInMS();
       waveform.stopCollectingPeakValues();
       currentSound.value.peakData = waveform.getPeakValues();
       waveform.setWaveformColor('orange');
@@ -379,7 +381,7 @@ function resetState() {
 const recordingLength = ref(0);
 const recordingLengthLabel = ref('');
 
-function getCurrentRecordingLength() {
+function getCurrentRecordingLengthInMS() {
   if (r.value.state !== RecorderState.RECORDING) {
     return 0;
   } else {
@@ -398,9 +400,9 @@ function updateTimeLabel() {
     recordingLength.value = 0;
     recordingLengthLabel.value = '';
   } else {
-    recordingLength.value = getCurrentRecordingLength();
+    recordingLength.value = getCurrentRecordingLengthInMS();
     recordingLengthLabel.value = getMMSSfromS(
-      getCurrentRecordingLength() / 1000
+      getCurrentRecordingLengthInMS() / 1000
     );
   }
 }
@@ -426,7 +428,7 @@ function addMarker() {
     const id = currentSound.value.markers?.length + 1 ?? 0;
     currentSound.value.markers?.push({
       id: id,
-      positionInMs: getCurrentRecordingLength(),
+      positionInMs: getCurrentRecordingLengthInMS(),
       name: 'Marker ' + id,
       showDialog: false,
       nameHasBeenEdited: false,
@@ -619,7 +621,7 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
 }
 .record-button {
   padding: 5px;
-  font-size: 3rem;
+  font-size: 2.8rem;
   justify-content: center;
 }
 .stop-delete-button {

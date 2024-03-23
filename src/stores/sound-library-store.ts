@@ -42,6 +42,7 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       if (!this.db) await this.openDB();
 
       this.db?.getAll('sounds').then((sounds: RecordedSound[]) => {
+        sounds.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
         this.recordedSounds = sounds.reverse();
       });
 
