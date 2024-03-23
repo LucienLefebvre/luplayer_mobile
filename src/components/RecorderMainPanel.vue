@@ -531,6 +531,8 @@ watch(
   async (newValue) => {
     if (newValue === true && soundLibraryStore.selectedSound !== null) {
       initializePlayerMode(soundLibraryStore.selectedSound);
+    } else if (newValue === true && soundLibraryStore.selectedSound === null) {
+      resetState();
     }
     soundLibraryStore.selectedSoundChanged = false;
   }
