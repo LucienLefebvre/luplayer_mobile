@@ -151,6 +151,7 @@ export interface RecordedSound {
   peakDataAsStandardArray?: number[][];
   audioElement?: HTMLAudioElement;
   isPlaying: boolean;
+  showNameDialog: boolean;
 }
 
 export interface SoundMarker {

@@ -85,7 +85,8 @@
               @click="addMarker()"
               color="secondary"
               icon="add"
-              class="markers-button"
+              size="md"
+              dense
             />
           </div>
           <div class="markers-display">
@@ -148,6 +149,7 @@
               </div>
             </TransitionGroup>
           </div>
+          <div></div>
         </div>
       </div>
       <div class="recorded-sounds-panel-label">
@@ -187,20 +189,25 @@ const waveformView = ref<HTMLDivElement | null>(null);
 let waveform: RecorderWaveform;
 const peakMeter = ref<typeof PeakMeter | null>(null);
 
-const currentSound = ref<RecordedSound>({
-  id: uuidv4(),
-  name: 'Recording',
-  markers: [],
-  totalLengthInMs: 0,
-  peakData: [],
-  isPlaying: false,
-});
+const currentSound = ref<RecordedSound>(getDefaultSound());
 
 onMounted(() => {
   setInterval(() => {
     updateTimeLabel();
   }, 50);
 });
+
+function getDefaultSound() {
+  return {
+    id: uuidv4(),
+    name: 'Recording',
+    markers: [],
+    totalLengthInMs: 0,
+    peakData: [],
+    isPlaying: false,
+    showNameDialog: false,
+  } as RecordedSound;
+}
 
 async function init() {
   await initRecorder();
@@ -298,14 +305,14 @@ function deleteButtonClicked() {
 
   Dialog.create({
     title: getDeleteDialogLabel(),
-    style: 'background-color: var(--bkgColor); color: orange;',
+    style: 'background-color: var(--bkgColor); color: orange',
     ok: {
       label: 'Yes',
       color: 'red',
     },
     cancel: {
       label: 'No',
-      color: 'blue',
+      color: 'primary',
     },
   }).onOk(() => {
     switch (r.value.state) {
@@ -335,12 +342,13 @@ function getDeleteDialogLabel() {
       return 'Stop recording and delete sound ?';
     case RecorderState.STOPPED:
       return 'Delete sound ?';
-    default:
-      return 'Delete sound ?';
+    case RecorderState.PLAYING_RECORDED_SOUND:
+      return 'Delete ' + soundLibraryStore.selectedSound?.name + ' ?';
   }
 }
 
 function startRecording() {
+  soundLibraryStore.stopSelectedSound();
   resetState();
   r.value.setRecordedSound(currentSound.value);
   r.value.startRecording();
@@ -350,11 +358,7 @@ function startRecording() {
 }
 
 function stopRecording(save = true) {
-  //currentSound.value.totalLengthInMs = getCurrentRecordingLength();
   r.value.stopRecording(save);
-  /* waveform.stopCollectingPeakValues();
-  currentSound.value.peakData = waveform.getPeakValues();
-  waveform.setWaveformColor('orange'); */
   if (!save) resetState();
 }
 
@@ -366,14 +370,7 @@ function setRecordingMode() {
 }
 
 function resetState() {
-  currentSound.value = {
-    id: uuidv4(),
-    name: 'Recording',
-    markers: [],
-    totalLengthInMs: 0,
-    peakData: [],
-    isPlaying: false,
-  };
+  currentSound.value = getDefaultSound();
   waveform.resetWaveform();
   waveform.deleteAllMarkers();
   setRecordingMode();
@@ -464,7 +461,7 @@ function deleteMarker(marker: SoundMarker) {
       1
     );
     waveform.setMarkers(soundLibraryStore.selectedSound?.markers ?? []);
-    soundLibraryStore.updateRecordedSound(soundLibraryStore.selectedSound!);
+    soundLibraryStore.updateSoundMarkers(soundLibraryStore.selectedSound!);
   }
 }
 
@@ -478,8 +475,14 @@ function markerClicked(marker: SoundMarker) {
 
 watch(
   () => soundLibraryStore.selectedSound?.markers,
-  () => {
-    soundLibraryStore.updateRecordedSound(soundLibraryStore.selectedSound!);
+  (markers) => {
+    if (
+      soundLibraryStore.selectedSound !== null &&
+      markers !== undefined &&
+      waveform !== undefined
+    ) {
+      waveform.setMarkers(soundLibraryStore.selectedSound.markers);
+    }
   },
   { deep: true }
 );
@@ -654,25 +657,20 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
   justify-content: space-evenly;
   align-items: center;
   width: 100%;
-  padding: 5px;
-  height: 110px;
+  padding: 3px;
+  height: 90px;
 }
 .markers-control {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  width: 30%;
   gap: 5px;
 }
 .markers-control-label {
   font-size: 1.2rem;
   font-weight: bold;
   color: orange;
-}
-.markers-button {
-  width: 40px;
-  height: 40px;
 }
 .markers-display {
   overflow-y: auto;
@@ -753,12 +751,9 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
   border-radius: 5px;
 }
 .recorded-sounds-dialog {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
   width: 100%;
   max-height: 60%;
   background-color: var(--bkgColor);
+  padding: 5px;
 }
 </style>

@@ -3,23 +3,58 @@
     <TransitionGroup name="sound-items">
       <div v-for="sound in soundLibraryStore.recordedSounds" :key="sound.id">
         <div class="recorded-sound-row">
+          <q-btn
+            color="orange"
+            icon="edit"
+            size="md"
+            dense
+            @click="renameButtonClicked(sound)"
+          />
+          <q-dialog
+            v-model="sound.showNameDialog"
+            auto-save
+            :cover="false"
+            :offset="[0, 20]"
+          >
+            <q-card class="name-dialog q-pa-md" style="padding: 10px">
+              <q-input
+                :input-style="{
+                  color: 'orange',
+                  fontSize: '1.5rem',
+                  fontWeight: 'bold',
+                }"
+                color="orange"
+                clearable
+                v-model="sound.name"
+                dense
+                autofocus
+                @keyup.enter="
+                  sound.name.trim() !== ''
+                    ? (sound.showNameDialog = false)
+                    : null
+                "
+                @update:model-value="handleSoundNameDialogModelUpdate(sound)"
+              />
+            </q-card>
+          </q-dialog>
           <div class="recorded-sound-name">{{ sound.name }}</div>
           <div class="recorded-sound-time">
             {{ getMMSSfromS(sound.totalLengthInMs / 1000) }}
           </div>
           <div class="buttons">
             <q-btn
-              color="green"
-              :icon="getPlayButtonIcon(sound)"
-              class="button play-button"
-              size="xs"
-              @click="playButtonClicked(sound)"
-            />
-            <q-btn
               color="red"
               icon="delete"
-              class="button delete-button"
+              size="md"
+              dense
               @click="deleteButtonClicked(sound)"
+            />
+            <q-btn
+              color="green"
+              :icon="getPlayButtonIcon(sound)"
+              size="md"
+              @click="playButtonClicked(sound)"
+              dense
             />
           </div>
         </div>
@@ -40,10 +75,17 @@ onMounted(() => {
   soundLibraryStore.getRecordedSounds();
 });
 
+function renameButtonClicked(sound: RecordedSound) {
+  sound.showNameDialog = true;
+}
+
+function handleSoundNameDialogModelUpdate(sound: RecordedSound) {
+  //update
+}
+
 function deleteButtonClicked(sound: RecordedSound) {
   Dialog.create({
-    title: 'Delete sound',
-    message: `Are you sure you want to delete this sound? "${sound.name}"`,
+    title: `Delete "${sound.name}" ?`,
     style: 'background-color: var(--bkgColor); color: orange;',
     ok: {
       label: 'Yes',
@@ -51,7 +93,7 @@ function deleteButtonClicked(sound: RecordedSound) {
     },
     cancel: {
       label: 'No',
-      color: 'blue',
+      color: 'primary',
     },
   }).onOk(() => {
     soundLibraryStore.deleteRecordedSoundFromLibrary(sound);
@@ -118,18 +160,20 @@ async function playButtonClicked(sound: RecordedSound) {
   text-overflow: ellipsis;
 }
 .recorded-sound-time {
-  width: 10%;
-  text-align: center;
+  max-width: 10%;
+  text-align: right;
 }
 .buttons {
-  width: 30%;
+  width: 20%;
   display: flex;
   flex-direction: row;
-  justify-content: space-evenly;
-  padding: 2px;
+  justify-content: space-between;
 }
-.button {
-  width: 15px;
-  height: 15x;
+.name-dialog {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  background-color: var(--bkgColor);
 }
 </style>

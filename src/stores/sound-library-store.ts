@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia';
 import { reactive } from 'vue';
 
-import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 import write_blob from 'capacitor-blob-writer';
 import { openDB, IDBPDatabase } from 'idb';
 
-import { RecordedSound } from 'src/components/models';
+import { RecordedSound, SoundMarker } from 'src/components/models';
 
 export const useSoundLibraryStore = defineStore('soundlibrarystore', {
   state: () =>
@@ -42,182 +42,33 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       if (!this.db) await this.openDB();
 
       this.db?.getAll('sounds').then((sounds: RecordedSound[]) => {
-        this.recordedSounds = sounds;
+        this.recordedSounds = sounds.reverse();
       });
 
       return this.recordedSounds;
     },
 
-    async updateSoundName(
-      sound: RecordedSound,
-      oldName: string,
-      newName: string
-    ): Promise<void> {
-      const oldPath = oldName + '.ogg';
-      const newPath = newName + '.ogg';
+    async setSelectedSound(sound: RecordedSound) {
+      this.stopSelectedSound();
+      this.selectedSound = sound;
 
-      console.log('oldPath', oldPath);
-      console.log('newPath', newPath);
+      const audioElement = await this.getAudioElement(sound);
 
-      await Filesystem.rename({
-        from: oldPath,
-        to: newPath,
-        directory: Directory.External,
-      });
+      if (!audioElement) return false;
 
-      sound.name = newName;
-      sound.path = newPath;
-
-      const dbSound = await this.db?.get('sounds', sound.id);
-      if (!dbSound) return;
-      dbSound.name = newName;
-      dbSound.path = newPath;
-      await this.db?.put('sounds', dbSound);
-      //this.updateRecordedSound(sound);
-    },
-
-    async updateSelectedSoundName(newName: string): Promise<void> {
-      if (!this.selectedSound) return;
-
-      const oldName = this.selectedSound.name;
-      await this.updateSoundName(this.selectedSound, oldName, newName);
-    },
-
-    async saveRecording(sound: RecordedSound, chunks: Blob[]) {
-      try {
-        const fileName = sound.name + '.ogg';
-        const newFileName = await this.getUniqueFileName(fileName);
-        if (newFileName && fileName !== newFileName) {
-          sound.name = newFileName.split('.')[0];
-        }
-        if (!newFileName) {
-          console.error('Failed to get unique filename.');
-          return;
-        }
-        await write_blob({
-          directory: Directory.External,
-          path: newFileName,
-          blob: chunks[0],
-          fast_mode: true,
-        });
-        sound.path = newFileName;
-        await this.addRecordedSoundToLibrary(sound);
-
-        this.recordingSaved = true;
-      } catch (error) {
-        console.error('saveRecording', error);
-      }
-    },
-
-    async getUniqueFileName(
-      fileName: string,
-      attempt = 0
-    ): Promise<string | null> {
-      try {
-        const files = await Filesystem.readdir({
-          path: '',
-          directory: Directory.External,
-        });
-        const existingFileNames = files.files.map((file) => file.name);
-        let newFileName = fileName;
-        while (existingFileNames.includes(newFileName)) {
-          const [name, extension] = fileName.split('.');
-          newFileName = `${name}_${attempt}.${extension}`;
-          attempt++;
-        }
-        return newFileName;
-      } catch (error) {
-        console.error('getUniqueFileName', error);
-        return null;
-      }
-    },
-
-    async addRecordedSoundToLibrary(sound: RecordedSound) {
-      const recordedSounds = await this.getRecordedSounds();
-
-      const peakDataAsStandardArray = sound.peakData.map((peakData) =>
-        Array.from(peakData)
-      );
-
-      const soundToStore: RecordedSound = {
-        ...sound,
-        //peakData: [],
-        //peakDataAsStandardArray: peakDataAsStandardArray,
-        isPlaying: false,
-      };
-
-      const a = this.createObjectToStore(sound);
-
-      recordedSounds.unshift(soundToStore);
-
-      localStorage.setItem('recordedSounds', JSON.stringify(recordedSounds));
-
-      if (!this.db) await this.openDB();
-      await this.db?.add('sounds', a);
-      console.log(this.db);
-    },
-
-    createObjectToStore(sound: RecordedSound) {
-      const peakDataAsStandardArray = sound.peakData.map((peakData) =>
-        Array.from(peakData)
-      );
-
-      const serializedMarkers = sound.markers.map((marker) => ({
-        id: marker.id,
-        name: marker.name,
-        positionInMs: marker.positionInMs,
-        color: marker.color,
-        nameHasBeenEdited: marker.nameHasBeenEdited,
-        showDialog: marker.showDialog,
-      }));
-
-      const objectToStore = {
-        ...sound,
-        peakData: [],
-        peakDataAsStandardArray: peakDataAsStandardArray,
-        isPlaying: false,
-        markers: serializedMarkers,
-        audioElement: undefined,
-      };
-
-      return objectToStore;
-    },
-
-    async deleteRecordedSoundFromLibrary(sound: RecordedSound) {
-      if (!this.db) await this.openDB();
-
-      await this.db?.delete('sounds', sound.id);
-      await this.deleteSoundFile(sound);
-
-      if (sound === this.selectedSound) {
-        this.selectedSound = null;
-        this.selectedSoundChanged = true;
-      }
-    },
-
-    async deleteSoundFile(sound: RecordedSound) {
-      if (sound.path) {
-        await Filesystem.deleteFile({
-          path: sound.path,
-          directory: Directory.External,
-        });
-      }
-    },
-
-    async updateRecordedSound(sound: RecordedSound) {
-      if (!this.db) await this.openDB();
-
-      //await this.db?.put('sounds', this.createObjectToStore(sound));
-
-      const index = this.recordedSounds.findIndex((s) => s.id === sound.id);
-      if (index > -1) {
-        this.recordedSounds[index] = { ...sound, isPlaying: false };
+      console.log(sound.peakData);
+      console.log(sound.peakDataAsStandardArray);
+      if (sound.peakDataAsStandardArray) {
+        const peakData = sound.peakDataAsStandardArray?.map(
+          (peakData) => new Float32Array(peakData)
+        );
+        sound.peakData = peakData || [];
+        sound.peakDataAsStandardArray = undefined;
       }
 
-      localStorage.setItem(
-        'recordedSounds',
-        JSON.stringify(this.recordedSounds)
-      );
+      this.selectedSound.audioElement = audioElement;
+      this.selectedSoundChanged = true;
+      return true;
     },
 
     async getAudioElement(
@@ -280,23 +131,157 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       });
     },
 
-    async setSelectedSound(sound: RecordedSound) {
-      this.stopSelectedSound();
-      this.selectedSound = sound;
+    async updateSoundName(
+      sound: RecordedSound,
+      oldName: string,
+      newName: string
+    ): Promise<void> {
+      const oldPath = oldName + '.ogg';
+      const newPath = newName + '.ogg';
 
-      const audioElement = await this.getAudioElement(sound);
+      await Filesystem.rename({
+        from: oldPath,
+        to: newPath,
+        directory: Directory.External,
+      });
 
-      if (!audioElement) return false;
+      sound.name = newName;
+      sound.path = newPath;
 
-      const peakData = sound.peakDataAsStandardArray?.map(
-        (peakData) => new Float32Array(peakData)
+      const dbSound = await this.db?.get('sounds', sound.id);
+      if (!dbSound) return;
+      dbSound.name = newName;
+      dbSound.path = newPath;
+      await this.db?.put('sounds', dbSound);
+      //this.updateRecordedSound(sound);
+    },
+
+    async updateSelectedSoundName(newName: string): Promise<void> {
+      if (!this.selectedSound) return;
+
+      const oldName = this.selectedSound.name;
+      await this.updateSoundName(this.selectedSound, oldName, newName);
+    },
+
+    async saveRecording(sound: RecordedSound, chunks: Blob[]) {
+      try {
+        const filePath = sound.name + '.ogg';
+        const newFilePath = await this.getUniqueFileName(filePath);
+        if (newFilePath && filePath !== newFilePath) {
+          sound.name = newFilePath.split('.')[0];
+        }
+        if (!newFilePath) {
+          console.error('Failed to get unique filename.');
+          return;
+        }
+        await write_blob({
+          directory: Directory.External,
+          path: newFilePath,
+          blob: chunks[0],
+          fast_mode: true,
+        });
+        sound.path = newFilePath;
+        await this.addRecordedSoundToLibrary(sound);
+
+        this.recordingSaved = true;
+      } catch (error) {
+        console.error('saveRecording', error);
+      }
+    },
+
+    async getUniqueFileName(
+      fileName: string,
+      attempt = 0
+    ): Promise<string | null> {
+      try {
+        const files = await Filesystem.readdir({
+          path: '',
+          directory: Directory.External,
+        });
+        const existingFileNames = files.files.map((file) => file.name);
+        let newFileName = fileName;
+        while (existingFileNames.includes(newFileName)) {
+          const [name, extension] = fileName.split('.');
+          newFileName = `${name}_${attempt}.${extension}`;
+          attempt++;
+        }
+        return newFileName;
+      } catch (error) {
+        console.error('getUniqueFileName', error);
+        return null;
+      }
+    },
+
+    async addRecordedSoundToLibrary(sound: RecordedSound) {
+      const soundToStore = this.createObjectToStore(sound);
+
+      if (!this.db) await this.openDB();
+      await this.db?.add('sounds', soundToStore);
+
+      this.recordedSounds.unshift(sound);
+    },
+
+    createObjectToStore(sound: RecordedSound) {
+      const peakDataAsStandardArray = sound.peakData.map((peakData) =>
+        Array.from(peakData)
       );
 
-      sound.peakData = peakData || [];
+      const serializedMarkers = this.serializeMarkers(sound.markers);
 
-      this.selectedSound.audioElement = audioElement;
-      this.selectedSoundChanged = true;
-      return true;
+      const objectToStore = {
+        ...sound,
+        peakData: [],
+        peakDataAsStandardArray: peakDataAsStandardArray,
+        isPlaying: false,
+        markers: serializedMarkers,
+        audioElement: undefined,
+      };
+
+      return objectToStore;
+    },
+
+    serializeMarkers(markers: SoundMarker[]) {
+      return markers.map((marker) => ({
+        id: marker.id,
+        name: marker.name,
+        positionInMs: marker.positionInMs,
+        color: marker.color,
+        nameHasBeenEdited: marker.nameHasBeenEdited,
+        showDialog: marker.showDialog,
+      }));
+    },
+
+    async deleteRecordedSoundFromLibrary(sound: RecordedSound) {
+      if (!this.db) await this.openDB();
+
+      await this.db?.delete('sounds', sound.id);
+      await this.deleteSoundFile(sound);
+
+      if (sound === this.selectedSound) {
+        this.selectedSound = null;
+        this.selectedSoundChanged = true;
+      }
+
+      await this.getRecordedSounds();
+    },
+
+    async deleteSoundFile(sound: RecordedSound) {
+      if (sound.path) {
+        await Filesystem.deleteFile({
+          path: sound.path,
+          directory: Directory.External,
+        });
+      }
+    },
+
+    async updateSoundMarkers(sound: RecordedSound) {
+      if (!this.db) await this.openDB();
+
+      const dbSound = await this.db?.get('sounds', sound.id);
+      if (!dbSound) return;
+
+      dbSound.markers = this.serializeMarkers(sound.markers);
+      await this.db?.put('sounds', dbSound);
     },
 
     playSelectedSound() {

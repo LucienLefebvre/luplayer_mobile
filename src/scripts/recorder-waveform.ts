@@ -295,6 +295,8 @@ export class RecorderWaveform {
       new Float32Array(peakValues[0]),
       new Float32Array(peakValues[1]),
     ];
+
+    console;
   }
 
   public setAudioElement(audioElement: HTMLAudioElement) {
@@ -323,6 +325,7 @@ export class RecorderWaveform {
       const touch = e.evt.touches[0];
       const x = touch.clientX;
       this.audioElement.currentTime = this.xToTime(x);
+      this.playHeadMarker.visible(true);
     }
   };
 
