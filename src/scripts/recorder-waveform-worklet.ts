@@ -1,5 +1,5 @@
 class RecorderWaveformWorklet extends AudioWorkletProcessor {
-  timeDivider = 5;
+  timeDivider = 10;
   index = 0;
 
   process(

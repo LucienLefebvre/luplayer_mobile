@@ -36,11 +36,7 @@ export class RecorderWaveform {
   private soundDuration = 0;
   private playHeadMarker: Konva.Line;
 
-  private analyserGetDataRateInMs = 0;
-
   private audioContext: AudioContext;
-
-  private mutex = new Mutex();
 
   constructor(
     waveformView: HTMLDivElement,
@@ -52,7 +48,6 @@ export class RecorderWaveform {
 
     this.waveformView = waveformView;
     this.stereoAnalyser = stereoAnalyser;
-    this.analyserGetDataRateInMs = analyserGetDataRateInMs;
 
     this.stage = new Konva.Stage({
       container: this.waveformView,
@@ -73,6 +68,7 @@ export class RecorderWaveform {
     this.layer.add(this.layerBackground);
 
     this.waveform = new Konva.Line();
+    this.waveform.lineCap('round');
     this.layer.add(this.waveform);
 
     this.anim = new Konva.Animation(() => {
@@ -92,13 +88,7 @@ export class RecorderWaveform {
 
     this.registerTouchEvents();
 
-    setInterval(() => {
-      //console.log(this.peakValuesL);
-    }, 1000);
-
     this.start();
-
-    this.initWorklet();
   }
 
   public start() {
@@ -121,44 +111,16 @@ export class RecorderWaveform {
     this.stereoAnalyser.analysers[0].connect(worklet);
 
     worklet.port.onmessage = (e) => {
-      console.log('message');
       const value = e.data;
       const logValue = logScaleFrom0to1(value, 0, 1, 10);
       this.peakValuesL.push(logValue);
       this.peakValuesR.push(logValue);
 
-      if (this.peakValuesL.length > this.waveformView.clientWidth) {
-        console.log('shift');
-        this.peakValuesL.shift();
-        this.peakValuesR.shift();
-      }
-
       if (this.shouldCollectPeakValues) {
         this.peaksValues[0].addData(new Float32Array([value]));
         this.peaksValues[1].addData(new Float32Array([value]));
       }
-
-      this.anim.start();
     };
-  }
-
-  private collectAnalyserData() {
-    const bufferLength = this.stereoAnalyser.analysers[0].frequencyBinCount;
-
-    const dataArrayL = new Float32Array(bufferLength);
-    const dataArrayR = new Float32Array(bufferLength);
-    this.stereoAnalyser.analysers[0].getFloatTimeDomainData(dataArrayL);
-    this.stereoAnalyser.analysers[1].getFloatTimeDomainData(dataArrayR);
-    const maxValueL = Math.max(...dataArrayL);
-    const maxValueR = Math.max(...dataArrayR);
-
-    this.peakValuesL.push(maxValueL);
-    this.peakValuesR.push(maxValueR);
-
-    if (this.shouldCollectPeakValues) {
-      this.peaksValues[0].addData(new Float32Array([maxValueL]));
-      this.peaksValues[1].addData(new Float32Array([maxValueR]));
-    }
   }
 
   public setWaveformToDraw(waveformToDraw: 'realtime' | 'recorded') {
@@ -169,10 +131,10 @@ export class RecorderWaveform {
   }
 
   private drawRealTimeWaveform() {
-    /* if (this.peakValuesL.length > this.waveformView.clientWidth) {
+    while (this.peakValuesL.length > this.waveformView.clientWidth) {
       this.peakValuesL.shift();
       this.peakValuesR.shift();
-    } */
+    }
 
     const points = [] as number[];
     points.push(0, this.waveformView.clientHeight / 2);
@@ -210,8 +172,6 @@ export class RecorderWaveform {
         this.deleteMarker(marker);
       }
     });
-
-    this.anim.stop();
   }
 
   private drawRecordedWaveform() {
