@@ -2,7 +2,7 @@
   "extends": "@quasar/app-vite/tsconfig-preset",
   "compilerOptions": {
     "baseUrl": ".",
-    "lib": ["es6"],
+    "lib": ["es6", "webworker"],
     "esModuleInterop": true,
     "typeRoots": ["node_modules/@types", "./@types"],
     "module": "commonjs"

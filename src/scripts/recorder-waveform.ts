@@ -1,7 +1,8 @@
 import { StereoAnalyserObject } from 'src/components/models';
 import Konva from 'konva';
 import { SoundMarker } from 'src/components/models';
-
+import { logScaleFrom0to1 } from './math-helpers';
+import { Mutex } from 'async-mutex';
 export interface Marker {
   xPos: number;
   color: string;
@@ -35,12 +36,23 @@ export class RecorderWaveform {
   private soundDuration = 0;
   private playHeadMarker: Konva.Line;
 
+  private analyserGetDataRateInMs = 0;
+
+  private audioContext: AudioContext;
+
+  private mutex = new Mutex();
+
   constructor(
     waveformView: HTMLDivElement,
-    stereoAnalyser: StereoAnalyserObject
+    stereoAnalyser: StereoAnalyserObject,
+    analyserGetDataRateInMs: number,
+    audioContext: AudioContext
   ) {
+    this.audioContext = audioContext;
+
     this.waveformView = waveformView;
     this.stereoAnalyser = stereoAnalyser;
+    this.analyserGetDataRateInMs = analyserGetDataRateInMs;
 
     this.stage = new Konva.Stage({
       container: this.waveformView,
@@ -80,7 +92,13 @@ export class RecorderWaveform {
 
     this.registerTouchEvents();
 
+    setInterval(() => {
+      //console.log(this.peakValuesL);
+    }, 1000);
+
     this.start();
+
+    this.initWorklet();
   }
 
   public start() {
@@ -91,20 +109,46 @@ export class RecorderWaveform {
     this.anim.stop();
   }
 
-  public setWaveformToDraw(waveformToDraw: 'realtime' | 'recorded') {
-    this.waveformToDraw = waveformToDraw;
-    if (waveformToDraw === 'recorded') this.playHeadMarker.visible(true);
-    else if (waveformToDraw === 'realtime') this.playHeadMarker.visible(false);
-    this.start();
+  public async initWorklet() {
+    await this.audioContext.audioWorklet.addModule(
+      'src/scripts/recorder-waveform-worklet.ts'
+    );
+    const worklet = new AudioWorkletNode(
+      this.audioContext,
+      'recorder-waveform-worklet'
+    );
+
+    this.stereoAnalyser.analysers[0].connect(worklet);
+
+    worklet.port.onmessage = (e) => {
+      console.log('message');
+      const value = e.data;
+      const logValue = logScaleFrom0to1(value, 0, 1, 10);
+      this.peakValuesL.push(logValue);
+      this.peakValuesR.push(logValue);
+
+      if (this.peakValuesL.length > this.waveformView.clientWidth) {
+        console.log('shift');
+        this.peakValuesL.shift();
+        this.peakValuesR.shift();
+      }
+
+      if (this.shouldCollectPeakValues) {
+        this.peaksValues[0].addData(new Float32Array([value]));
+        this.peaksValues[1].addData(new Float32Array([value]));
+      }
+
+      this.anim.start();
+    };
   }
 
-  private drawRealTimeWaveform() {
+  private collectAnalyserData() {
     const bufferLength = this.stereoAnalyser.analysers[0].frequencyBinCount;
+
     const dataArrayL = new Float32Array(bufferLength);
     const dataArrayR = new Float32Array(bufferLength);
     this.stereoAnalyser.analysers[0].getFloatTimeDomainData(dataArrayL);
     this.stereoAnalyser.analysers[1].getFloatTimeDomainData(dataArrayR);
-
     const maxValueL = Math.max(...dataArrayL);
     const maxValueR = Math.max(...dataArrayR);
 
@@ -115,11 +159,20 @@ export class RecorderWaveform {
       this.peaksValues[0].addData(new Float32Array([maxValueL]));
       this.peaksValues[1].addData(new Float32Array([maxValueR]));
     }
+  }
 
-    if (this.peakValuesL.length > this.waveformView.clientWidth) {
+  public setWaveformToDraw(waveformToDraw: 'realtime' | 'recorded') {
+    this.waveformToDraw = waveformToDraw;
+    if (waveformToDraw === 'recorded') this.playHeadMarker.visible(true);
+    else if (waveformToDraw === 'realtime') this.playHeadMarker.visible(false);
+    this.start();
+  }
+
+  private drawRealTimeWaveform() {
+    /* if (this.peakValuesL.length > this.waveformView.clientWidth) {
       this.peakValuesL.shift();
       this.peakValuesR.shift();
-    }
+    } */
 
     const points = [] as number[];
     points.push(0, this.waveformView.clientHeight / 2);
@@ -157,6 +210,8 @@ export class RecorderWaveform {
         this.deleteMarker(marker);
       }
     });
+
+    this.anim.stop();
   }
 
   private drawRecordedWaveform() {

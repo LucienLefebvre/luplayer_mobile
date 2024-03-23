@@ -212,7 +212,7 @@ function getDefaultSound() {
 
 async function init() {
   await initRecorder();
-  initWaveform();
+  await initWaveform();
 }
 
 async function initRecorder() {
@@ -238,10 +238,17 @@ async function initRecorder() {
   }
 }
 
-function initWaveform() {
+async function initWaveform() {
   if (waveformView.value === null) return;
   if (r.value.stereoAnalyser === undefined) return;
-  waveform = new RecorderWaveform(waveformView.value, r.value.stereoAnalyser);
+  waveform = new RecorderWaveform(
+    waveformView.value,
+    r.value.stereoAnalyser,
+    r.value.analyserTimeWindowInMs,
+    r.value.audioContext ?? new AudioContext()
+  );
+
+  await waveform.initWorklet();
 }
 
 async function recordButtonClicked() {
@@ -357,7 +364,6 @@ function startRecording() {
   r.value.setRecordedSound(currentSound.value);
   r.value.startRecording();
   waveform.setWaveformColor('red');
-  waveform.addMarker('red');
   waveform.resetWaveform();
 }
 

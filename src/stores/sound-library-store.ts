@@ -8,6 +8,7 @@ import { openDB, IDBPDatabase } from 'idb';
 
 import { RecordedSound, SoundMarker } from 'src/components/models';
 import { Recorder } from 'src/scripts/recorder';
+import { Waveform } from 'src/scripts/waveform';
 
 export const useSoundLibraryStore = defineStore('soundlibrarystore', {
   state: () =>
@@ -21,6 +22,7 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       selectedSoundChanged: false,
 
       recorder: null as Recorder | null,
+      waveform: null as Waveform | null,
 
       db: null as IDBPDatabase | null,
     }),
@@ -60,8 +62,6 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
       if (!audioElement) return false;
 
-      console.log(sound.peakData);
-      console.log(sound.peakDataAsStandardArray);
       if (sound.peakDataAsStandardArray) {
         const peakData = sound.peakDataAsStandardArray?.map(
           (peakData) => new Float32Array(peakData)

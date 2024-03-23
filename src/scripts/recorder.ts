@@ -19,6 +19,8 @@ export class Recorder {
 
   recordedSound?: RecordedSound;
 
+  analyserTimeWindowInMs = 0;
+
   public async init() {
     this.audioContext = new AudioContext();
     this.chunks = [];
@@ -57,9 +59,13 @@ export class Recorder {
           1
         );
 
-        this.stereoAnalyser.analysers[0].minDecibels = -100;
-        this.stereoAnalyser.analysers[0].maxDecibels = 0;
+        /* this.stereoAnalyser.analysers[0].minDecibels = -100;
+        this.stereoAnalyser.analysers[0].maxDecibels = 0; */
       }
+
+      this.analyserTimeWindowInMs = Math.floor(
+        this.audioContext.sampleRate / this.stereoAnalyser.analysers[0].fftSize
+      );
 
       this.recorder.ondataavailable = (e) => {
         this.chunks?.push(e.data);
