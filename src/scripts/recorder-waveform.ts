@@ -2,7 +2,7 @@ import { StereoAnalyserObject } from 'src/components/models';
 import Konva from 'konva';
 import { SoundMarker } from 'src/components/models';
 import { logScaleFrom0to1 } from './math-helpers';
-import { Mutex } from 'async-mutex';
+import { setInterval } from 'worker-timers';
 export interface Marker {
   xPos: number;
   color: string;
@@ -99,28 +99,48 @@ export class RecorderWaveform {
     this.anim.stop();
   }
 
-  public async initWorklet() {
-    await this.audioContext.audioWorklet.addModule(
-      'src/scripts/recorder-waveform-worklet.ts'
-    );
-    const worklet = new AudioWorkletNode(
-      this.audioContext,
-      'recorder-waveform-worklet'
-    );
+  public async init() {
+    setInterval(() => {
+      const startTime = performance.now();
 
-    this.stereoAnalyser.analysers[0].connect(worklet);
+      const bufferLength = this.stereoAnalyser.analysers[0].frequencyBinCount;
+      const dataArrayL = new Float32Array(bufferLength);
+      const dataArrayR = new Float32Array(bufferLength);
 
-    worklet.port.onmessage = (e) => {
-      const value = e.data;
-      const logValue = logScaleFrom0to1(value, 0, 1, 10);
-      this.peakValuesL.push(logValue);
-      this.peakValuesR.push(logValue);
+      this.stereoAnalyser.analysers[0].getFloatTimeDomainData(dataArrayL);
+      this.stereoAnalyser.analysers[1].getFloatTimeDomainData(dataArrayR);
+
+      let maxValueL = -Infinity;
+      let maxValueR = -Infinity;
+      for (let i = 0; i < bufferLength; i++) {
+        const valueL = dataArrayL[i];
+        const valueR = dataArrayR[i];
+        if (valueL > maxValueL) {
+          maxValueL = valueL;
+        }
+        if (valueR > maxValueR) {
+          maxValueR = valueR;
+        }
+      }
+
+      this.peakValuesL.push(maxValueL);
+      this.peakValuesR.push(maxValueR);
 
       if (this.shouldCollectPeakValues) {
-        this.peaksValues[0].addData(new Float32Array([value]));
-        this.peaksValues[1].addData(new Float32Array([value]));
+        this.peaksValues[0].addData(new Float32Array([maxValueL]));
+        this.peaksValues[1].addData(new Float32Array([maxValueR]));
       }
-    };
+
+      const width = this.waveformView.clientWidth;
+      const numExcessValues = this.peakValuesL.length - width;
+      if (numExcessValues > 0) {
+        this.peakValuesL.splice(0, numExcessValues);
+        this.peakValuesR.splice(0, numExcessValues);
+      }
+
+      const endTime = performance.now();
+      //console.log('Time to collect peak values:', endTime - startTime);
+    }, 1000 / 60);
   }
 
   public setWaveformToDraw(waveformToDraw: 'realtime' | 'recorded') {
@@ -131,47 +151,46 @@ export class RecorderWaveform {
   }
 
   private drawRealTimeWaveform() {
-    while (this.peakValuesL.length > this.waveformView.clientWidth) {
-      this.peakValuesL.shift();
-      this.peakValuesR.shift();
+    const startTime = performance.now();
+    const width = this.waveformView.clientWidth;
+    const clientHeight = this.waveformView.clientHeight;
+    const halfHeight = clientHeight / 2;
 
+    // Remove excess peak values if necessary
+    const excessValues = Math.max(0, this.peakValuesL.length - width);
+    if (excessValues > 0) {
+      this.peakValuesL.splice(0, excessValues);
+      this.peakValuesR.splice(0, excessValues);
+
+      // Adjust marker positions accordingly
       this.markers.forEach((marker) => {
-        marker.xPos--;
-        marker.line.points([
-          marker.xPos,
-          0,
-          marker.xPos,
-          this.waveformView.clientHeight,
-        ]);
+        marker.xPos -= excessValues;
+        marker.line.points([marker.xPos, 0, marker.xPos, clientHeight]);
         if (marker.xPos < 0) {
           this.deleteMarker(marker);
         }
       });
     }
 
-    const points = [] as number[];
-    points.push(0, this.waveformView.clientHeight / 2);
+    // Generate waveform points
+    const points = [0, halfHeight];
     for (let i = 0; i < this.peakValuesL.length; i++) {
-      points.push(
-        i,
-        (this.peakValuesR[i] / 2) * this.waveformView.clientHeight +
-          this.waveformView.clientHeight / 2
-      );
+      points.push(i, (this.peakValuesR[i] / 2) * clientHeight + halfHeight);
     }
     for (let i = this.peakValuesL.length - 1; i >= 0; i--) {
-      points.push(
-        i,
-        (-this.peakValuesL[i] / 2) * this.waveformView.clientHeight +
-          this.waveformView.clientHeight / 2
-      );
+      points.push(i, (-this.peakValuesL[i] / 2) * clientHeight + halfHeight);
     }
-    points.push(0, this.waveformView.clientHeight / 2);
+    points.push(0, halfHeight);
 
+    // Update waveform
     this.waveform.points(points);
     this.waveform.stroke(this.color);
     this.waveform.fill(this.color);
     this.waveform.strokeWidth(1);
     this.waveform.closed(true);
+
+    const endTime = performance.now();
+    //console.log('Time to draw waveform:', endTime - startTime);
   }
 
   private drawRecordedWaveform() {

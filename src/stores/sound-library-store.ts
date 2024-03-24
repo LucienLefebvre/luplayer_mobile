@@ -7,6 +7,7 @@ import write_blob from 'capacitor-blob-writer';
 import { openDB, IDBPDatabase } from 'idb';
 
 import { RecordedSound, SoundMarker } from 'src/components/models';
+import { useSettingsStore } from 'src/stores/settings-store';
 
 export const useSoundLibraryStore = defineStore('soundlibrarystore', {
   state: () =>
@@ -20,6 +21,8 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       selectedSoundChanged: false,
 
       db: null as IDBPDatabase | null,
+
+      settingsStore: useSettingsStore(),
     }),
 
   getters: {},
@@ -135,7 +138,9 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       newName: string
     ): Promise<void> {
       const oldPath = sound.path ?? '';
-      const newPath = await this.getUniqueFileName(newName + '.ogg');
+      const newPath = await this.getUniqueFileName(
+        newName + '.' + this.settingsStore.recorder.fileFormat
+      );
       if (!newPath) {
         console.error('Failed to get unique filename.');
         return;
@@ -165,7 +170,8 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
     async saveRecording(sound: RecordedSound, chunks: Blob[]) {
       try {
-        const filePath = sound.name + '.ogg';
+        const filePath =
+          sound.name + '.' + this.settingsStore.recorder.fileFormat;
         const newFilePath = await this.getUniqueFileName(filePath);
         if (newFilePath && filePath !== newFilePath) {
           sound.name = newFilePath.split('.')[0];
@@ -183,7 +189,7 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
         sound.path = newFilePath;
         await this.addRecordedSoundToLibrary(sound);
 
-        this.recordingSaved = true;
+        this.setSelectedSound(sound);
       } catch (error) {
         console.error('saveRecording', error);
       }

@@ -32,7 +32,8 @@
     "vue-router": "^4.0.0",
     "vue3-snackbar": "^2.2.0",
     "vue3-touch-events": "^4.1.2",
-    "vuedraggable": "^4.1.0"
+    "vuedraggable": "^4.1.0",
+    "worker-timers": "^7.1.5"
   },
   "devDependencies": {
     "@quasar/app-vite": "^1.0.0",

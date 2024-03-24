@@ -2,47 +2,15 @@
   <div class="panel">
     <TransitionGroup name="sound-items">
       <div v-for="sound in soundLibraryStore.recordedSounds" :key="sound.id">
-        <div class="recorded-sound-row">
+        <div class="recorded-sound-row-tiny" v-if="props.mode === 'tiny'">
           <q-btn
             color="orange"
             icon="edit"
-            size="md"
+            size="sm"
             dense
             @click="renameButtonClicked(sound)"
           />
-          <q-dialog
-            v-model="sound.showNameDialog"
-            auto-save
-            :cover="false"
-            :offset="[0, 20]"
-            persistent
-          >
-            <q-card class="name-dialog" style="padding: 10px">
-              <q-input
-                :input-style="{
-                  color: 'orange',
-                  fontSize: '1.5rem',
-                  fontWeight: 'bold',
-                }"
-                color="orange"
-                clearable
-                v-model="sound.name"
-                dense
-                autofocus
-                @keyup.enter="
-                  sound.name.trim() !== ''
-                    ? handleSoundNameDialogModelUpdate(sound)
-                    : null
-                "
-              />
-              <q-btn
-                :disable="sound.name.trim() === ''"
-                color="primary"
-                label="Rename"
-                @click="handleSoundNameDialogModelUpdate(sound)"
-              />
-            </q-card>
-          </q-dialog>
+
           <div class="recorded-sound-name">{{ sound.name }}</div>
           <div class="recorded-sound-time">
             {{ getMMSSfromS(sound.totalLengthInMs / 1000) }}
@@ -51,19 +19,92 @@
             <q-btn
               color="red"
               icon="delete"
-              size="md"
+              size="sm"
               dense
               @click="deleteButtonClicked(sound)"
             />
             <q-btn
               color="green"
               :icon="getPlayButtonIcon(sound)"
-              size="md"
+              size="sm"
               @click="playButtonClicked(sound)"
               dense
             />
           </div>
         </div>
+        <div class="recorded-sound-row-large" v-if="props.mode === 'large'">
+          <q-card class="large-card bg">
+            <div class="card-row">
+              <q-btn
+                color="orange"
+                icon="edit"
+                size="md"
+                dense
+                @click="renameButtonClicked(sound)"
+              />
+              <div class="recorded-sound-name-large" color="orange">
+                {{ sound.name }}
+              </div>
+              <div class="recorded-sound-time">
+                {{ getMMSSfromS(sound.totalLengthInMs / 1000) }}
+              </div>
+            </div>
+            <div class="card-row">
+              <q-btn
+                color="red"
+                icon="delete"
+                size="md"
+                dense
+                @click="deleteButtonClicked(sound)"
+              />
+              <div class="date-label">
+                {{ getDateLabel(new Date(sound.createdTimestamp)) }}
+              </div>
+              <q-btn
+                color="green"
+                :icon="getPlayButtonIcon(sound)"
+                size="md"
+                @click="playButtonClicked(sound)"
+                dense
+              />
+            </div>
+
+            <div class="buttons"></div>
+          </q-card>
+        </div>
+        <q-dialog
+          v-model="sound.showNameDialog"
+          auto-save
+          :cover="false"
+          :offset="[0, 20]"
+          persistent
+        >
+          <q-card class="name-dialog" style="padding: 10px">
+            <q-input
+              :input-style="{
+                color: 'orange',
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+              }"
+              color="orange"
+              clearable
+              v-model="sound.name"
+              dense
+              autofocus
+              @keyup.enter="
+                sound.name.trim() !== ''
+                  ? handleSoundNameDialogModelUpdate(sound)
+                  : null
+              "
+            />
+            <q-btn
+              :disable="sound.name.trim() === ''"
+              color="primary"
+              label="Rename"
+              @click="handleSoundNameDialogModelUpdate(sound)"
+            />
+          </q-card>
+        </q-dialog>
       </div>
     </TransitionGroup>
   </div>
@@ -79,6 +120,10 @@ import { useRecorderStore } from 'src/stores/recorder-store';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
 const recorderStore = useRecorderStore();
 const soundLibraryStore = useSoundLibraryStore();
+
+const props = defineProps<{
+  mode: 'tiny' | 'large';
+}>();
 
 onMounted(() => {
   soundLibraryStore.getRecordedSounds();
@@ -133,11 +178,25 @@ async function playButtonClicked(sound: RecordedSound) {
     }
   }
 }
+
+function getDateLabel(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  const formattedDate = `${month}/${day}/${year} - ${hours}:${minutes}`;
+
+  return formattedDate;
+}
 </script>
 
 <style scoped>
 .panel {
   padding: 5px;
+  width: 100%;
 }
 .sound-items-move {
   transition: 0.3s ease;
@@ -159,7 +218,7 @@ async function playButtonClicked(sound: RecordedSound) {
   transform: scale(0.1);
 }
 
-.recorded-sound-row {
+.recorded-sound-row-tiny {
   max-width: 100%;
   display: flex;
   justify-content: space-between;
@@ -181,11 +240,10 @@ async function playButtonClicked(sound: RecordedSound) {
   text-align: right;
 }
 .buttons {
-  width: 20%;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  gap: 7px;
+  gap: 12px;
 }
 .name-dialog {
   display: flex;
@@ -195,5 +253,51 @@ async function playButtonClicked(sound: RecordedSound) {
   background-color: var(--bkgColor);
   margin: 5px;
   gap: 10px;
+}
+
+.recorded-sound-row-large {
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--blueColor);
+  gap: 3px;
+}
+.large-card {
+  display: flex;
+  justify-content: space-between;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  background-color: var(--bkgColor);
+  border-radius: 10px;
+  gap: 3px;
+  width: 100%;
+  border: 1px solid var(--blueColor);
+}
+.recorded-sound-name-large {
+  width: 70%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: orange;
+  text-align: center;
+}
+.card-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px;
+}
+.date-label {
+  color: var(--blueColor);
+  font-size: 1rem;
 }
 </style>

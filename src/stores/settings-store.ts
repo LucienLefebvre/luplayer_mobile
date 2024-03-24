@@ -59,6 +59,8 @@ export const useSettingsStore = defineStore('settingsStore', {
         showMarkers: true as boolean,
         showWaveform: true as boolean,
         showPeakMeter: true as boolean,
+
+        fileFormat: 'ogg' as string,
       },
     }),
 

@@ -10,7 +10,7 @@ export class Recorder {
   audioContext?: AudioContext;
   chunks?: Blob[];
 
-  recorder?: MediaRecorder;
+  mediaRecorder?: MediaRecorder;
   mediaStreamSource?: MediaStreamAudioSourceNode;
   stereoAnalyser?: StereoAnalyserObject;
   gainNode?: GainNode;
@@ -54,12 +54,12 @@ export class Recorder {
       }
 
       const inputDevices = await navigator.mediaDevices.enumerateDevices();
-      console.log(inputDevices);
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       this.mediaStreamSource =
         this.audioContext?.createMediaStreamSource(stream);
-
+      this.gainNode.disconnect();
       this.mediaStreamSource?.connect(this.gainNode);
       this.gainNode.connect(this.hpfNode);
       this.hpfNode.connect(this.limiterNode);
@@ -69,13 +69,13 @@ export class Recorder {
         mimeType: 'audio/webm; codecs=opus',
         audioBitsPerSecond: 256000,
       };
-      this.recorder = new MediaRecorder(
+      this.mediaRecorder = new MediaRecorder(
         this.streamDestinationNode.stream,
         options
       );
 
       if (this.stereoAnalyser) {
-        this.gainNode?.connect(this.stereoAnalyser.splitter);
+        this.limiterNode?.connect(this.stereoAnalyser.splitter);
         this.stereoAnalyser.splitter.connect(
           this.stereoAnalyser.analysers[0],
           0
@@ -90,7 +90,7 @@ export class Recorder {
         this.audioContext.sampleRate / this.stereoAnalyser.analysers[0].fftSize
       );
 
-      this.recorder.ondataavailable = (e) => {
+      this.mediaRecorder.ondataavailable = (e) => {
         this.chunks?.push(e.data);
         const soundLibraryStore = useSoundLibraryStore();
         if (this.shouldSaveSound)
@@ -129,13 +129,13 @@ export class Recorder {
 
   public async startRecording() {
     this.chunks = [];
-    this.recorder?.start();
+    this.mediaRecorder?.start();
     this.shouldSaveSound = true;
   }
 
   public stopRecording(save = true) {
-    if (this.recorder) {
-      this.recorder.stop();
+    if (this.mediaRecorder) {
+      this.mediaRecorder.stop();
 
       if (!save) this.shouldSaveSound = false;
     }
@@ -147,5 +147,14 @@ export class Recorder {
         dbToGain(gain),
         this.audioContext.currentTime
       );
+  }
+
+  public setHpfState(enabled: boolean, frequency: number) {
+    if (this.hpfNode) this.hpfNode.frequency.value = enabled ? frequency : 0;
+  }
+
+  public setLimiterState(enabled: boolean, threshold: number) {
+    if (this.limiterNode)
+      this.limiterNode.threshold.value = enabled ? threshold : 0;
   }
 }
