@@ -1,15 +1,15 @@
 <template>
   <div>
     <PeakMeter
-      :analyserObject="r?.stereoAnalyser"
+      :analyserObject="recorder?.stereoAnalyser"
       class="meter-style"
       ref="peakMeter"
     />
     <div class="recorder-panel">
       <div
         class="waveform-view not-initialized-waveform"
-        :style="{ height: getWaveformViewHeight() }"
-        v-if="r.state === RecorderState.NOT_INITIALIZED"
+        :style="{ height: waveformViewHeight }"
+        v-if="recorder.state === RecorderState.NOT_INITIALIZED"
         @click="init()"
       >
         <div>Tap here to monitor input...</div>
@@ -18,9 +18,37 @@
         v-else
         ref="waveformView"
         class="waveform-view"
-        :style="{ height: getWaveformViewHeight() }"
+        :style="{ height: waveformViewHeight }"
       ></div>
       <div ref="controlPanel" class="control-panel">
+        <div class="audio-settings-row">
+          <q-btn
+            color="primary"
+            icon="mic"
+            size="md"
+            label="settings"
+            dense
+            class="audio-settings-button"
+          />
+
+          <q-slider
+            v-model="trimGain"
+            color="primary"
+            dense
+            class="trim-slider"
+            track-size="5px"
+            thumb-size="25px"
+            track-color="primary"
+            selection-color="primary"
+            :min="-24"
+            :max="24"
+            :step="0.1"
+            :markers="24"
+            label
+            :label-value="getTrimGainLabel()"
+          />
+        </div>
+        <q-separator color="orange" size="2px" />
         <div class="recording-button-row">
           <div class="stop-delete-button">
             <q-btn
@@ -53,45 +81,59 @@
         </div>
         <div class="sound-name-row">
           <div class="sound-name" @click="nameClicked()">
-            {{ getNameDialogLabel() }}
-            <q-dialog
-              v-model="showNameDialog"
-              auto-save
-              :cover="false"
-              :offset="[0, 20]"
-            >
-              <q-card class="name-dialog q-pa-md" style="padding: 10px">
-                <q-input
-                  v-if="r.state === RecorderState.PLAYING_RECORDED_SOUND"
-                  :input-style="{ color: 'orange', fontSize: '1.5rem' }"
-                  color="orange"
-                  clearable
-                  v-model="recordedSoundVModel"
+            {{ getNameLabel() }}
+            <q-dialog persistent v-model="showNameDialog">
+              <div class="name-dialog">
+                <q-card class="name-dialog-panel q-pa-md" style="padding: 10px">
+                  <q-input
+                    v-if="
+                      recorder.state === RecorderState.PLAYING_RECORDED_SOUND
+                    "
+                    :input-style="{
+                      color: 'orange',
+                      fontSize: '1.5rem',
+                      fontWeight: 'bold',
+                    }"
+                    color="orange"
+                    clearable
+                    v-model="recordedSoundVModel"
+                    dense
+                    autofocus
+                    @keyup.enter="handleRecordedSoundNameEnterKeyPressed"
+                  >
+                  </q-input>
+                  <q-input
+                    v-else
+                    :input-style="{
+                      color: 'orange',
+                      fontSize: '1.5rem',
+                      fontWeight: 'bold',
+                    }"
+                    color="orange"
+                    clearable
+                    v-model="currentSound.name"
+                    dense
+                    autofocus
+                    @keyup.enter="
+                      currentSound.name.trim() !== ''
+                        ? (showNameDialog = false)
+                        : null
+                    "
+                  >
+                  </q-input>
+                </q-card>
+                <q-btn
+                  color="secondary"
+                  icon="done"
+                  size="lg"
                   dense
-                  autofocus
-                  @keyup.enter="handleRecordedSoundNameEnterKeyPressed"
-                  @update:model-value="handleRecordedSoundNameModelUpdate"
+                  @click="nameDialogButtonPressed"
                 />
-
-                <q-input
-                  v-else
-                  :input-style="{ color: 'orange', fontSize: '1.5rem' }"
-                  color="orange"
-                  clearable
-                  v-model="currentSound.name"
-                  dense
-                  autofocus
-                  @keyup.enter="
-                    currentSound.name.trim() !== ''
-                      ? (showNameDialog = false)
-                      : null
-                  "
-                />
-              </q-card>
+              </div>
             </q-dialog>
           </div>
         </div>
-        <div class="markers-panel">
+        <div class="markers-panel" v-if="settingsStore.recorder.showMarkers">
           <div class="markers-display">
             <TransitionGroup
               :name="markersTransitionEnabled ? 'markers-transition' : ''"
@@ -106,7 +148,7 @@
                 </div>
                 <div class="markers-table-button">
                   <q-btn
-                    v-if="r.state === RecorderState.RECORDING"
+                    v-if="recorder.state === RecorderState.RECORDING"
                     color="orange"
                     icon="edit"
                     size="xs"
@@ -119,7 +161,10 @@
                     :cover="false"
                     :offset="[0, 20]"
                   >
-                    <q-card class="name-dialog q-pa-md" style="padding: 10px">
+                    <q-card
+                      class="name-dialog-panel q-pa-md"
+                      style="padding: 10px"
+                    >
                       <q-input
                         :input-style="{ color: 'orange', fontSize: '1.5rem' }"
                         color="orange"
@@ -145,7 +190,7 @@
                 </div>
                 <div class="markers-table-button">
                   <q-btn
-                    v-if="r.state === RecorderState.RECORDING"
+                    v-if="recorder.state === RecorderState.RECORDING"
                     color="red"
                     icon="delete"
                     size="xs"
@@ -153,7 +198,9 @@
                     @click="deleteMarker(marker)"
                   />
                   <q-btn
-                    v-if="r.state === RecorderState.PLAYING_RECORDED_SOUND"
+                    v-if="
+                      recorder.state === RecorderState.PLAYING_RECORDED_SOUND
+                    "
                     color="green"
                     icon="play_arrow"
                     size="xs"
@@ -168,7 +215,7 @@
             <div class="markers-control" key="m">
               <div class="markers-control-label">Markers</div>
               <q-btn
-                v-if="r.state === RecorderState.RECORDING"
+                v-if="recorder.state === RecorderState.RECORDING"
                 @click="addMarker()"
                 color="secondary"
                 icon="add"
@@ -209,10 +256,14 @@ import { RecorderState } from 'src/components/models';
 import PeakMeter from './PeakMeter.vue';
 import RecordedSoundsPanel from './RecordedSoundsPanel.vue';
 import { Dialog } from 'quasar';
+import { useRecorderStore } from 'src/stores/recorder-store';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
+import { useSettingsStore } from 'src/stores/settings-store';
+const RecorderStore = useRecorderStore();
 const soundLibraryStore = useSoundLibraryStore();
+const settingsStore = useSettingsStore();
 
-const r = ref(new Recorder());
+const recorder = ref(new Recorder());
 const waveformView = ref<HTMLDivElement | null>(null);
 let waveform: RecorderWaveform;
 const peakMeter = ref<typeof PeakMeter | null>(null);
@@ -246,25 +297,25 @@ async function init() {
 
 async function initRecorder() {
   try {
-    await r.value.init();
-    peakMeter.value?.setAnalyserObject(r.value.stereoAnalyser);
+    await recorder.value.init();
+    peakMeter.value?.setAnalyserObject(recorder.value.stereoAnalyser);
 
-    if (r.value.recorder) {
-      r.value.recorder.onstart = () => {
+    if (recorder.value.recorder) {
+      recorder.value.recorder.onstart = () => {
         waveform.startCollectingPeakValues();
         currentSound.value.createdTimestamp = Date.now();
-        r.value.startTime = Date.now();
-        r.value.state = RecorderState.RECORDING;
+        recorder.value.startTime = Date.now();
+        recorder.value.state = RecorderState.RECORDING;
       };
-      r.value.recorder.onstop = () => {
+      recorder.value.recorder.onstop = () => {
         currentSound.value.totalLengthInMs = getCurrentRecordingLengthInMS();
         waveform.stopCollectingPeakValues();
         currentSound.value.peakData = waveform.getPeakValues();
         waveform.setWaveformColor('orange');
-        r.value.state = RecorderState.STOPPED;
+        recorder.value.state = RecorderState.STOPPED;
       };
 
-      soundLibraryStore.recorder = r.value;
+      RecorderStore.recorder = recorder.value;
     }
   } catch (error) {
     Dialog.create({
@@ -276,29 +327,44 @@ async function initRecorder() {
 
 async function initWaveform() {
   if (waveformView.value === null) return;
-  if (r.value.stereoAnalyser === undefined) return;
+  if (recorder.value.stereoAnalyser === undefined) return;
   waveform = new RecorderWaveform(
     waveformView.value,
-    r.value.stereoAnalyser,
-    r.value.analyserTimeWindowInMs,
-    r.value.audioContext ?? new AudioContext()
+    recorder.value.stereoAnalyser,
+    recorder.value.analyserTimeWindowInMs,
+    recorder.value.audioContext ?? new AudioContext()
   );
 
   await waveform.initWorklet();
 }
 
 const controlPanel = ref<HTMLDivElement | null>(null);
-function getWaveformViewHeight() {
-  if (controlPanel.value === null) return 0;
-  const height = window.innerHeight - controlPanel.value.clientHeight - 80;
-  return height + 'px';
+const controlPanelHeight = ref(0);
+const controlPanelResizeObserver = new ResizeObserver(() => {
+  updateControlPanelHeight();
+});
+
+function updateControlPanelHeight() {
+  if (controlPanel.value) {
+    controlPanelHeight.value = controlPanel.value.clientHeight;
+  }
 }
 
+onMounted(() => {
+  controlPanelResizeObserver.observe(controlPanel.value!);
+});
+
+const waveformViewHeight = computed(() => {
+  if (!controlPanel.value) return '0px';
+  const height = window.innerHeight - controlPanelHeight.value - 110;
+  return height + 'px';
+});
+
 async function recordButtonClicked() {
-  if (r.value.state === RecorderState.NOT_INITIALIZED) {
+  if (recorder.value.state === RecorderState.NOT_INITIALIZED) {
     await init();
   }
-  if (r.value.state === RecorderState.RECORDING) {
+  if (recorder.value.state === RecorderState.RECORDING) {
     stopRecording();
   } else {
     startRecording();
@@ -306,7 +372,7 @@ async function recordButtonClicked() {
 }
 
 function getRecordButtonColor() {
-  switch (r.value.state) {
+  switch (recorder.value.state) {
     case RecorderState.RECORDING:
       return 'red';
     case RecorderState.PLAYING_RECORDED_SOUND:
@@ -317,9 +383,9 @@ function getRecordButtonColor() {
 }
 
 function stopButtonClicked() {
-  if (r.value.state === RecorderState.RECORDING) {
+  if (recorder.value.state === RecorderState.RECORDING) {
     stopRecording();
-  } else if (r.value.state === RecorderState.PLAYING_RECORDED_SOUND) {
+  } else if (recorder.value.state === RecorderState.PLAYING_RECORDED_SOUND) {
     if (!soundLibraryStore.selectedSound?.isPlaying) {
       soundLibraryStore.playSelectedSound();
     } else {
@@ -329,7 +395,7 @@ function stopButtonClicked() {
 }
 
 function getStopButtonColor() {
-  switch (r.value.state) {
+  switch (recorder.value.state) {
     case RecorderState.RECORDING:
       return 'red';
     case RecorderState.PLAYING_RECORDED_SOUND:
@@ -339,7 +405,7 @@ function getStopButtonColor() {
   }
 }
 function getStopButtonIcon() {
-  if (r.value.state === RecorderState.PLAYING_RECORDED_SOUND) {
+  if (recorder.value.state === RecorderState.PLAYING_RECORDED_SOUND) {
     if (soundLibraryStore.selectedSound?.isPlaying) {
       return 'pause';
     } else {
@@ -352,8 +418,8 @@ function getStopButtonIcon() {
 
 function deleteButtonClicked() {
   if (
-    r.value.state === RecorderState.NOT_INITIALIZED ||
-    r.value.state === RecorderState.READY
+    recorder.value.state === RecorderState.NOT_INITIALIZED ||
+    recorder.value.state === RecorderState.READY
   )
     return;
 
@@ -369,7 +435,7 @@ function deleteButtonClicked() {
       color: 'primary',
     },
   }).onOk(() => {
-    switch (r.value.state) {
+    switch (recorder.value.state) {
       case RecorderState.RECORDING:
         resetState();
         stopRecording(false);
@@ -391,7 +457,7 @@ function deleteButtonClicked() {
 }
 
 function getDeleteDialogLabel() {
-  switch (r.value.state) {
+  switch (recorder.value.state) {
     case RecorderState.RECORDING:
       return 'Stop recording and delete sound ?';
     case RecorderState.STOPPED:
@@ -404,28 +470,28 @@ function getDeleteDialogLabel() {
 function startRecording() {
   soundLibraryStore.stopSelectedSound();
   resetState();
-  r.value.setRecordedSound(currentSound.value);
-  r.value.startRecording();
+  recorder.value.setRecordedSound(currentSound.value);
+  recorder.value.startRecording();
   waveform.setWaveformColor('red');
   waveform.resetWaveform();
 }
 
 function stopRecording(save = true) {
-  r.value.stopRecording(save);
+  recorder.value.stopRecording(save);
   if (!save) resetState();
 }
 
 function setRecordingMode() {
   waveform.setWaveformToDraw('realtime');
   waveform.setWaveformColor('orange');
-  if (r.value.state) r.value.state = RecorderState.READY;
+  if (recorder.value.state) recorder.value.state = RecorderState.READY;
   soundNameVModel.value = currentSound.value.name;
 }
 
 function resetState() {
   let preEnteredName = currentSound.value.name;
   currentSound.value = getDefaultSound();
-  if (r.value.state === RecorderState.READY) {
+  if (recorder.value.state === RecorderState.READY) {
     currentSound.value.name = preEnteredName;
   }
   waveform.resetWaveform();
@@ -437,22 +503,22 @@ const recordingLength = ref(0);
 const recordingLengthLabel = ref('');
 
 function getCurrentRecordingLengthInMS() {
-  if (r.value.state !== RecorderState.RECORDING) {
+  if (recorder.value.state !== RecorderState.RECORDING) {
     return 0;
   } else {
-    return Date.now() - r.value.startTime;
+    return Date.now() - recorder.value.startTime;
   }
 }
 
 function updateTimeLabel() {
-  if (r.value.state === RecorderState.STOPPED) {
+  if (recorder.value.state === RecorderState.STOPPED) {
     recordingLength.value = currentSound.value.totalLengthInMs ?? 0;
     recordingLengthLabel.value = getMMSSfromS(recordingLength.value / 1000);
-  } else if (r.value.state === RecorderState.PLAYING_RECORDED_SOUND) {
+  } else if (recorder.value.state === RecorderState.PLAYING_RECORDED_SOUND) {
     const position =
       soundLibraryStore.selectedSound?.audioElement?.currentTime ?? 0;
     recordingLengthLabel.value = getMMSSfromS(position);
-  } else if (r.value.state !== RecorderState.RECORDING) {
+  } else if (recorder.value.state !== RecorderState.RECORDING) {
     recordingLength.value = 0;
     recordingLengthLabel.value = '';
   } else {
@@ -464,14 +530,14 @@ function updateTimeLabel() {
 }
 
 const markersTransitionEnabled = computed(() => {
-  return r.value.state === RecorderState.RECORDING;
+  return recorder.value.state === RecorderState.RECORDING;
 });
 
 function getMarkerArray(): SoundMarker[] {
-  if (r.value.state === RecorderState.RECORDING) {
+  if (recorder.value.state === RecorderState.RECORDING) {
     const proxy = [...currentSound.value.markers];
     return sortMarkersArrayByTime(proxy);
-  } else if (r.value.state === RecorderState.PLAYING_RECORDED_SOUND) {
+  } else if (recorder.value.state === RecorderState.PLAYING_RECORDED_SOUND) {
     const proxy = [...(soundLibraryStore.selectedSound?.markers ?? [])];
     return sortMarkersArrayByTime(proxy, false);
   } else {
@@ -484,7 +550,7 @@ function sortMarkersArrayByTime(array: SoundMarker[], reverse = true) {
   return array.sort((a, b) => b.positionInMs - a.positionInMs);
 }
 function addMarker() {
-  if (r.value.state === RecorderState.RECORDING) {
+  if (recorder.value.state === RecorderState.RECORDING) {
     waveform.addMarker('rgb(40, 134, 189)');
     currentSound.value.markers?.push({
       id: uuidv4(),
@@ -498,12 +564,12 @@ function addMarker() {
 }
 
 function deleteMarker(marker: SoundMarker) {
-  if (r.value.state === RecorderState.RECORDING) {
+  if (recorder.value.state === RecorderState.RECORDING) {
     currentSound.value.markers = currentSound.value.markers.filter(
       (m) => m.id !== marker.id
     );
     waveform.setMarkers(currentSound.value.markers);
-  } else if (r.value.state === RecorderState.PLAYING_RECORDED_SOUND) {
+  } else if (recorder.value.state === RecorderState.PLAYING_RECORDED_SOUND) {
     soundLibraryStore.selectedSound?.markers?.splice(
       soundLibraryStore.selectedSound?.markers?.indexOf(marker) ?? 0,
       1
@@ -551,8 +617,8 @@ function nameClicked() {
   showNameDialog.value = !showNameDialog.value;
 }
 
-function getNameDialogLabel() {
-  switch (r.value.state) {
+function getNameLabel() {
+  switch (recorder.value.state) {
     case RecorderState.NOT_INITIALIZED:
       return currentSound.value.name;
     case RecorderState.RECORDING:
@@ -567,6 +633,40 @@ function getNameDialogLabel() {
       return 'Recording';
   }
 }
+
+const recordedSoundVModel = ref('');
+watch(
+  () => soundLibraryStore.selectedSound?.name,
+  (newValue) => {
+    if (newValue) {
+      recordedSoundVModel.value = newValue;
+    }
+  }
+);
+
+function nameDialogButtonPressed() {
+  if (recorder.value.state === RecorderState.PLAYING_RECORDED_SOUND) {
+    handleRecordedSoundNameEnterKeyPressed();
+  } else {
+    if (currentSound.value.name.trim() !== '') {
+      showNameDialog.value = false;
+    }
+  }
+}
+
+const handleRecordedSoundNameEnterKeyPressed = () => {
+  if (recordedSoundVModel.value.trim() !== '') {
+    showNameDialog.value = false;
+    handleRecordedSoundNameModelUpdate(recordedSoundVModel.value);
+  }
+};
+
+const handleRecordedSoundNameModelUpdate = (newValue: any) => {
+  if (newValue.trim() === '') return;
+  recordedSoundVModel.value = newValue;
+  soundLibraryStore.updateSelectedSoundName(newValue);
+  console.log('update');
+};
 
 const showRecordedSoundsDialog = ref(false);
 function openRecordedSoundsDialog() {
@@ -598,7 +698,7 @@ watch(
 
 async function initializePlayerMode(sound: RecordedSound) {
   const audioElement = sound.audioElement;
-  if (r.value.state === RecorderState.NOT_INITIALIZED) {
+  if (recorder.value.state === RecorderState.NOT_INITIALIZED) {
     await init();
   }
   if (audioElement) {
@@ -609,33 +709,22 @@ async function initializePlayerMode(sound: RecordedSound) {
     waveform.setWaveformColor('orange');
     waveform.deleteAllMarkers();
     waveform.setMarkers(sound.markers);
-    r.value.state = RecorderState.PLAYING_RECORDED_SOUND;
+    recorder.value.state = RecorderState.PLAYING_RECORDED_SOUND;
     soundNameVModel.value = sound.name;
   }
 }
 
-const recordedSoundVModel = ref('');
+const trimGain = ref(0);
 watch(
-  () => soundLibraryStore.selectedSound?.name,
+  () => trimGain.value,
   (newValue) => {
-    if (newValue) {
-      recordedSoundVModel.value = newValue;
-    }
+    recorder.value.setTrimGain(newValue);
   }
 );
 
-const handleRecordedSoundNameEnterKeyPressed = () => {
-  if (recordedSoundVModel.value.trim() !== '') {
-    showNameDialog.value = false;
-  }
-};
-
-const handleRecordedSoundNameModelUpdate = (newValue: any) => {
-  if (newValue.trim() === '') return;
-  recordedSoundVModel.value = newValue;
-  soundLibraryStore.updateSelectedSoundName(newValue);
-  console.log('update');
-};
+function getTrimGainLabel() {
+  return trimGain.value.toFixed(1) + ' dB';
+}
 </script>
 
 <style scoped>
@@ -647,11 +736,27 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
   height: 100%;
   flex-wrap: nowrap;
   padding: 7px;
+  gap: 5px;
 }
 .meter-style {
   height: 30px;
   width: 100%;
   border-bottom: 2px solid orange;
+}
+.audio-settings-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  height: 30px;
+  padding: 5px;
+  gap: 10px;
+}
+.audio-settings-button {
+  flex: 0 0 auto;
+}
+.trim-slider {
+  flex: 1;
 }
 .not-initialized-waveform {
   display: flex;
@@ -697,10 +802,19 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
   justify-content: center;
 }
 .sound-name-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
   padding: 5px;
   margin-top: 5px;
   margin-bottom: 5px;
   height: 50px;
+  max-width: 95%;
+}
+.audio-button {
+  width: 2rem;
+  height: 2rem;
 }
 .sound-name {
   color: var(--blueColor);
@@ -715,18 +829,26 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
   padding-left: 5px;
   padding-right: 5px;
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+  margin: auto;
 }
-.name-dialog {
+.name-dialog-panel {
   display: flex;
   justify-content: center;
   align-items: center;
   flex-direction: column;
   background-color: var(--bkgColor);
 }
+.name-dialog {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: row;
+  gap: 10px;
+}
 .markers-panel {
   display: flex;
   flex-direction: row;
-  justify-content: center;
+  justify-content: space-evenly;
   align-items: center;
   width: 100%;
   padding: 3px;
@@ -738,10 +860,10 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
   justify-content: center;
   align-items: center;
   gap: 5px;
-  width: 30%;
+  width: 20%;
 }
 .markers-control-label {
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: bold;
   color: orange;
 }
@@ -817,7 +939,7 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
 }
 .recorded-sounds-panel {
   width: 100%;
-  height: 150px;
+  height: 125px;
   overflow-y: auto;
   background-color: rgba(0, 0, 0, 0.137);
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);

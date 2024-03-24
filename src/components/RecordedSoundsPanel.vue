@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="panel">
     <TransitionGroup name="sound-items">
       <div v-for="sound in soundLibraryStore.recordedSounds" :key="sound.id">
         <div class="recorded-sound-row">
@@ -73,9 +73,11 @@
 import { RecordedSound } from 'src/components/models';
 import { getMMSSfromS } from 'src/scripts/math-helpers';
 import { onMounted, ref } from 'vue';
-import { useSoundLibraryStore } from 'src/stores/sound-library-store';
 import { Dialog } from 'quasar';
 import { RecorderState } from 'src/components/models';
+import { useRecorderStore } from 'src/stores/recorder-store';
+import { useSoundLibraryStore } from 'src/stores/sound-library-store';
+const recorderStore = useRecorderStore();
 const soundLibraryStore = useSoundLibraryStore();
 
 onMounted(() => {
@@ -116,7 +118,7 @@ function getPlayButtonIcon(sound: RecordedSound) {
   }
 }
 async function playButtonClicked(sound: RecordedSound) {
-  if (soundLibraryStore.recorder?.state === RecorderState.RECORDING) {
+  if (recorderStore.recorder?.state === RecorderState.RECORDING) {
     return;
   }
   if (soundLibraryStore.selectedSound !== sound) {
@@ -134,6 +136,9 @@ async function playButtonClicked(sound: RecordedSound) {
 </script>
 
 <style scoped>
+.panel {
+  padding: 5px;
+}
 .sound-items-move {
   transition: 0.3s ease;
 }

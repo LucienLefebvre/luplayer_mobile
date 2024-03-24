@@ -3,6 +3,7 @@ import { reactive } from 'vue';
 export const useSettingsStore = defineStore('settingsStore', {
   state: () =>
     reactive({
+      ///// GENERAL
       showWelcomeDialog: false as boolean,
       shouldShowWelcomeDialogNextTime: true as boolean,
 
@@ -13,6 +14,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 
       lastUsedPlayerMode: 'playlist' as string,
 
+      ///// PLAYER
       autoScroll: true as boolean,
 
       showMultiChannelWaveform: false as boolean,
@@ -51,6 +53,13 @@ export const useSettingsStore = defineStore('settingsStore', {
       selectLastPlayedCartSound: true as boolean,
 
       cartVolumeSwipeMultiplier: 2 as number,
+
+      ///// RECORDER
+      recorder: {
+        showMarkers: true as boolean,
+        showWaveform: true as boolean,
+        showPeakMeter: true as boolean,
+      },
     }),
 
   actions: {

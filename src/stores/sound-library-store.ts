@@ -7,8 +7,6 @@ import write_blob from 'capacitor-blob-writer';
 import { openDB, IDBPDatabase } from 'idb';
 
 import { RecordedSound, SoundMarker } from 'src/components/models';
-import { Recorder } from 'src/scripts/recorder';
-import { Waveform } from 'src/scripts/waveform';
 
 export const useSoundLibraryStore = defineStore('soundlibrarystore', {
   state: () =>
@@ -20,9 +18,6 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
       recordingSaved: false,
       selectedSoundChanged: false,
-
-      recorder: null as Recorder | null,
-      waveform: null as Waveform | null,
 
       db: null as IDBPDatabase | null,
     }),

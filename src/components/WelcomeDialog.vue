@@ -17,12 +17,13 @@
           <br />
 
           <div v-show="!isCapacitor()">
-            It has only been tested on Chrome for Android. For better
-            performance, download the app from the Play Store.
+            It has been tested on Chrome for Android and is known to have issues
+            on Safari/iOS.
           </div>
           <br />
 
-          Please report any bugs to
+          If you want to be a beta tester of the Android app, or to report any
+          bugs, please contact me at
           <a
             href="mailto:contact@luplayer.org"
             target="_blank"

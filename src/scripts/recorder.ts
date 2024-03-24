@@ -4,6 +4,7 @@ import {
   StereoAnalyserObject,
 } from 'src/components/models';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
+import { dbToGain } from './math-helpers';
 export class Recorder {
   state = RecorderState.NOT_INITIALIZED;
   audioContext?: AudioContext;
@@ -12,6 +13,10 @@ export class Recorder {
   recorder?: MediaRecorder;
   mediaStreamSource?: MediaStreamAudioSourceNode;
   stereoAnalyser?: StereoAnalyserObject;
+  gainNode?: GainNode;
+  hpfNode?: BiquadFilterNode;
+  limiterNode?: DynamicsCompressorNode;
+  streamDestinationNode?: MediaStreamAudioDestinationNode;
 
   recording = false;
   startTime = 0;
@@ -22,34 +27,55 @@ export class Recorder {
   analyserTimeWindowInMs = 0;
 
   public async init() {
-    this.audioContext = new AudioContext();
-    this.chunks = [];
-
-    this.stereoAnalyser = {
-      splitter: this.audioContext.createChannelSplitter(2),
-      analysers: [
-        this.audioContext.createAnalyser(),
-        this.audioContext.createAnalyser(),
-      ],
-    };
-
     try {
+      this.audioContext = new AudioContext();
+
+      if (!this.audioContext) {
+        throw new Error("Can't create AudioContext");
+      }
+
+      this.chunks = [];
+
+      this.stereoAnalyser = {
+        splitter: this.audioContext.createChannelSplitter(2),
+        analysers: [
+          this.audioContext.createAnalyser(),
+          this.audioContext.createAnalyser(),
+        ],
+      };
+      this.gainNode = this.audioContext.createGain();
+      this.hpfNode = this.createFilterNode(this.audioContext);
+      this.limiterNode = this.createLimiterNode(this.audioContext);
+      this.streamDestinationNode =
+        this.audioContext.createMediaStreamDestination();
+
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('MediaDevices or getUserMedia is not supported');
       }
 
+      const inputDevices = await navigator.mediaDevices.enumerateDevices();
+      console.log(inputDevices);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const options = {
-        mimeType: 'audio/webm; codecs=opus',
-        audioBitsPerSecond: 256000,
-      };
-      this.recorder = new MediaRecorder(stream, options);
 
       this.mediaStreamSource =
         this.audioContext?.createMediaStreamSource(stream);
 
+      this.mediaStreamSource?.connect(this.gainNode);
+      this.gainNode.connect(this.hpfNode);
+      this.hpfNode.connect(this.limiterNode);
+      this.limiterNode.connect(this.streamDestinationNode);
+
+      const options = {
+        mimeType: 'audio/webm; codecs=opus',
+        audioBitsPerSecond: 256000,
+      };
+      this.recorder = new MediaRecorder(
+        this.streamDestinationNode.stream,
+        options
+      );
+
       if (this.stereoAnalyser) {
-        this.mediaStreamSource?.connect(this.stereoAnalyser.splitter);
+        this.gainNode?.connect(this.stereoAnalyser.splitter);
         this.stereoAnalyser.splitter.connect(
           this.stereoAnalyser.analysers[0],
           0
@@ -58,9 +84,6 @@ export class Recorder {
           this.stereoAnalyser.analysers[1],
           1
         );
-
-        /* this.stereoAnalyser.analysers[0].minDecibels = -100;
-        this.stereoAnalyser.analysers[0].maxDecibels = 0; */
       }
 
       this.analyserTimeWindowInMs = Math.floor(
@@ -81,6 +104,25 @@ export class Recorder {
     }
   }
 
+  private createFilterNode(audioContext: AudioContext): BiquadFilterNode {
+    const filter = audioContext.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 0;
+    filter.Q.value = 0;
+    return filter;
+  }
+
+  private createLimiterNode(
+    audioContext: AudioContext
+  ): DynamicsCompressorNode {
+    const limiter = audioContext.createDynamicsCompressor();
+    limiter.threshold.value = -3;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.1;
+    limiter.release.value = 0.1;
+    return limiter;
+  }
+
   public setRecordedSound(sound: RecordedSound) {
     this.recordedSound = sound;
   }
@@ -97,5 +139,13 @@ export class Recorder {
 
       if (!save) this.shouldSaveSound = false;
     }
+  }
+
+  public setTrimGain(gain: number) {
+    if (this.audioContext && this.gainNode)
+      this.gainNode.gain.setValueAtTime(
+        dbToGain(gain),
+        this.audioContext.currentTime
+      );
   }
 }
