@@ -170,6 +170,7 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
     async saveRecording(sound: RecordedSound, chunks: Blob[]) {
       try {
+        console.log('extension : ', this.settingsStore.recorder.fileFormat);
         const filePath =
           sound.name + '.' + this.settingsStore.recorder.fileFormat;
         const newFilePath = await this.getUniqueFileName(filePath);

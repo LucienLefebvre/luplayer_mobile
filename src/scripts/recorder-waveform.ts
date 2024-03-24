@@ -36,7 +36,7 @@ export class RecorderWaveform {
   private soundDuration = 0;
   private playHeadMarker: Konva.Line;
 
-  private audioContext: AudioContext;
+  public shouldUpdateWaveform = true;
 
   constructor(
     waveformView: HTMLDivElement,
@@ -44,8 +44,6 @@ export class RecorderWaveform {
     analyserGetDataRateInMs: number,
     audioContext: AudioContext
   ) {
-    this.audioContext = audioContext;
-
     this.waveformView = waveformView;
     this.stereoAnalyser = stereoAnalyser;
 
@@ -101,6 +99,7 @@ export class RecorderWaveform {
 
   public async init() {
     setInterval(() => {
+      if (!this.shouldUpdateWaveform) return;
       const startTime = performance.now();
 
       const bufferLength = this.stereoAnalyser.analysers[0].frequencyBinCount;
@@ -132,10 +131,20 @@ export class RecorderWaveform {
       }
 
       const width = this.waveformView.clientWidth;
+      const height = this.waveformView.clientHeight;
       const numExcessValues = this.peakValuesL.length - width;
       if (numExcessValues > 0) {
         this.peakValuesL.splice(0, numExcessValues);
         this.peakValuesR.splice(0, numExcessValues);
+
+        this.markers.forEach((marker) => {
+          marker.xPos -= numExcessValues;
+          console.log(marker.xPos);
+          marker.line.points([marker.xPos, 0, marker.xPos, height]);
+          if (marker.xPos < 0) {
+            this.deleteMarker(marker);
+          }
+        });
       }
 
       const endTime = performance.now();
@@ -156,13 +165,11 @@ export class RecorderWaveform {
     const clientHeight = this.waveformView.clientHeight;
     const halfHeight = clientHeight / 2;
 
-    // Remove excess peak values if necessary
-    const excessValues = Math.max(0, this.peakValuesL.length - width);
+    /*  const excessValues = Math.max(0, this.peakValuesL.length - width);
     if (excessValues > 0) {
       this.peakValuesL.splice(0, excessValues);
       this.peakValuesR.splice(0, excessValues);
 
-      // Adjust marker positions accordingly
       this.markers.forEach((marker) => {
         marker.xPos -= excessValues;
         marker.line.points([marker.xPos, 0, marker.xPos, clientHeight]);
@@ -170,9 +177,8 @@ export class RecorderWaveform {
           this.deleteMarker(marker);
         }
       });
-    }
+    } */
 
-    // Generate waveform points
     const points = [0, halfHeight];
     for (let i = 0; i < this.peakValuesL.length; i++) {
       points.push(i, (this.peakValuesR[i] / 2) * clientHeight + halfHeight);
@@ -296,6 +302,10 @@ export class RecorderWaveform {
   public resetWaveform() {
     this.peakValuesL = new Array(this.waveformView.clientWidth).fill(0);
     this.peakValuesR = new Array(this.waveformView.clientWidth).fill(0);
+  }
+
+  public setShouldUpdateWaveform(shouldUpdateWaveform: boolean) {
+    this.shouldUpdateWaveform = shouldUpdateWaveform;
   }
 
   public startCollectingPeakValues() {

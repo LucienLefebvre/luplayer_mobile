@@ -574,22 +574,33 @@ watch(
   }
 );
 
-const trimGain = ref(0);
 watch(
-  () => trimGain.value,
+  () => recorderStore.trimGain,
   (newValue) => {
+    console.log('trim gain changed');
     recorderStore.recorder.setTrimGain(newValue);
   }
 );
 
 function getTrimGainLabel() {
-  return trimGain.value.toFixed(1) + ' dB';
+  return recorderStore.trimGain.toFixed(1) + ' dB';
 }
 
 const showAudioSettingsDialog = ref(false);
 function audioSettingsButtonClicked() {
   showAudioSettingsDialog.value = true;
 }
+
+watch(
+  () => recorderStore.recorder.state,
+  (state) => {
+    if (state === RecorderState.PLAYING_RECORDED_SOUND) {
+      recorderStore.waveform?.setShouldUpdateWaveform(false);
+    } else {
+      recorderStore.waveform?.setShouldUpdateWaveform(true);
+    }
+  }
+);
 </script>
 
 <style scoped>
@@ -800,7 +811,7 @@ function audioSettingsButtonClicked() {
 }
 .recorded-sounds-panel {
   width: 100%;
-  height: 125px;
+  height: 110px;
   overflow-y: auto;
   background-color: rgba(0, 0, 0, 0.137);
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
@@ -817,17 +828,23 @@ function audioSettingsButtonClicked() {
   font-size: 1.4rem;
   font-weight: bold;
   color: orange;
-  margin-top: 10px;
-  width: 100%;
+  padding: 10px;
   text-align: center;
   justify-content: center;
   gap: 10px;
+  background-color: rgba(0, 0, 0, 0.137);
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
 }
 .recorded-sounds-dialog-panel {
   width: 100%;
   max-height: 500px;
   overflow-y: auto;
   padding: 5px;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+  background-color: var(--bkgColor);
+  border-top-right-radius: 20px;
+  border-top-left-radius: 20px;
 }
 .audio-settings-dialog {
   width: 100%;

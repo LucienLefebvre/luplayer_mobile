@@ -1,16 +1,24 @@
+import { watch } from 'vue';
+import {
+  MediaRecorder as EMediaRecorder,
+  register,
+} from 'extendable-media-recorder';
+import { connect } from 'extendable-media-recorder-wav-encoder';
+
 import {
   RecordedSound,
   RecorderState,
   StereoAnalyserObject,
 } from 'src/components/models';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
+import { useSettingsStore } from 'src/stores/settings-store';
 import { dbToGain } from './math-helpers';
 export class Recorder {
   state = RecorderState.NOT_INITIALIZED;
   audioContext?: AudioContext;
   chunks?: Blob[];
 
-  mediaRecorder?: MediaRecorder;
+  mediaRecorder?: MediaRecorder | InstanceType<typeof EMediaRecorder>;
   mediaStreamSource?: MediaStreamAudioSourceNode;
   stereoAnalyser?: StereoAnalyserObject;
   gainNode?: GainNode;
@@ -25,6 +33,8 @@ export class Recorder {
   recordedSound?: RecordedSound;
 
   analyserTimeWindowInMs = 0;
+
+  settingsStore = useSettingsStore();
 
   public async init() {
     try {
@@ -65,14 +75,22 @@ export class Recorder {
       this.hpfNode.connect(this.limiterNode);
       this.limiterNode.connect(this.streamDestinationNode);
 
-      const options = {
-        mimeType: 'audio/webm; codecs=opus',
-        audioBitsPerSecond: 256000,
-      };
-      this.mediaRecorder = new MediaRecorder(
-        this.streamDestinationNode.stream,
-        options
-      );
+      if (this.settingsStore.recorder.fileFormat === 'ogg') {
+        const options = {
+          mimeType: 'audio/webm; codecs=opus',
+          audioBitsPerSecond: 256000,
+        };
+        this.mediaRecorder = new MediaRecorder(
+          this.streamDestinationNode.stream,
+          options
+        );
+      } else {
+        await register(await connect());
+        this.mediaRecorder = new EMediaRecorder(
+          this.streamDestinationNode.stream,
+          { mimeType: 'audio/wav' }
+        );
+      }
 
       if (this.stereoAnalyser) {
         this.limiterNode?.connect(this.stereoAnalyser.splitter);
@@ -90,7 +108,7 @@ export class Recorder {
         this.audioContext.sampleRate / this.stereoAnalyser.analysers[0].fftSize
       );
 
-      this.mediaRecorder.ondataavailable = (e) => {
+      this.mediaRecorder.ondataavailable = (e: any) => {
         this.chunks?.push(e.data);
         const soundLibraryStore = useSoundLibraryStore();
         if (this.shouldSaveSound)
