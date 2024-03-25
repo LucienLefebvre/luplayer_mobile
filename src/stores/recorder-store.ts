@@ -11,6 +11,8 @@ import {
   SoundMarker,
 } from 'src/components/models';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
+import PeakMeter from 'src/components/PeakMeter.vue';
+import { settings } from 'cluster';
 
 export const useRecorderStore = defineStore('recorderStore', {
   state: () =>
@@ -18,6 +20,7 @@ export const useRecorderStore = defineStore('recorderStore', {
       recorder: new Recorder(),
       waveform: null as RecorderWaveform | null,
       waveformView: null as HTMLDivElement | null,
+      peakMeter: ref<typeof PeakMeter | null>(null),
 
       soundLibraryStore: useSoundLibraryStore(),
 
@@ -48,6 +51,7 @@ export const useRecorderStore = defineStore('recorderStore', {
     async init() {
       await this.initRecorder();
       await this.initWaveform();
+      this.peakMeter?.value?.setAnalyserObject(this.recorder.stereoAnalyser);
     },
 
     async initRecorder() {
@@ -88,7 +92,6 @@ export const useRecorderStore = defineStore('recorderStore', {
       this.waveform = new RecorderWaveform(
         this.waveformView,
         this.recorder.stereoAnalyser,
-        this.recorder.analyserTimeWindowInMs,
         this.recorder.audioContext ?? new AudioContext()
       );
 
@@ -130,7 +133,6 @@ export const useRecorderStore = defineStore('recorderStore', {
     async initializePlayerMode(sound: RecordedSound) {
       if (this.recorder.state === RecorderState.NOT_INITIALIZED) {
         await this.init();
-        console.log('init done');
       }
 
       const audioElement = sound.audioElement;
@@ -240,6 +242,17 @@ export const useRecorderStore = defineStore('recorderStore', {
     setLimiterThreshold(threshold: number) {
       this.limiterThreshold = threshold;
       this.recorder.setLimiterState(this.limiterEnabled, this.limiterThreshold);
+    },
+
+    getButtonsColor() {
+      switch (this.recorder.state) {
+        case RecorderState.RECORDING:
+          return 'red';
+        case RecorderState.PLAYING_RECORDED_SOUND:
+          return 'green';
+        default:
+          return 'orange';
+      }
     },
   },
 });

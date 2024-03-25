@@ -1,5 +1,6 @@
 <template>
   <div class="audio-settings-panel">
+    <recorder-audio-settings-panel-file-format />
     <div class="audio-settings-row">
       <q-btn
         color="primary"
@@ -46,7 +47,7 @@
         @update:model-value="recorderStore.setHpfFrequency"
       />
     </div>
-    <div class="audio-settings-row">
+    <!-- <div class="audio-settings-row">
       <q-btn
         :color="getLimiterButtonColor()"
         label="limter"
@@ -69,20 +70,17 @@
         class="audio-settings-slider"
         @update:model-value="recorderStore.setLimiterThreshold"
       />
-    </div>
+    </div> -->
   </div>
 </template>
 
 <script setup lang="ts">
+import RecorderAudioSettingsPanelFileFormat from './RecorderAudioSettingsPanelFileFormat.vue';
 import { useRecorderStore } from 'src/stores/recorder-store';
 const recorderStore = useRecorderStore();
 
 function getHPFButtonColor() {
   return recorderStore.hpfEnabled ? 'green' : 'primary';
-}
-
-function getLimiterButtonColor() {
-  return recorderStore.limiterEnabled ? 'green' : 'primary';
 }
 </script>
 

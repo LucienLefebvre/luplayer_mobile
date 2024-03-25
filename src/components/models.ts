@@ -144,16 +144,17 @@ export enum RecorderState {
 export interface RecordedSound {
   id: string;
   name: string;
-  path?: string;
   markers: SoundMarker[];
   numberOfMarkersCreated: number;
   totalLengthInMs: number;
   peakData: Float32Array[];
-  peakDataAsStandardArray?: number[][];
-  audioElement?: HTMLAudioElement;
   isPlaying: boolean;
   showNameDialog: boolean;
   createdTimestamp: number;
+  path?: string;
+  fileSizeInBytes?: number;
+  peakDataAsStandardArray?: number[][];
+  audioElement?: HTMLAudioElement;
 }
 
 export interface SoundMarker {

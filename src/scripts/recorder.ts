@@ -13,62 +13,123 @@ import {
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import { dbToGain } from './math-helpers';
+import { Dialog } from 'quasar';
 export class Recorder {
   state = RecorderState.NOT_INITIALIZED;
-  audioContext?: AudioContext;
+  _audioContext: AudioContext | null = null;
   chunks?: Blob[];
+
+  recordedSound?: RecordedSound;
+
+  audioInputDevices?: MediaDeviceInfo[];
+  currentAudioInputDevice?: MediaDeviceInfo;
 
   mediaRecorder?: MediaRecorder | InstanceType<typeof EMediaRecorder>;
   mediaStreamSource?: MediaStreamAudioSourceNode;
-  stereoAnalyser?: StereoAnalyserObject;
-  gainNode?: GainNode;
-  hpfNode?: BiquadFilterNode;
-  limiterNode?: DynamicsCompressorNode;
-  streamDestinationNode?: MediaStreamAudioDestinationNode;
+
+  private _gainNode: GainNode | null = null;
+  private _hpfNode: BiquadFilterNode | null = null;
+  private _limiterNode: DynamicsCompressorNode | null = null;
+  private _streamDestinationNode: MediaStreamAudioDestinationNode | null = null;
+  private _stereoAnalyser: {
+    splitter: ChannelSplitterNode;
+    analysers: AnalyserNode[];
+  } | null = null;
 
   recording = false;
   startTime = 0;
   shouldSaveSound = true;
 
-  recordedSound?: RecordedSound;
-
-  analyserTimeWindowInMs = 0;
-
   settingsStore = useSettingsStore();
 
-  public async init() {
-    try {
-      this.audioContext = new AudioContext();
+  get audioContext(): AudioContext {
+    console.log('Getting audio context');
+    if (!this._audioContext) {
+      this._audioContext = new AudioContext();
+    }
+    return this._audioContext;
+  }
 
-      if (!this.audioContext) {
-        throw new Error("Can't create AudioContext");
-      }
+  get gainNode(): GainNode {
+    if (!this._gainNode) {
+      this._gainNode = this.audioContext.createGain();
+    }
+    return this._gainNode;
+  }
 
-      this.chunks = [];
+  get streamDestinationNode(): MediaStreamAudioDestinationNode {
+    if (!this._streamDestinationNode) {
+      this._streamDestinationNode = new MediaStreamAudioDestinationNode(
+        this.audioContext
+      );
+    }
+    return this._streamDestinationNode;
+  }
 
-      this.stereoAnalyser = {
+  get limiterNode(): DynamicsCompressorNode {
+    if (!this._limiterNode) {
+      this._limiterNode = new DynamicsCompressorNode(this.audioContext);
+    }
+    return this._limiterNode;
+  }
+
+  get hpfNode(): BiquadFilterNode {
+    if (!this._hpfNode) {
+      this._hpfNode = new BiquadFilterNode(this.audioContext);
+      this._hpfNode.type = 'highpass';
+      this._hpfNode.frequency.value = 0;
+      this._hpfNode.Q.value = 0.7071;
+    }
+    return this._hpfNode;
+  }
+
+  get stereoAnalyser() {
+    if (!this._stereoAnalyser) {
+      this._stereoAnalyser = {
         splitter: this.audioContext.createChannelSplitter(2),
         analysers: [
           this.audioContext.createAnalyser(),
           this.audioContext.createAnalyser(),
         ],
       };
-      this.gainNode = this.audioContext.createGain();
-      this.hpfNode = this.createFilterNode(this.audioContext);
-      this.limiterNode = this.createLimiterNode(this.audioContext);
-      this.streamDestinationNode =
-        this.audioContext.createMediaStreamDestination();
+    }
+    return this._stereoAnalyser;
+  }
+
+  public async init() {
+    try {
+      this.chunks = [];
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('MediaDevices or getUserMedia is not supported');
       }
 
-      const inputDevices = await navigator.mediaDevices.enumerateDevices();
+      await this.getInputDevices();
+      if (this.audioInputDevices?.length === 0 || !this.audioInputDevices) {
+        Dialog.create({
+          title: 'No input device found',
+          style: 'background-color: var(--bkgColor); color: orange',
+        });
+        throw new Error('No input device found');
+      }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.currentAudioInputDevice = await this.tryLastUsedInputDeviceOrDefault(
+        this.audioInputDevices
+      );
+
+      if (!this.currentAudioInputDevice) return;
+      const constraints = {
+        audio: {
+          deviceId: this.currentAudioInputDevice.deviceId,
+          echoCancellation: false,
+          autoGainControl: false,
+          noiseCancellation: false,
+        },
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
       this.mediaStreamSource =
-        this.audioContext?.createMediaStreamSource(stream);
+        this.audioContext.createMediaStreamSource(stream);
       this.gainNode.disconnect();
       this.mediaStreamSource?.connect(this.gainNode);
       this.gainNode.connect(this.hpfNode);
@@ -104,10 +165,6 @@ export class Recorder {
         );
       }
 
-      this.analyserTimeWindowInMs = Math.floor(
-        this.audioContext.sampleRate / this.stereoAnalyser.analysers[0].fftSize
-      );
-
       this.mediaRecorder.ondataavailable = (e: any) => {
         this.chunks?.push(e.data);
         const soundLibraryStore = useSoundLibraryStore();
@@ -122,23 +179,76 @@ export class Recorder {
     }
   }
 
-  private createFilterNode(audioContext: AudioContext): BiquadFilterNode {
-    const filter = audioContext.createBiquadFilter();
-    filter.type = 'highpass';
-    filter.frequency.value = 0;
-    filter.Q.value = 0;
-    return filter;
+  public async getInputDevices(): Promise<MediaDeviceInfo[]> {
+    const inputDevices = await navigator.mediaDevices.enumerateDevices();
+    const audioInputDevices = inputDevices.filter(
+      (device) => device.kind === 'audioinput'
+    );
+    console.log('Audio input devices: ', audioInputDevices);
+    if (audioInputDevices.length === 0) {
+      return [];
+    }
+    this.audioInputDevices = inputDevices.filter(
+      (device) => device.kind === 'audioinput'
+    );
+    return this.audioInputDevices;
   }
 
-  private createLimiterNode(
-    audioContext: AudioContext
-  ): DynamicsCompressorNode {
-    const limiter = audioContext.createDynamicsCompressor();
-    limiter.threshold.value = -3;
-    limiter.ratio.value = 20;
-    limiter.attack.value = 0.1;
-    limiter.release.value = 0.1;
-    return limiter;
+  public async changeInputDevice(deviceId: string) {
+    if (this.state === RecorderState.RECORDING) {
+      return;
+    }
+
+    console.log('Changing input device to: ', deviceId);
+
+    this.settingsStore.recorder.inputDeviceId = deviceId;
+    this.settingsStore.saveSettings();
+
+    if (this.state === RecorderState.NOT_INITIALIZED) {
+      this.init();
+      return;
+    }
+
+    this.currentAudioInputDevice = this.audioInputDevices?.find(
+      (device) => device.deviceId === deviceId
+    );
+
+    const constraints = {
+      audio: {
+        deviceId: this.currentAudioInputDevice?.deviceId,
+      },
+    };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+    if (this.mediaStreamSource) {
+      this.mediaStreamSource.disconnect();
+      this.mediaStreamSource =
+        this.audioContext?.createMediaStreamSource(stream);
+      this.mediaStreamSource?.connect(this.gainNode!);
+    }
+  }
+
+  private tryLastUsedInputDeviceOrDefault(
+    devices: MediaDeviceInfo[]
+  ): MediaDeviceInfo | undefined {
+    try {
+      const lastUsedInputDevice = devices.find(
+        (device) =>
+          device.deviceId === this.settingsStore.recorder.inputDeviceId
+      );
+      const defaultDevice = devices.find(
+        (device) => device.deviceId === 'default'
+      );
+      if (lastUsedInputDevice) {
+        return lastUsedInputDevice;
+      } else if (defaultDevice) {
+        return defaultDevice;
+      } else if (devices.length > 0) {
+        return devices[0];
+      }
+    } catch (error) {
+      throw error;
+    }
   }
 
   public setRecordedSound(sound: RecordedSound) {

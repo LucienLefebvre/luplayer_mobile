@@ -76,7 +76,7 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
     async getAudioElement(
       sound: RecordedSound
     ): Promise<HTMLAudioElement | null> {
-      let audioElement = new Audio();
+      const audioElement = document.createElement('audio');
       if (Capacitor.getPlatform() === 'web' && sound.path) {
         try {
           const { data } = (await Filesystem.readFile({
@@ -86,14 +86,13 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
           const url = URL.createObjectURL(data);
 
-          audioElement = document.createElement('audio');
           audioElement.src = url;
         } catch (error) {
           console.error('getAudioElement', error);
         }
       } else if (Capacitor.getPlatform() === 'android' && sound.path) {
         try {
-          Filesystem.getUri({
+          await Filesystem.getUri({
             path: sound.path,
             directory: Directory.External,
           }).then(function ({ uri }) {
@@ -104,6 +103,8 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
         } catch (error) {
           console.error('getAudioElement', error);
         }
+      } else {
+        throw new Error('Platform not supported');
       }
 
       audioElement.addEventListener('play', () => {
@@ -187,6 +188,7 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
           blob: chunks[0],
           fast_mode: true,
         });
+        sound.fileSizeInBytes = chunks[0].size;
         sound.path = newFilePath;
         await this.addRecordedSoundToLibrary(sound);
 
@@ -306,6 +308,17 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
         this.selectedSound.audioElement.pause();
         this.selectedSound.audioElement.currentTime = 0;
       }
+    },
+
+    getFileFormat(sound: RecordedSound): string {
+      return sound.path?.split('.').pop() ?? '';
+    },
+
+    getFileSizeInMBAsString(sound: RecordedSound): string {
+      if (!sound.fileSizeInBytes) return '0';
+      const sizeString =
+        (sound.fileSizeInBytes / 1024 / 1024).toFixed(2) + 'MB';
+      return sizeString;
     },
   },
 });

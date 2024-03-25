@@ -35,14 +35,17 @@
         <div class="recorded-sound-row-large" v-if="props.mode === 'large'">
           <q-card class="large-card bg">
             <div class="card-row">
-              <q-btn
-                color="orange"
-                icon="edit"
-                size="md"
-                dense
-                @click="renameButtonClicked(sound)"
-              />
+              <div class="file-info">
+                {{ soundLibraryStore.getFileSizeInMBAsString(sound) }}
+              </div>
               <div class="recorded-sound-name-large" color="orange">
+                <q-btn
+                  color="orange"
+                  icon="edit"
+                  size="sm"
+                  dense
+                  @click="renameButtonClicked(sound)"
+                />
                 {{ sound.name }}
               </div>
               <div class="recorded-sound-time">
@@ -281,13 +284,24 @@ function getDateLabel(date: Date) {
   width: 100%;
   border: 1px solid var(--blueColor);
 }
+.card-row > div {
+  flex: 0 0 15%;
+}
 .recorded-sound-name-large {
-  width: 70%;
+  flex: 0 0 70% !important;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   color: orange;
+  display: flex;
+  justify-content: center;
   text-align: center;
+  align-items: center;
+  gap: 5px;
+  font-size: 1.1rem;
+}
+.file-info {
+  font-size: 1rem;
 }
 .card-row {
   width: 100%;
@@ -296,8 +310,11 @@ function getDateLabel(date: Date) {
   align-items: center;
   padding: 5px;
 }
+
 .date-label {
+  flex: 0 0 70% !important;
   color: var(--blueColor);
   font-size: 1rem;
+  text-align: center;
 }
 </style>

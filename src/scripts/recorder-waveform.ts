@@ -41,7 +41,6 @@ export class RecorderWaveform {
   constructor(
     waveformView: HTMLDivElement,
     stereoAnalyser: StereoAnalyserObject,
-    analyserGetDataRateInMs: number,
     audioContext: AudioContext
   ) {
     this.waveformView = waveformView;
@@ -139,7 +138,6 @@ export class RecorderWaveform {
 
         this.markers.forEach((marker) => {
           marker.xPos -= numExcessValues;
-          console.log(marker.xPos);
           marker.line.points([marker.xPos, 0, marker.xPos, height]);
           if (marker.xPos < 0) {
             this.deleteMarker(marker);
