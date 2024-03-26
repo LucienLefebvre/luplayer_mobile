@@ -4,6 +4,8 @@
 
 ### Added
 
+- Sound Recorder
+
 ### Changed
 
 - Changed the fader style on cart mode
