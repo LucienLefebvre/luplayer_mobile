@@ -82,31 +82,29 @@
           :offset="[0, 20]"
           persistent
         >
-          <q-card class="name-dialog" style="padding: 10px">
-            <q-input
-              :input-style="{
-                color: 'orange',
-                fontSize: '1.5rem',
-                fontWeight: 'bold',
-              }"
-              color="orange"
-              clearable
-              v-model="sound.name"
-              dense
-              autofocus
-              @keyup.enter="
-                sound.name.trim() !== ''
-                  ? handleSoundNameDialogModelUpdate(sound)
-                  : null
-              "
-            />
+          <div class="name-dialog">
+            <q-card class="name-dialog-panel" style="padding: 10px">
+              <q-input
+                :input-style="{
+                  color: 'orange',
+                  fontSize: '1.5rem',
+                  fontWeight: 'bold',
+                }"
+                color="orange"
+                v-model="sound.name"
+                dense
+                autofocus
+                @keyup.enter="handleSoundNameDialogModelUpdate(sound)"
+              />
+            </q-card>
             <q-btn
-              :disable="sound.name.trim() === ''"
-              color="primary"
-              label="Rename"
+              color="secondary"
+              icon="done"
+              size="lg"
+              dense
               @click="handleSoundNameDialogModelUpdate(sound)"
             />
-          </q-card>
+          </div>
         </q-dialog>
       </div>
     </TransitionGroup>
@@ -133,12 +131,16 @@ onMounted(() => {
 });
 
 function renameButtonClicked(sound: RecordedSound) {
+  if (!sound.nameHasBeenEdited) sound.name = '';
   sound.showNameDialog = true;
 }
 
 function handleSoundNameDialogModelUpdate(sound: RecordedSound) {
-  sound.showNameDialog = false;
-  soundLibraryStore.updateSoundName(sound, sound.name);
+  if (sound.name.trim() !== '') {
+    sound.showNameDialog = false;
+    soundLibraryStore.updateSoundName(sound, sound.name);
+    sound.nameHasBeenEdited = true;
+  }
 }
 
 function deleteButtonClicked(sound: RecordedSound) {
@@ -191,7 +193,6 @@ function getDateLabel(date: Date) {
   const minutes = String(date.getMinutes()).padStart(2, '0');
 
   const formattedDate = `${month}/${day}/${year} - ${hours}:${minutes}`;
-
   return formattedDate;
 }
 </script>
@@ -252,12 +253,17 @@ function getDateLabel(date: Date) {
   display: flex;
   justify-content: center;
   align-items: center;
-  flex-direction: column;
-  background-color: var(--bkgColor);
+  flex-direction: row;
   margin: 5px;
   gap: 10px;
 }
-
+.name-dialog-panel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  background-color: var(--bkgColor);
+}
 .recorded-sound-row-large {
   width: 100%;
   max-width: 100%;

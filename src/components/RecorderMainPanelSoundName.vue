@@ -16,10 +16,9 @@
                 fontWeight: 'bold',
               }"
               color="orange"
-              clearable
               v-model="recordedSoundVModel"
-              dense
               autofocus
+              dense
               @keyup.enter="handleRecordedSoundNameEnterKeyPressed"
             >
             </q-input>
@@ -31,15 +30,10 @@
                 fontWeight: 'bold',
               }"
               color="orange"
-              clearable
               v-model="recorderStore.currentSound.name"
               dense
               autofocus
-              @keyup.enter="
-                recorderStore.currentSound.name.trim() !== ''
-                  ? (showNameDialog = false)
-                  : null
-              "
+              @keyup.enter="handleRecordingdSoundNameEnterKeyPressed"
             >
             </q-input>
           </q-card>
@@ -67,23 +61,36 @@ const soundLibraryStore = useSoundLibraryStore();
 
 const showNameDialog = ref(false);
 function nameClicked() {
+  const recorderState = recorderStore.recorder.state;
+
+  if (
+    recorderState === RecorderState.NOT_INITIALIZED ||
+    recorderState === RecorderState.RECORDING ||
+    recorderState === RecorderState.STOPPED ||
+    recorderState === RecorderState.READY
+  ) {
+    recorderStore.currentSound.name = '';
+  } else if (recorderState === RecorderState.PLAYING_RECORDED_SOUND) {
+    if (soundLibraryStore.selectedSound)
+      soundLibraryStore.selectedSound.name = '';
+  }
   showNameDialog.value = !showNameDialog.value;
 }
 
 function getNameLabel() {
-  switch (recorderStore.recorder.state) {
-    case RecorderState.NOT_INITIALIZED:
-      return recorderStore.currentSound.name;
-    case RecorderState.RECORDING:
-      return recorderStore.currentSound.name;
-    case RecorderState.STOPPED:
-      return recorderStore.currentSound.name;
-    case RecorderState.READY:
-      return recorderStore.currentSound.name;
-    case RecorderState.PLAYING_RECORDED_SOUND:
-      return soundLibraryStore.selectedSound?.name ?? 'Recording';
-    default:
-      return 'Recording';
+  const recorderState = recorderStore.recorder.state;
+
+  if (
+    recorderState === RecorderState.NOT_INITIALIZED ||
+    recorderState === RecorderState.RECORDING ||
+    recorderState === RecorderState.STOPPED ||
+    recorderState === RecorderState.READY
+  ) {
+    return recorderStore.currentSound.name;
+  } else if (recorderState === RecorderState.PLAYING_RECORDED_SOUND) {
+    return soundLibraryStore.selectedSound?.name ?? 'Recording';
+  } else {
+    return 'Recording';
   }
 }
 
@@ -107,6 +114,13 @@ function nameDialogButtonPressed() {
   }
 }
 
+const handleRecordingdSoundNameEnterKeyPressed = () => {
+  if (recorderStore.currentSound.name.trim() !== '') {
+    showNameDialog.value = false;
+    recorderStore.currentSound.nameHasBeenEdited = true;
+  }
+};
+
 const handleRecordedSoundNameEnterKeyPressed = () => {
   if (recordedSoundVModel.value.trim() !== '') {
     showNameDialog.value = false;
@@ -118,7 +132,7 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
   if (newValue.trim() === '') return;
   recordedSoundVModel.value = newValue;
   soundLibraryStore.updateSelectedSoundName(newValue);
-  console.log('update');
+  recorderStore.currentSound.nameHasBeenEdited = true;
 };
 </script>
 
@@ -162,5 +176,11 @@ const handleRecordedSoundNameModelUpdate = (newValue: any) => {
   align-items: center;
   flex-direction: row;
   gap: 10px;
+}
+.clear-button {
+  color: orange;
+  background-color: transparent;
+  width: 1rem;
+  height: 1rem;
 }
 </style>

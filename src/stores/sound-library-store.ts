@@ -73,6 +73,34 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       return true;
     },
 
+    getSoundsDirectory(): Directory {
+      if (Capacitor.getPlatform() === 'web') {
+        return Directory.External;
+      } else {
+        return Directory.Documents;
+      }
+    },
+
+    async getSoundsPath(): Promise<string> {
+      if (Capacitor.getPlatform() === 'web') {
+        return '';
+      } else {
+        try {
+          await Filesystem.readdir({
+            path: 'Luplayer/RecordedSounds',
+            directory: Directory.Documents,
+          });
+        } catch (error) {
+          await Filesystem.mkdir({
+            path: 'Luplayer/RecordedSounds',
+            directory: Directory.Documents,
+            recursive: true,
+          });
+        }
+        return 'Luplayer/RecordedSounds/';
+      }
+    },
+
     async getAudioElement(
       sound: RecordedSound
     ): Promise<HTMLAudioElement | null> {
@@ -80,8 +108,8 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       if (Capacitor.getPlatform() === 'web' && sound.path) {
         try {
           const { data } = (await Filesystem.readFile({
-            path: sound.path,
-            directory: Directory.External,
+            path: (await this.getSoundsPath()) + sound.path,
+            directory: this.getSoundsDirectory(),
           })) as { data: Blob };
 
           const url = URL.createObjectURL(data);
@@ -93,8 +121,8 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       } else if (Capacitor.getPlatform() === 'android' && sound.path) {
         try {
           await Filesystem.getUri({
-            path: sound.path,
-            directory: Directory.External,
+            path: (await this.getSoundsPath()) + sound.path,
+            directory: this.getSoundsDirectory(),
           }).then(function ({ uri }) {
             audioElement.src = Capacitor.convertFileSrc(uri);
           });
@@ -108,13 +136,13 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       }
 
       audioElement.addEventListener('play', () => {
-        sound.isPlaying = true;
+        this.setSoundIsPlaying(sound, true);
       });
       audioElement.addEventListener('ended', () => {
-        sound.isPlaying = false;
+        this.setSoundIsPlaying(sound, false);
       });
       audioElement.addEventListener('pause', () => {
-        sound.isPlaying = false;
+        this.setSoundIsPlaying(sound, false);
       });
 
       return audioElement;
@@ -122,16 +150,32 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
     registerAudioElementCallbacks(sound: RecordedSound) {
       if (!sound.audioElement) return;
-      console.log('registerAudioElementCallbacks', sound.name);
       sound.audioElement.addEventListener('play', () => {
-        sound.isPlaying = true;
+        this.setSoundIsPlaying(sound, true);
       });
       sound.audioElement.addEventListener('ended', () => {
-        sound.isPlaying = false;
+        this.setSoundIsPlaying(sound, false);
       });
       sound.audioElement.addEventListener('pause', () => {
-        sound.isPlaying = false;
+        this.setSoundIsPlaying(sound, false);
       });
+    },
+
+    deregisterAudioElementCallbacks(sound: RecordedSound) {
+      if (!sound.audioElement) return;
+      sound.audioElement.removeEventListener('play', () => {
+        this.setSoundIsPlaying(sound, true);
+      });
+      sound.audioElement.removeEventListener('ended', () => {
+        this.setSoundIsPlaying(sound, false);
+      });
+      sound.audioElement.removeEventListener('pause', () => {
+        this.setSoundIsPlaying(sound, false);
+      });
+    },
+
+    setSoundIsPlaying(sound: RecordedSound, isPlaying: boolean) {
+      sound.isPlaying = isPlaying;
     },
 
     async updateSoundName(
@@ -148,9 +192,9 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       }
 
       await Filesystem.rename({
-        from: oldPath,
-        to: newPath,
-        directory: Directory.External,
+        from: (await this.getSoundsPath()) + oldPath,
+        to: (await this.getSoundsPath()) + newPath,
+        directory: this.getSoundsDirectory(),
       });
 
       sound.name = newName;
@@ -171,7 +215,6 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
     async saveRecording(sound: RecordedSound, chunks: Blob[]) {
       try {
-        console.log('extension : ', this.settingsStore.recorder.fileFormat);
         const filePath =
           sound.name + '.' + this.settingsStore.recorder.fileFormat;
         const newFilePath = await this.getUniqueFileName(filePath);
@@ -182,9 +225,10 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
           console.error('Failed to get unique filename.');
           return;
         }
+
         await write_blob({
-          directory: Directory.External,
-          path: newFilePath,
+          path: (await this.getSoundsPath()) + newFilePath,
+          directory: this.getSoundsDirectory(),
           blob: chunks[0],
           fast_mode: true,
         });
@@ -204,9 +248,10 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
     ): Promise<string | null> {
       try {
         const files = await Filesystem.readdir({
-          path: '',
-          directory: Directory.External,
+          path: await this.getSoundsPath(),
+          directory: this.getSoundsDirectory(),
         });
+        console.log('files', files);
         const existingFileNames = files.files.map((file) => file.name);
         let newFileName = fileName;
         while (existingFileNames.includes(newFileName)) {
@@ -261,6 +306,8 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
     },
 
     async deleteRecordedSoundFromLibrary(sound: RecordedSound) {
+      if (sound.isPlaying) this.stopSound(sound);
+      this.deregisterAudioElementCallbacks(sound);
       if (!this.db) await this.openDB();
 
       await this.db?.delete('sounds', sound.id);
@@ -277,8 +324,8 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
     async deleteSoundFile(sound: RecordedSound) {
       if (sound.path) {
         await Filesystem.deleteFile({
-          path: sound.path,
-          directory: Directory.External,
+          path: (await this.getSoundsPath()) + sound.path,
+          directory: this.getSoundsDirectory(),
         });
       }
     },
@@ -307,6 +354,13 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       if (this.selectedSound?.audioElement) {
         this.selectedSound.audioElement.pause();
         this.selectedSound.audioElement.currentTime = 0;
+      }
+    },
+
+    stopSound(sound: RecordedSound) {
+      if (sound.audioElement) {
+        sound.audioElement.pause();
+        sound.audioElement.currentTime = 0;
       }
     },
 

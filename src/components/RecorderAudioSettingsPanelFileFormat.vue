@@ -9,7 +9,7 @@
       >
         <template v-slot:label
           ><div class="ellipsis">
-            {{ getInputDeviceLabel() }}
+            {{ getInputButtonDeviceLabel() }}
           </div></template
         >
         <q-list class="dropdown-button-list">
@@ -21,7 +21,7 @@
               :style="getDeviceItemStyle(device.deviceId)"
             >
               <q-item-section>
-                <q-item-label>{{ device.label }}</q-item-label>
+                <q-item-label>{{ getInputDeviceLabel(device) }}</q-item-label>
               </q-item-section></q-item
             >
           </div>
@@ -29,7 +29,7 @@
       </q-btn-dropdown>
     </div>
     <div class="file-format-row">
-      <div>Audio format</div>
+      <div>Audio format (need restart)</div>
       <q-btn-dropdown
         :label="settingsStore.recorder.fileFormat"
         color="primary"
@@ -83,7 +83,6 @@ onMounted(() => {
   inputDevices.value = getInputDevices();
 
   navigator.mediaDevices.ondevicechange = async () => {
-    console.log('ondevicechange');
     inputDevices.value = getInputDevices();
   };
 });
@@ -92,17 +91,23 @@ function getInputDevices(): MediaDeviceInfo[] {
   return recorderStore.recorder.audioInputDevices ?? [];
 }
 
-function getInputDeviceLabel(): string {
-  return (
-    recorderStore.recorder.currentAudioInputDevice?.label ??
-    'Audio not initialized'
-  );
+function getInputButtonDeviceLabel(): string {
+  const deviceLabel = recorderStore.recorder.currentAudioInputDevice?.label;
+  console.log('deviceLabel', deviceLabel);
+  if (deviceLabel === '') return 'Default';
+  else if (deviceLabel) return deviceLabel;
+  else return 'Audio not initialized';
 }
 
 function getDeviceItemStyle(deviceId: string) {
   return recorderStore.recorder.currentAudioInputDevice?.deviceId === deviceId
     ? 'background-color: var(--orangeColor); color: white'
     : 'background-color: var(--blueColor); color: white';
+}
+
+function getInputDeviceLabel(device: MediaDeviceInfo) {
+  if (device.deviceId === 'default') return 'Default';
+  return device.label ?? 'Unknown';
 }
 
 async function deviceItemClicked(device: MediaDeviceInfo) {
@@ -112,6 +117,7 @@ async function deviceItemClicked(device: MediaDeviceInfo) {
 function formatItemClicked(format: 'wav' | 'mp3' | 'ogg') {
   settingsStore.recorder.fileFormat = format;
   settingsStore.saveSettings();
+  recorderStore.recorder.init();
 }
 
 function getFormatItemStyle(format: 'wav' | 'mp3' | 'ogg') {
@@ -136,7 +142,7 @@ function getFormatItemStyle(format: 'wav' | 'mp3' | 'ogg') {
   justify-content: space-between;
   align-items: center;
   padding: 5px;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: bold;
   color: orange;
   gap: 3px;

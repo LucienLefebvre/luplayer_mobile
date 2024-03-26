@@ -144,6 +144,7 @@ export enum RecorderState {
 export interface RecordedSound {
   id: string;
   name: string;
+  nameHasBeenEdited: boolean;
   markers: SoundMarker[];
   numberOfMarkersCreated: number;
   totalLengthInMs: number;

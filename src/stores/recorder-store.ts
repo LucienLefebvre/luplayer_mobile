@@ -27,6 +27,7 @@ export const useRecorderStore = defineStore('recorderStore', {
       currentSound: {
         id: uuidv4(),
         name: 'Recording',
+        nameHasBeenEdited: false,
         markers: [],
         numberOfMarkersCreated: 0,
         totalLengthInMs: 0,
@@ -152,6 +153,7 @@ export const useRecorderStore = defineStore('recorderStore', {
       return {
         id: uuidv4(),
         name: 'Recording',
+        nameHasBeenEdited: false,
         markers: [],
         numberOfMarkersCreated: 0,
         totalLengthInMs: 0,

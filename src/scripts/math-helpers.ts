@@ -54,10 +54,7 @@ export function getMMSSfromS(timeInSeconds: number) {
   if (minutes < 1) {
     return remainingSeconds.toFixed(0) + "''";
   }
-  const secondsString =
-    Math.floor(remainingSeconds) < 10 && Math.floor(remainingSeconds) > 0
-      ? '0' + remainingSeconds.toFixed(0)
-      : remainingSeconds.toFixed(0);
+  const secondsString = remainingSeconds.toFixed(0).padStart(2, '0');
 
   return minutesString + "'" + secondsString + "''";
 }

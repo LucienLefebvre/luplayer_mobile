@@ -1,6 +1,7 @@
 import { watch } from 'vue';
 import {
   MediaRecorder as EMediaRecorder,
+  IMediaRecorder,
   register,
 } from 'extendable-media-recorder';
 import { connect } from 'extendable-media-recorder-wav-encoder';
@@ -43,7 +44,6 @@ export class Recorder {
   settingsStore = useSettingsStore();
 
   get audioContext(): AudioContext {
-    console.log('Getting audio context');
     if (!this._audioContext) {
       this._audioContext = new AudioContext();
     }
@@ -130,40 +130,12 @@ export class Recorder {
 
       this.mediaStreamSource =
         this.audioContext.createMediaStreamSource(stream);
-      this.gainNode.disconnect();
-      this.mediaStreamSource?.connect(this.gainNode);
-      this.gainNode.connect(this.hpfNode);
-      this.hpfNode.connect(this.limiterNode);
-      this.limiterNode.connect(this.streamDestinationNode);
 
-      if (this.settingsStore.recorder.fileFormat === 'ogg') {
-        const options = {
-          mimeType: 'audio/webm; codecs=opus',
-          audioBitsPerSecond: 256000,
-        };
-        this.mediaRecorder = new MediaRecorder(
-          this.streamDestinationNode.stream,
-          options
-        );
-      } else {
-        await register(await connect());
-        this.mediaRecorder = new EMediaRecorder(
-          this.streamDestinationNode.stream,
-          { mimeType: 'audio/wav' }
-        );
-      }
+      this.connectAudioNodes();
 
-      if (this.stereoAnalyser) {
-        this.limiterNode?.connect(this.stereoAnalyser.splitter);
-        this.stereoAnalyser.splitter.connect(
-          this.stereoAnalyser.analysers[0],
-          0
-        );
-        this.stereoAnalyser.splitter.connect(
-          this.stereoAnalyser.analysers[1],
-          1
-        );
-      }
+      this.mediaRecorder = await this.createMediaRecorder(
+        this.streamDestinationNode.stream
+      );
 
       this.mediaRecorder.ondataavailable = (e: any) => {
         this.chunks?.push(e.data);
@@ -176,6 +148,38 @@ export class Recorder {
       this.state = RecorderState.READY;
     } catch (error) {
       throw error;
+    }
+  }
+
+  private connectAudioNodes() {
+    this.mediaStreamSource?.connect(this.gainNode);
+    this.gainNode.connect(this.hpfNode);
+    this.hpfNode.connect(this.limiterNode);
+    this.limiterNode.connect(this.streamDestinationNode);
+
+    if (this.stereoAnalyser) {
+      this.limiterNode?.connect(this.stereoAnalyser.splitter);
+      this.stereoAnalyser.splitter.connect(this.stereoAnalyser.analysers[0], 0);
+      this.stereoAnalyser.splitter.connect(this.stereoAnalyser.analysers[1], 1);
+    }
+  }
+
+  public async createMediaRecorder(
+    stream: MediaStream
+  ): Promise<IMediaRecorder> {
+    if (this.settingsStore.recorder.fileFormat === 'ogg') {
+      const options = {
+        mimeType: 'audio/webm; codecs=opus',
+        audioBitsPerSecond: 256000,
+      };
+      const recorder = new MediaRecorder(stream, options);
+      return recorder;
+    } else {
+      await register(await connect());
+      const recorder = new EMediaRecorder(stream, {
+        mimeType: 'audio/wav',
+      });
+      return recorder;
     }
   }
 

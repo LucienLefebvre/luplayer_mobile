@@ -100,13 +100,16 @@ function deleteButtonClicked() {
   }).onOk(() => {
     switch (recorderStore.recorder.state) {
       case RecorderState.RECORDING:
-        recorderStore.resetState();
         recorderStore.stopRecording(false);
+        recorderStore.resetState();
+        break;
       case RecorderState.STOPPED:
         soundLibraryStore.deleteRecordedSoundFromLibrary(
           recorderStore.currentSound
         );
         recorderStore.resetState();
+        break;
+
       case RecorderState.PLAYING_RECORDED_SOUND:
         const sound = soundLibraryStore.selectedSound;
         if (sound !== null) {
@@ -114,9 +117,11 @@ function deleteButtonClicked() {
           soundLibraryStore.deleteRecordedSoundFromLibrary(sound);
           recorderStore.resetState();
         }
+        break;
       default:
-        recorderStore.resetState();
         recorderStore.stopRecording(false);
+        recorderStore.resetState();
+        break;
     }
   });
 }
