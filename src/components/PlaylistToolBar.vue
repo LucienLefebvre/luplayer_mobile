@@ -30,8 +30,20 @@
       size="sm"
       ref="reorderButton"
     />
-    <q-btn icon="edit" class="icon" @click="editButtonClicked" size="sm" />
-    <q-btn icon="delete" class="icon" @click="deleteButtonClicked" size="sm" />
+    <q-btn
+      icon="edit"
+      class="icon"
+      @click="editButtonClicked"
+      size="sm"
+      :disable="soundsStore.selectedSound === null"
+    />
+    <q-btn
+      icon="delete"
+      class="icon"
+      @click="deleteButtonClicked"
+      size="sm"
+      :disable="soundsStore.selectedSound === null"
+    />
     <q-btn
       :class="getFadeButtonClass()"
       @click="fadeButtonClicked"

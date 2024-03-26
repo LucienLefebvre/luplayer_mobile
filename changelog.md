@@ -14,3 +14,4 @@
 
 - Fader don't come back to 0 after a fader stop
 - Transitions disabled when drag & dropping
+- Fade button icon don't change when fading in
