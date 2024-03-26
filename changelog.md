@@ -9,6 +9,7 @@
 ### Changed
 
 - Changed the fader style on cart mode
+- Volume indicator on the fader on cart mode
 
 ### Fixed
 
