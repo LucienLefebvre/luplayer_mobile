@@ -10,11 +10,14 @@
         left: left + 'px',
         opacity,
       }"
-      @click="soundTouchUp(sound)"
       @contextmenu.prevent
       ref="playerCard"
     >
-      <div class="column d-flex flex-center" style="width: 100%">
+      <div
+        class="column d-flex flex-center"
+        style="width: 100%"
+        ref="triggerArea"
+      >
         <q-circular-progress
           v-if="!sound.waveformChunksHasBeenCalculated"
           indeterminate
@@ -112,8 +115,13 @@ import {
   playSound,
   stopSound,
 } from 'src/scripts/sound-controller';
-import { getCssVar, colors, is } from 'quasar';
-import { onLongPress, tryOnBeforeUnmount, useSwipe } from '@vueuse/core';
+import { getCssVar, colors } from 'quasar';
+import {
+  onLongPress,
+  useSwipe,
+  useMouse,
+  tryOnBeforeUnmount,
+} from '@vueuse/core';
 import type { SwipeDirection } from '@vueuse/core';
 
 const soundsStore = useSoundsStore();
@@ -185,12 +193,14 @@ function getBorderColor() {
     return 'yellow';
   else return getBackgroundColor(1);
 }
-let hasBeenScolled = false;
 
+let hasBeenScrolled = false;
+let swipping = false;
 const { direction, isSwiping, lengthX, lengthY } = useSwipe(playerCard, {
   passive: true,
   threshold: 5,
   onSwipe(e: TouchEvent) {
+    swipping = true;
     if (containerWidth.value && !soundsStore.isReordering) {
       if (!canSwipeSound(direction.value!)) return;
       if (
@@ -198,24 +208,25 @@ const { direction, isSwiping, lengthX, lengthY } = useSwipe(playerCard, {
         direction.value === 'DOWN' ||
         direction.value === 'LEFT'
       ) {
-        hasBeenScolled = true;
+        hasBeenScrolled = true;
         return;
       }
-      if (lengthX.value < 0 && !hasBeenScolled) {
+      if (lengthX.value < 0 && !hasBeenScrolled) {
         const length = Math.abs(lengthX.value);
         left.value = `${length}`;
         opacity.value = 1 - length / containerWidth.value;
-      } else if (!hasBeenScolled) {
+      } else if (!hasBeenScrolled) {
         const length = lengthX.value;
         left.value = `${-length}`;
       }
     }
   },
   onSwipeEnd(e: TouchEvent, direction: SwipeDirection) {
+    swipping = false;
     if (soundsStore.isReordering) return;
     if (!canSwipeSound(direction)) return;
-    if (hasBeenScolled) {
-      hasBeenScolled = false;
+    if (hasBeenScrolled) {
+      hasBeenScrolled = false;
     }
     if (
       direction === 'RIGHT' &&
@@ -249,8 +260,42 @@ function resetSwipe() {
 }
 
 let timeOfLastClick = 0;
+let timeOfSwipeStart = 0;
 
-function soundTouchUp(soundModel: SoundModel) {
+const triggerArea = ref<HTMLElement | null>(null);
+onMounted(() => {
+  if (triggerArea.value) {
+    const isTouchDevice =
+      'ontouchstart' in window ||
+      navigator.maxTouchPoints > 0 ||
+      navigator.maxTouchPoints > 0;
+
+    if (isTouchDevice) triggerArea.value.addEventListener('touchend', touchEnd);
+    else triggerArea.value.addEventListener('mouseup', touchEnd);
+  }
+});
+
+tryOnBeforeUnmount(() => {
+  if (triggerArea.value) {
+    triggerArea.value.removeEventListener('touchend', touchEnd);
+    triggerArea.value.removeEventListener('mouseup', touchEnd);
+  }
+});
+
+const touchEnd = (e: TouchEvent | MouseEvent) => {
+  console.log('touchEnd');
+  if (swipping) return;
+  if (Date.now() - timeOfSwipeStart < 100) {
+    return;
+  }
+  if (isTouchPanned) {
+    isTouchPanned = false;
+    return;
+  }
+  soundClicked(sound.value);
+};
+
+function soundClicked(soundModel: SoundModel) {
   const now = new Date().getTime();
   if (!soundsStore.isReordering && !isTouchPanned) {
     const isDoubleTap = now - timeOfLastClick < 300;

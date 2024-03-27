@@ -49,11 +49,9 @@ export interface SoundModel {
   trimGainNode: GainNode | null;
   volumeGainNode: GainNode | null;
   enveloppeGainNode: GainNode | null;
-  // enveloppeGainWorkletNode: AudioWorkletNode;
 
   hpfEnabled: boolean;
   hpfFrequency: number;
-  //hpfNode: BiquadFilterNode;
 
   waveformChunks: Float32Array | null;
   waveformChunksHasBeenCalculated: boolean;

@@ -17,6 +17,7 @@
             class="sound-player-column"
             :id="sound.id"
             style="max-width: 100%"
+            ref="itemsRef"
           >
             <SoundPlayer
               :sound="sound"
@@ -81,6 +82,7 @@ const updateHeight = () => {
   }
   scrollablePlaylistHeight.value = window.innerHeight - heightToSubtract;
 };
+
 watch(
   () => settingsStore.showPeakMeter,
   () => {

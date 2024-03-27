@@ -149,6 +149,13 @@
           <q-toggle v-model="settingsStore.faderStop" color="orange" />
         </div>
         <div class="settings-row">
+          <div class="settings-label">Reset cart sound volume when stopped</div>
+          <q-toggle
+            v-model="settingsStore.resetCartSoundVolumeOnStop"
+            color="orange"
+          />
+        </div>
+        <div class="settings-row">
           <div class="settings-label">Cart fader sensitivity</div>
           <q-slider
             style="height: 100%; width: 60%"

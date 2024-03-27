@@ -31,6 +31,7 @@ export const useSettingsStore = defineStore('settingsStore', {
       faderSkewFactor: 2.0 as number,
       faderIsOtherSide: false as boolean,
       faderStop: true as boolean,
+      resetCartSoundVolumeOnStop: true as boolean,
 
       falseStartTime: 1000 as number,
       doubleTapToStop: false as boolean,
@@ -52,7 +53,7 @@ export const useSettingsStore = defineStore('settingsStore', {
 
       selectLastPlayedCartSound: true as boolean,
 
-      cartVolumeSwipeMultiplier: 2 as number,
+      cartVolumeSwipeMultiplier: 4 as number,
 
       ///// RECORDER
       recorder: {

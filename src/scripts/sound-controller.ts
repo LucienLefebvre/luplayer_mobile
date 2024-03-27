@@ -134,6 +134,9 @@ export function stopSound(sound: SoundModel, stoppedByFader = false) {
   if (!isCartSound(sound) || stoppedByFader) {
     if (sound.volumeGainNode !== null) sound.volumeGainNode.gain.value = 1;
     sound.volumeDb = 0;
+  } else if (useSettingsStore().resetCartSoundVolumeOnStop) {
+    if (sound.volumeGainNode !== null) sound.volumeGainNode.gain.value = 1;
+    sound.volumeDb = 0;
   }
 
   clearTimeout(sound.timeOutId);
@@ -281,7 +284,6 @@ export function findSoundArray(sound: SoundModel): SoundModel[] | null {
 
 export function setSelectedSound(sound: SoundModel, resetVolume = true) {
   if (sound === null || sound === undefined) return;
-  console.log('setSelectedSound', sound);
   const soundStore = useSoundsStore();
 
   soundStore.playlistSounds.forEach((sound) => (sound.isSelected = false));

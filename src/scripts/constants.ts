@@ -1,0 +1,2 @@
+export const CART_VOLUME_SWIPE_DIVIDER = 20;
+export const DOUBLE_CLICK_DELAY = 300;
