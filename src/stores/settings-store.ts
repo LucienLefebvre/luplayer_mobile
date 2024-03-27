@@ -1,5 +1,8 @@
 import { defineStore } from 'pinia';
 import { reactive } from 'vue';
+import { openDB, IDBPDatabase } from 'idb';
+import { set } from '@vueuse/core';
+
 export const useSettingsStore = defineStore('settingsStore', {
   state: () =>
     reactive({
@@ -20,7 +23,6 @@ export const useSettingsStore = defineStore('settingsStore', {
       showMultiChannelWaveform: false as boolean,
 
       showPeakMeter: true as boolean,
-
       peakMeterOrangeThreshold: 18.0 as number,
       peakMeterRedThreshold: 3.0 as number,
 
@@ -71,7 +73,10 @@ export const useSettingsStore = defineStore('settingsStore', {
     },
 
     loadSettings() {
-      const settings = JSON.parse(localStorage.getItem('settings') || '{}');
+      const storedSttings = JSON.parse(
+        localStorage.getItem('settings') || '{}'
+      );
+      const settings = { ...this.$state, ...storedSttings };
       Object.assign(this.$state, settings);
     },
 

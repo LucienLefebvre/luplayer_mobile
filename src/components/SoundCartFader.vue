@@ -115,9 +115,9 @@ const touchMove = (e: TouchEvent | MouseEvent) => {
     swipeStartGain +
     (lengthY / constants.CART_VOLUME_SWIPE_DIVIDER) *
       settingsStore.cartVolumeSwipeMultiplier;
-  gain = Math.min(12, Math.max(-60, gain));
+  gain = Math.round(Math.min(12, Math.max(-60, gain)) * 10) / 10;
 
-  setSoundVolumeDB(sound.value, gain);
+  if (gain !== sound.value.volumeDb) setSoundVolumeDB(sound.value, gain);
   if (shouldUpdateRect) updateRect();
 };
 
