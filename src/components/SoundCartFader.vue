@@ -1,10 +1,8 @@
 <template>
-  <div
-    ref="touchZone"
-    class="touch-zone"
-    @touchmove.prevent
-    :style="{ borderColor: getColor() }"
-  ></div>
+  <div class="touch-zone" :style="{ borderColor: getColor() }">
+    <div class="konva-stage" ref="touchZone" @touchmove.prevent></div>
+    <div ref="clickInterceptor" class="click-interceptor"></div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -13,7 +11,7 @@ import type { SwipeDirection } from '@vueuse/core';
 import { useSwipe } from '@vueuse/core';
 import Konva from 'konva';
 
-import * as constants from 'src/scripts/constants.ts';
+import * as constants from 'src/scripts/constants';
 import { SoundModel } from './models';
 import { useSettingsStore } from 'src/stores/settings-store';
 import {
@@ -21,7 +19,7 @@ import {
   setSoundVolumeDB,
   getRemainingTime,
 } from 'src/scripts/sound-controller';
-import { logScaleTo0to1 } from 'src/scripts/math-helpers';
+import { logScaleTo0to1, scaleTo0to1 } from 'src/scripts/math-helpers';
 import { is } from 'quasar';
 
 const settingsStore = useSettingsStore();
@@ -84,20 +82,33 @@ onMounted(() => {
   registerEventListeners();
 });
 
+const clickInterceptor = ref<HTMLDivElement | null>(null);
 function registerEventListeners() {
-  if (touchZone.value) {
-    touchZone.value.addEventListener('touchstart', touchStart);
-    touchZone.value.addEventListener('mousedown', touchStart);
-    touchZone.value.addEventListener('touchmove', touchMove);
-    touchZone.value.addEventListener('mousemove', touchMove);
-    touchZone.value.addEventListener('touchend', touchEnd);
-    touchZone.value.addEventListener('mouseup', touchEnd);
+  if (clickInterceptor.value) {
+    clickInterceptor.value.addEventListener('touchstart', touchStart);
+    clickInterceptor.value.addEventListener('mousedown', touchStart);
+    clickInterceptor.value.addEventListener('touchmove', touchMove);
+    clickInterceptor.value.addEventListener('mousemove', touchMove);
+    clickInterceptor.value.addEventListener('touchend', touchEnd);
+    clickInterceptor.value.addEventListener('mouseup', touchEnd);
   }
 }
 
 let isSwiping = ref(false);
 let touchStartY = 0;
+function getTouch(e: TouchEvent) {
+  for (let i = 0; i < e.touches.length; i++) {
+    if (e.touches[i].target === clickInterceptor.value) {
+      return e.touches[i];
+    }
+  }
+  return null;
+}
 const touchStart = (e: TouchEvent | MouseEvent) => {
+  if (e instanceof TouchEvent) {
+    const touch = getTouch(e);
+    if (!touch) return;
+  }
   touchStartY = e instanceof TouchEvent ? e.touches[0].clientY : e.clientY;
   clicked();
   swipeStartGain = sound.value.volumeDb;
@@ -109,8 +120,13 @@ const touchMove = (e: TouchEvent | MouseEvent) => {
   isSwiping.value = true;
   clearTimeout(timeOut);
 
-  let lengthY =
-    e instanceof TouchEvent ? touchStartY - e.touches[0].clientY : 0;
+  let touch;
+  if (e instanceof TouchEvent) {
+    touch = getTouch(e);
+  }
+  if (!touch) return;
+
+  let lengthY = e instanceof TouchEvent ? touchStartY - touch.clientY : 0;
   let gain =
     swipeStartGain +
     (lengthY / constants.CART_VOLUME_SWIPE_DIVIDER) *
@@ -125,6 +141,12 @@ const touchEnd = (e: TouchEvent | MouseEvent) => {
   launchTimeout();
   isSwiping.value = false;
 };
+
+defineExpose({
+  touchStart,
+  touchMove,
+  touchEnd,
+});
 
 watch(
   () => sound.value.volumeDb,
@@ -179,12 +201,12 @@ function updateRectWithAnim(value: number, animDuration: number) {
 
 function getRectHeight() {
   return Math.floor(
-    logScaleTo0to1(sound.value.volumeDb, -60, 12, 5) * stage.height()
+    scaleTo0to1(sound.value.volumeDb, -60, 12) * stage.height()
   );
 }
 
 function getRectHeightOfValue(value: number) {
-  return Math.floor(logScaleTo0to1(value, -60, 12, 5) * stage.height());
+  return Math.floor(scaleTo0to1(value, -60, 12) * stage.height());
 }
 
 function launchTimeout() {
@@ -233,5 +255,21 @@ onMounted(() => {
   overflow: hidden;
   border: 2px solid rgb(255, 166, 0);
   box-shadow: 2px 2px 7px 3px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+.konva-stage {
+  width: 100%;
+  height: 100%;
+}
+
+.click-interceptor {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  background-color: transparent;
+  color: transparent;
 }
 </style>

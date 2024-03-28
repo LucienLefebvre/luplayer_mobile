@@ -161,7 +161,7 @@
             style="height: 100%; width: 60%"
             v-model="settingsStore.cartVolumeSwipeMultiplier"
             :min="0.1"
-            :max="4"
+            :max="8"
             :step="0.01"
             color="orange"
           />

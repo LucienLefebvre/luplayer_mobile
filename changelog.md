@@ -18,4 +18,3 @@
 - Transitions disabled when drag & dropping
 - Fade button icon don't change when fading in
 - Fader don't come back to 0 after a fader stop in playlist mode
-- Cart volume dragging behaviour

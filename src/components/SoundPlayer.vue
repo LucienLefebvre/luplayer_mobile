@@ -74,14 +74,15 @@
         </div>
       </div>
     </q-card>
-    <SoundCartFader
-      v-if="soundsStore.appMode === 'cart'"
-      class="sound-cart-fader"
-      :sound="sound"
-      :style="{
-        height: settingsStore.cartWaveformHeightFactor * 100 + 'px',
-      }"
-    />
+    <div class="sound-cart-fader">
+      <SoundCartFader
+        v-if="soundsStore.appMode === 'cart'"
+        :sound="sound"
+        :style="{
+          height: settingsStore.cartWaveformHeightFactor * 100 + 'px',
+        }"
+      />
+    </div>
   </div>
 </template>
 
@@ -463,12 +464,11 @@ function getFaderHeight() {
   width: 17%;
   margin-left: 2px;
 }
+
 .volume-label {
   font-size: 1.7rem;
   font-weight: 500;
-
   color: orange;
-
   user-select: none;
   position: absolute;
   z-index: 1;
