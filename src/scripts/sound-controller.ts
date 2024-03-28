@@ -27,9 +27,6 @@ export function playSound(
     sound.audioElement.currentTime = sound.inTime ?? 0;
   }
 
-  /*   if (soundsStore.selectedSound === sound) {
-    sound.volumeGainNode.gain.value = dbToGain(soundsStore.selectedSoundVolume);
-  } */
   sound.volumeGainNode.gain.value = dbToGain(sound.volumeDb);
 
   if ((sound.enveloppePoints, sound.enveloppePoints.length > 0)) {
@@ -304,7 +301,7 @@ export function setSelectedSound(sound: SoundModel, resetVolume = true) {
 export function setSoundVolumeDB(sound: SoundModel, volume: number) {
   sound.volumeDb = volume;
   if (sound.volumeGainNode === null) return;
-  sound.volumeGainNode.gain.value = dbToGain(volume);
+  sound.volumeGainNode.gain.setTargetAtTime(dbToGain(volume), 0, 0.01);
 }
 
 export function resetSelectedSoundVolume() {
@@ -328,7 +325,7 @@ export function setSelectedSoundVolume(volume: number) {
   selectedSound.volumeDb = volume;
 
   if (selectedSound.volumeGainNode === null) return;
-  selectedSound.volumeGainNode.gain.value = dbToGain(volume);
+  setSoundVolumeDB(selectedSound, volume);
 }
 
 export function registerEventListeners(sound: SoundModel) {
