@@ -12,7 +12,6 @@ import {
 } from 'src/components/models';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
 import PeakMeter from 'src/components/PeakMeter.vue';
-import { settings } from 'cluster';
 
 export const useRecorderStore = defineStore('recorderStore', {
   state: () =>
@@ -41,7 +40,7 @@ export const useRecorderStore = defineStore('recorderStore', {
 
       trimGain: 0.0,
       hpfFrequency: 80,
-      hpfEnabled: true,
+      hpfEnabled: false,
       limiterThreshold: -1.0,
       limiterEnabled: true,
     }),
@@ -87,7 +86,6 @@ export const useRecorderStore = defineStore('recorderStore', {
     },
 
     async initWaveform() {
-      console.log('initWaveform');
       if (this.waveformView === null) return;
       if (this.recorder.stereoAnalyser === undefined) return;
       this.waveform = new RecorderWaveform(
@@ -224,6 +222,11 @@ export const useRecorderStore = defineStore('recorderStore', {
           this.soundLibraryStore.selectedSound!
         );
       }
+    },
+
+    setHpfEnabled(enabled: boolean) {
+      this.hpfEnabled = enabled;
+      this.recorder.setHpfState(this.hpfEnabled, this.hpfFrequency);
     },
 
     toggleHpf() {

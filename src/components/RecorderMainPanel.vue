@@ -35,26 +35,33 @@
         <RecordedSoundsPanel class="recorded-sounds-panel" mode="tiny" />
       </div>
     </div>
-  </div>
-  <q-dialog v-model="showRecordedSoundsDialog" position="bottom">
-    <div class="recorded-sounds-dialog">
-      <div class="recorded-sounds-dialog-panel-label">
-        <q-btn
-          color="red"
-          icon="close"
-          size="md"
-          dense
-          @click="showRecordedSoundsDialog = false"
+    <q-dialog v-model="showRecordedSoundsDialog" position="bottom">
+      <div class="recorded-sounds-dialog">
+        <div class="recorded-sounds-dialog-panel-label">
+          <q-btn
+            color="red"
+            icon="close"
+            size="md"
+            dense
+            @click="showRecordedSoundsDialog = false"
+          />
+          Recorded sounds :
+        </div>
+        <RecordedSoundsPanel
+          mode="large"
+          style
+          class="recorded-sounds-dialog-panel"
         />
-        Recorded sounds :
       </div>
-      <RecordedSoundsPanel
-        mode="large"
-        style
-        class="recorded-sounds-dialog-panel"
-      />
-    </div>
-  </q-dialog>
+    </q-dialog>
+    <q-dialog v-model="soundLibraryStore.isSaving">
+      <div class="column fit centered-content">
+        <div style="color: orange; font-size: 1rem">Saving sound...</div>
+        <q-linear-progress indeterminate color="orange" size="18px">
+        </q-linear-progress>
+      </div>
+    </q-dialog>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -82,10 +89,6 @@ const peakMeter = ref<typeof PeakMeter | null>(null);
 onMounted(() => {
   recorderStore.waveformView = waveformView.value;
 });
-
-async function init() {
-  peakMeter.value?.setAnalyserObject(recorderStore.recorder.stereoAnalyser);
-}
 
 const controlPanel = ref<HTMLDivElement | null>(null);
 const controlPanelHeight = ref(0);
@@ -117,7 +120,6 @@ function openRecordedSoundsDialog() {
 watch(
   () => soundLibraryStore.selectedSoundChanged,
   async (newValue) => {
-    console.log('selected sound changed');
     if (newValue === true && soundLibraryStore.selectedSound !== null) {
       await recorderStore.initializePlayerMode(soundLibraryStore.selectedSound);
     } else if (newValue === true && soundLibraryStore.selectedSound === null) {
@@ -146,6 +148,10 @@ watch(
       peakMeter.value?.setAnalyserObject(recorderStore.recorder.stereoAnalyser);
     }
   }
+);
+
+const isSaving = computed(
+  () => recorderStore.recorder.state === RecorderState.SAVING
 );
 </script>
 

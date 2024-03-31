@@ -38,21 +38,26 @@
               :cover="false"
               :offset="[0, 20]"
             >
-              <q-card class="name-dialog-panel q-pa-md" style="padding: 10px">
-                <q-input
-                  :input-style="{ color: 'orange', fontSize: '1.5rem' }"
-                  color="orange"
-                  clearable
-                  v-model="marker.name"
+              <div class="marker-name-dialog">
+                <q-card class="name-dialog-panel q-pa-md" style="padding: 10px">
+                  <q-input
+                    :input-style="{ color: 'orange', fontSize: '1.5rem' }"
+                    color="orange"
+                    clearable
+                    v-model="marker.name"
+                    dense
+                    autofocus
+                    @keyup.enter="nameDialogOkButtonClicked(marker)"
+                  />
+                </q-card>
+                <q-btn
+                  color="secondary"
+                  icon="done"
+                  size="lg"
                   dense
-                  autofocus
-                  @keyup.enter="
-                    marker.name.trim() !== ''
-                      ? (marker.showDialog = false)
-                      : null
-                  "
+                  @click="nameDialogOkButtonClicked(marker)"
                 />
-              </q-card>
+              </div>
             </q-dialog>
           </div>
           <div class="markers-table-name">
@@ -137,6 +142,12 @@ watch(
   },
   { deep: true }
 );
+
+function nameDialogOkButtonClicked(marker: SoundMarker) {
+  if (marker.name.trim() !== '') {
+    marker.showDialog = false;
+  }
+}
 </script>
 
 <style scoped>
@@ -222,5 +233,19 @@ watch(
 .markers-transition-enter-from {
   opacity: 0;
   transform: scale(0.1);
+}
+.marker-name-dialog {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+.name-dialog-panel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  background-color: var(--bkgColor);
 }
 </style>

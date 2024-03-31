@@ -6,6 +6,9 @@
         color="primary"
         :disable="recorderStore.recorder.state === RecorderState.RECORDING"
         class="dropdown-button"
+        :disable-dropdown="
+          recorderStore.recorder.state === RecorderState.RECORDING
+        "
       >
         <template v-slot:label
           ><div class="ellipsis">
@@ -93,7 +96,6 @@ function getInputDevices(): MediaDeviceInfo[] {
 
 function getInputButtonDeviceLabel(): string {
   const deviceLabel = recorderStore.recorder.currentAudioInputDevice?.label;
-  console.log('deviceLabel', deviceLabel);
   if (deviceLabel === '') return 'Default';
   else if (deviceLabel) return deviceLabel;
   else return 'Audio not initialized';

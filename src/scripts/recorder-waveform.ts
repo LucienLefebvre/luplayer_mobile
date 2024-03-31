@@ -159,7 +159,8 @@ export class RecorderWaveform {
 
   private drawRealTimeWaveform() {
     const startTime = performance.now();
-    const width = this.waveformView.clientWidth;
+    let width = this.waveformView.clientWidth;
+    if (width === 0) width = this.peakValuesL.length;
     const clientHeight = this.waveformView.clientHeight;
     const halfHeight = clientHeight / 2;
 

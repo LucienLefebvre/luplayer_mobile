@@ -4,17 +4,18 @@
 
 ### Added
 
-- Sound Recorder
-- Multi touch support in cart
+- Implemented sound recorder
+- Added support for multi-touch in the cart
 
 ### Changed
 
-- Changed the fader style on cart mode
-- Volume indicator on the fader on cart mode
-- Fader is colored following the play state
+- Updated the style of the fader in cart mode
+- Added volume indicator to the fader in cart mode
+- Color-coded the fader according to the play state
 
 ### Fixed
 
-- Transitions disabled when drag & dropping
+- Resolved issue where clicks could occur when rapidly adjusting sound volume
 - Fade button icon don't change when fading in
-- Fader don't come back to 0 after a fader stop in playlist mode
+- Ensured the fader icon updates correctly based on the fade state
+- Ensured the fader returns to 0 after stopping in playlist mode

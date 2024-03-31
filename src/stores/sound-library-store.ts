@@ -17,6 +17,7 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
       selectedSound: null as RecordedSound | null,
 
+      isSaving: false,
       recordingSaved: false,
       selectedSoundChanged: false,
 
@@ -214,6 +215,7 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
     },
 
     async saveRecording(sound: RecordedSound, chunks: Blob[]) {
+      this.isSaving = true;
       try {
         const filePath =
           sound.name + '.' + this.settingsStore.recorder.fileFormat;
@@ -240,6 +242,7 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       } catch (error) {
         console.error('saveRecording', error);
       }
+      this.isSaving = false;
     },
 
     async getUniqueFileName(

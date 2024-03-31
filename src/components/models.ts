@@ -137,6 +137,7 @@ export enum RecorderState {
   READY = 'ready',
   RECORDING = 'recording',
   STOPPED = 'stopped',
+  SAVING = 'saving',
   PLAYING_RECORDED_SOUND = 'playing-recorded-sound',
 }
 export interface RecordedSound {

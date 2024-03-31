@@ -7,6 +7,13 @@
       group="settings-category-group"
     >
       <div class="settings-row">
+        <div class="settings-label">Hpf enabled by default</div>
+        <q-toggle
+          v-model="settingsStore.recorder.defaultHpfEnabled"
+          color="orange"
+        />
+      </div>
+      <div class="settings-row">
         <div class="settings-label">Show markers</div>
         <q-toggle v-model="settingsStore.recorder.showMarkers" color="orange" />
       </div>

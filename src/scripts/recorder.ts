@@ -1,20 +1,16 @@
-import { watch } from 'vue';
+import { Dialog } from 'quasar';
+import { Directory } from '@capacitor/filesystem';
 import {
   MediaRecorder as EMediaRecorder,
   IMediaRecorder,
   register,
 } from 'extendable-media-recorder';
 import { connect } from 'extendable-media-recorder-wav-encoder';
-
-import {
-  RecordedSound,
-  RecorderState,
-  StereoAnalyserObject,
-} from 'src/components/models';
+import { RecordedSound, RecorderState } from 'src/components/models';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import { dbToGain } from './math-helpers';
-import { Dialog } from 'quasar';
+
 export class Recorder {
   state = RecorderState.NOT_INITIALIZED;
   _audioContext: AudioContext | null = null;
@@ -36,6 +32,7 @@ export class Recorder {
     splitter: ChannelSplitterNode;
     analysers: AnalyserNode[];
   } | null = null;
+  private _recorderWorker: AudioWorkletNode | null = null;
 
   recording = false;
   startTime = 0;
@@ -77,7 +74,7 @@ export class Recorder {
     if (!this._hpfNode) {
       this._hpfNode = new BiquadFilterNode(this.audioContext);
       this._hpfNode.type = 'highpass';
-      this._hpfNode.frequency.value = 0;
+      this._hpfNode.frequency.value = 80;
       this._hpfNode.Q.value = 0.7071;
     }
     return this._hpfNode;
@@ -131,17 +128,24 @@ export class Recorder {
       this.mediaStreamSource =
         this.audioContext.createMediaStreamSource(stream);
 
-      this.connectAudioNodes();
+      await this.audioContext.audioWorklet.addModule(
+        'src/scripts/wav-writer-worklet.ts'
+      );
 
       this.mediaRecorder = await this.createMediaRecorder(
         this.streamDestinationNode.stream
       );
 
-      this.mediaRecorder.ondataavailable = (e: any) => {
+      this.connectAudioNodes();
+
+      this.mediaRecorder.ondataavailable = async (e: any) => {
         this.chunks?.push(e.data);
         const soundLibraryStore = useSoundLibraryStore();
         if (this.shouldSaveSound)
-          soundLibraryStore.saveRecording(this.recordedSound!, this.chunks!);
+          await soundLibraryStore.saveRecording(
+            this.recordedSound!,
+            this.chunks!
+          );
         else this.shouldSaveSound = true;
       };
 
@@ -154,11 +158,12 @@ export class Recorder {
   private connectAudioNodes() {
     this.mediaStreamSource?.connect(this.gainNode);
     this.gainNode.connect(this.hpfNode);
+
     this.hpfNode.connect(this.limiterNode);
+    this.limiterNode.connect(this.stereoAnalyser.splitter);
     this.limiterNode.connect(this.streamDestinationNode);
 
     if (this.stereoAnalyser) {
-      this.limiterNode?.connect(this.stereoAnalyser.splitter);
       this.stereoAnalyser.splitter.connect(this.stereoAnalyser.analysers[0], 0);
       this.stereoAnalyser.splitter.connect(this.stereoAnalyser.analysers[1], 1);
     }
@@ -188,7 +193,6 @@ export class Recorder {
     const audioInputDevices = inputDevices.filter(
       (device) => device.kind === 'audioinput'
     );
-    console.log('Audio input devices: ', audioInputDevices);
     if (audioInputDevices.length === 0) {
       return [];
     }
@@ -202,8 +206,6 @@ export class Recorder {
     if (this.state === RecorderState.RECORDING) {
       return;
     }
-
-    console.log('Changing input device to: ', deviceId);
 
     this.settingsStore.recorder.inputDeviceId = deviceId;
     this.settingsStore.saveSettings();

@@ -61,6 +61,7 @@ export const useSettingsStore = defineStore('settingsStore', {
       recorder: {
         inputDeviceId: '' as string,
         fileFormat: 'wav' as 'wav' | 'mp3' | 'ogg',
+        defaultHpfEnabled: false as boolean,
         showMarkers: true as boolean,
         showWaveform: true as boolean,
         showPeakMeter: true as boolean,

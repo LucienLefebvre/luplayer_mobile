@@ -26,7 +26,7 @@
     <div class="audio-settings-row">
       <q-btn
         :color="getHPFButtonColor()"
-        label="hpf"
+        :label="getHpfButtonLabel()"
         size="md"
         class="audio-settings-button"
         dense
@@ -81,6 +81,10 @@ const recorderStore = useRecorderStore();
 
 function getHPFButtonColor() {
   return recorderStore.hpfEnabled ? 'green' : 'primary';
+}
+
+function getHpfButtonLabel() {
+  return recorderStore.hpfEnabled ? 'HPF ON' : 'HPF OFF';
 }
 </script>
 

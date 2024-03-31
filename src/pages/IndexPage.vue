@@ -1,8 +1,6 @@
 <template><div></div></template>
 
-<script setup lang="ts">
-import PlayListScreen from '../components/PlayListScreen.vue';
-</script>
+<script setup lang="ts"></script>
 
 <style>
 :root {
