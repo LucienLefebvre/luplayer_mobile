@@ -10,6 +10,7 @@ import { RecordedSound, SoundMarker } from 'src/components/models';
 import { useSettingsStore } from 'src/stores/settings-store';
 
 import init, { array_buffer_to_base64 } from 'src/rust/waveform_process/pkg';
+import { dbToGain } from 'src/scripts/math-helpers';
 
 export const useSoundLibraryStore = defineStore('soundlibrarystore', {
   state: () =>
@@ -26,6 +27,12 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       db: null as IDBPDatabase | null,
 
       settingsStore: useSettingsStore(),
+
+      gainNode: null as GainNode | null,
+      stereoAnalyser: null as null | {
+        splitter: ChannelSplitterNode;
+        analysers: AnalyserNode[];
+      },
     }),
 
   getters: {},
@@ -57,6 +64,11 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       });
 
       sounds.forEach((sound) => {
+        soundsOnDisk.files.forEach((file) => {
+          if (file.name === sound.path) {
+            sound.fileSizeInBytes = file.size;
+          }
+        });
         if (soundsOnDisk.files.some((file) => file.name === sound.path)) return;
         this.db?.delete('sounds', sound.id);
         sounds = sounds?.filter((recordedSound) => recordedSound !== sound);
@@ -397,6 +409,7 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
         isPlaying: false,
         markers: serializedMarkers,
         audioElement: undefined,
+        mediaElementSourceNode: undefined,
       };
 
       return objectToStore;
@@ -449,10 +462,9 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
     },
 
     playSelectedSound() {
-      if (this.selectedSound?.audioElement)
-        this.selectedSound.audioElement?.play();
-
-      console.log(this.selectedSound?.audioElement?.duration);
+      if (this.selectedSound?.audioElement) {
+        this.selectedSound?.audioElement?.play();
+      }
     },
 
     pauseSelectedSound() {
@@ -484,5 +496,42 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
         (sound.fileSizeInBytes / 1024 / 1024).toFixed(2) + 'MB';
       return sizeString;
     },
+
+    /*  createSoundNode(sound: RecordedSound) {
+      console.log('createSoundNode', sound);
+      if (!sound?.audioElement) return;
+      if (!this.audioContext) this.createOutputAudioNodes();
+      if (sound.mediaElementSourceNode === undefined) {
+        const source = this.audioContext?.createMediaElementSource(
+          sound.audioElement
+        );
+
+        sound.mediaElementSourceNode = source;
+        source?.connect(this.gainNode!);
+      }
+    },
+
+    createOutputAudioNodes() {
+      this.audioContext = new AudioContext();
+      console.log('audioContext', this.audioContext);
+      this.gainNode = this.audioContext.createGain();
+      this.gainNode.connect(this.audioContext.destination);
+      this.gainNode.gain.setValueAtTime(
+        0.0,
+        this.audioContext?.currentTime ?? 0
+      );
+
+      this.stereoAnalyser = {
+        splitter: this.audioContext.createChannelSplitter(2),
+        analysers: [
+          this.audioContext.createAnalyser(),
+          this.audioContext.createAnalyser(),
+        ],
+      };
+
+      this.gainNode.connect(this.stereoAnalyser.splitter);
+      this.stereoAnalyser.splitter.connect(this.stereoAnalyser.analysers[0], 0);
+      this.stereoAnalyser.splitter.connect(this.stereoAnalyser.analysers[1], 0);
+    }, */
   },
 });

@@ -1,7 +1,7 @@
 <template>
   <div class="player-container" ref="playerContainer">
     <q-card
-      class="soundBackground shadow-10"
+      class="sound-background shadow-10"
       :style="{
         width: soundsStore.appMode === 'cart' ? '83%' : '100%',
         borderColor: getBorderColor(),
@@ -74,9 +74,8 @@
         </div>
       </div>
     </q-card>
-    <div class="sound-cart-fader">
+    <div class="sound-cart-fader" v-if="soundsStore.appMode === 'cart'">
       <SoundCartFader
-        v-if="soundsStore.appMode === 'cart'"
         :sound="sound"
         :style="{
           height: settingsStore.cartWaveformHeightFactor * 100 + 'px',
@@ -409,7 +408,7 @@ function getFaderHeight() {
   flex-wrap: nowrap;
   align-items: center;
 }
-.soundBackground {
+.sound-background {
   border: 1px solid;
   border-radius: 10px;
   border-color: orange;

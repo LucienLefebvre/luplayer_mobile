@@ -32,7 +32,7 @@
       </q-btn-dropdown>
     </div>
     <div class="file-format-row">
-      <div>Audio format (need restart)</div>
+      <div>Audio format</div>
       <q-btn-dropdown
         :label="settingsStore.fileFormat"
         color="primary"

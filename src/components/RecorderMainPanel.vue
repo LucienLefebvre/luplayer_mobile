@@ -147,6 +147,7 @@ watch(
   (state) => {
     if (state === RecorderState.PLAYING_RECORDED_SOUND) {
       recorderStore.waveform?.setShouldUpdateWaveform(false);
+      peakMeter.value?.setAnalyserObject(soundLibraryStore.stereoAnalyser);
     } else {
       recorderStore.waveform?.setShouldUpdateWaveform(true);
     }

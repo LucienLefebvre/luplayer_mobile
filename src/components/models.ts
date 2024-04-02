@@ -155,6 +155,7 @@ export interface RecordedSound {
   path?: string;
   fileSizeInBytes?: number;
   peakDataAsStandardArray?: number[][];
+  mediaElementSourceNode?: MediaElementAudioSourceNode;
   audioElement?: HTMLAudioElement;
 }
 
