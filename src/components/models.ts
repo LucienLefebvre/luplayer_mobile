@@ -148,7 +148,7 @@ export interface RecordedSound {
   numberOfMarkersCreated: number;
   totalLengthInMs: number;
   audioDataAsBase64: string;
-  peakData: Float32Array[];
+  peakData: Uint8Array[];
   isPlaying: boolean;
   showNameDialog: boolean;
   createdTimestamp: number;

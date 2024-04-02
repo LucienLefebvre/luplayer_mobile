@@ -1,7 +1,7 @@
 import { StereoAnalyserObject } from 'src/components/models';
 import Konva from 'konva';
 import { SoundMarker } from 'src/components/models';
-import { logScaleFrom0to1 } from './math-helpers';
+import { logScaleFrom0to1, logScaleTo0to1 } from './math-helpers';
 import { setInterval } from 'worker-timers';
 export interface Marker {
   xPos: number;
@@ -10,6 +10,9 @@ export interface Marker {
 }
 export class RecorderWaveform {
   private waveformView: HTMLDivElement;
+  private waveformHeight = 0;
+  private waveformWidth = 0;
+
   private stereoAnalyser: StereoAnalyserObject;
 
   private stage: Konva.Stage;
@@ -27,8 +30,11 @@ export class RecorderWaveform {
 
   private shouldCollectPeakValues = false;
 
-  private peaksValues = [new DynamicFloat32Array(), new DynamicFloat32Array()];
-  private recordedPeaksValues = [new Float32Array(), new Float32Array()];
+  private peaksValues = [
+    new DynamicTypedArray(Uint8Array),
+    new DynamicTypedArray(Uint8Array),
+  ];
+  private recordedPeaksValues = [new Uint8Array(), new Uint8Array()];
 
   private waveformToDraw = 'realtime' as 'realtime' | 'recorded';
 
@@ -97,22 +103,32 @@ export class RecorderWaveform {
   }
 
   public async init() {
+    const resizeObserver = new ResizeObserver((entries) => {
+      entries.forEach((entry) => {
+        this.waveformHeight = entry.contentRect.height;
+        this.waveformWidth = entry.contentRect.width;
+      });
+    });
+
+    resizeObserver.observe(this.waveformView);
+
     setInterval(() => {
       if (!this.shouldUpdateWaveform) return;
       const startTime = performance.now();
 
       const bufferLength = this.stereoAnalyser.analysers[0].frequencyBinCount;
-      const dataArrayL = new Float32Array(bufferLength);
-      const dataArrayR = new Float32Array(bufferLength);
 
-      this.stereoAnalyser.analysers[0].getFloatTimeDomainData(dataArrayL);
-      this.stereoAnalyser.analysers[1].getFloatTimeDomainData(dataArrayR);
+      const dataArrayL = new Uint8Array(bufferLength);
+      const dataArrayR = new Uint8Array(bufferLength);
 
-      let maxValueL = -Infinity;
-      let maxValueR = -Infinity;
+      this.stereoAnalyser.analysers[0].getByteTimeDomainData(dataArrayL);
+      this.stereoAnalyser.analysers[1].getByteTimeDomainData(dataArrayR);
+
+      let maxValueL = 0;
+      let maxValueR = 0;
       for (let i = 0; i < bufferLength; i++) {
-        const valueL = dataArrayL[i];
-        const valueR = dataArrayR[i];
+        const valueL = dataArrayL[i] - 128;
+        const valueR = dataArrayR[i] - 128;
         if (valueL > maxValueL) {
           maxValueL = valueL;
         }
@@ -121,24 +137,29 @@ export class RecorderWaveform {
         }
       }
 
-      this.peakValuesL.push(maxValueL);
-      this.peakValuesR.push(maxValueR);
+      const logMaxValueL = logScaleTo0to1(maxValueL, 0, 128, 0.2);
+      const logMaxValueR = logScaleTo0to1(maxValueR, 0, 128, 0.2);
+      this.peakValuesL.push(logMaxValueL);
+      this.peakValuesR.push(logMaxValueR);
 
       if (this.shouldCollectPeakValues) {
-        this.peaksValues[0].addData(new Float32Array([maxValueL]));
-        this.peaksValues[1].addData(new Float32Array([maxValueR]));
+        this.peaksValues[0].addData(new Uint8Array([maxValueL]));
+        this.peaksValues[1].addData(new Uint8Array([maxValueR]));
       }
 
-      const width = this.waveformView.clientWidth;
-      const height = this.waveformView.clientHeight;
-      const numExcessValues = this.peakValuesL.length - width;
+      const numExcessValues = this.peakValuesL.length - this.waveformWidth;
       if (numExcessValues > 0) {
         this.peakValuesL.splice(0, numExcessValues);
         this.peakValuesR.splice(0, numExcessValues);
 
         this.markers.forEach((marker) => {
           marker.xPos -= numExcessValues;
-          marker.line.points([marker.xPos, 0, marker.xPos, height]);
+          marker.line.points([
+            marker.xPos,
+            0,
+            marker.xPos,
+            this.waveformHeight,
+          ]);
           if (marker.xPos < 0) {
             this.deleteMarker(marker);
           }
@@ -146,7 +167,6 @@ export class RecorderWaveform {
       }
 
       const endTime = performance.now();
-      //console.log('Time to collect peak values:', endTime - startTime);
     }, 1000 / 30);
   }
 
@@ -159,24 +179,10 @@ export class RecorderWaveform {
 
   private drawRealTimeWaveform() {
     const startTime = performance.now();
-    let width = this.waveformView.clientWidth;
+    let width = this.waveformWidth;
     if (width === 0) width = this.peakValuesL.length;
-    const clientHeight = this.waveformView.clientHeight;
+    const clientHeight = this.waveformHeight;
     const halfHeight = clientHeight / 2;
-
-    /*  const excessValues = Math.max(0, this.peakValuesL.length - width);
-    if (excessValues > 0) {
-      this.peakValuesL.splice(0, excessValues);
-      this.peakValuesR.splice(0, excessValues);
-
-      this.markers.forEach((marker) => {
-        marker.xPos -= excessValues;
-        marker.line.points([marker.xPos, 0, marker.xPos, clientHeight]);
-        if (marker.xPos < 0) {
-          this.deleteMarker(marker);
-        }
-      });
-    } */
 
     const points = [0, halfHeight];
     for (let i = 0; i < this.peakValuesL.length; i++) {
@@ -187,7 +193,6 @@ export class RecorderWaveform {
     }
     points.push(0, halfHeight);
 
-    // Update waveform
     this.waveform.points(points);
     this.waveform.stroke(this.color);
     this.waveform.fill(this.color);
@@ -201,30 +206,28 @@ export class RecorderWaveform {
   private drawRecordedWaveform() {
     const points = [] as number[];
     const peaksLength = this.recordedPeaksValues[0].length;
-    const valuesToFind = peaksLength / this.waveformView.clientWidth;
+    const valuesToFind = peaksLength / this.waveformWidth;
 
-    points.push(0, this.waveformView.clientHeight / 2);
-    for (let i = 0; i < this.waveformView.clientWidth; i++) {
+    points.push(0, this.waveformHeight / 2);
+    for (let i = 0; i < this.waveformWidth; i++) {
       const peakValueR =
         this.recordedPeaksValues[1][Math.floor(i * valuesToFind)];
-
+      const logValueR = logScaleTo0to1(peakValueR, 0, 128, 0.2);
       const value =
-        (peakValueR / 2) * this.waveformView.clientHeight +
-        this.waveformView.clientHeight / 2;
+        (logValueR / 2) * this.waveformHeight + this.waveformHeight / 2;
 
       if (!isNaN(value)) points.push(i, value);
     }
-    for (let i = this.waveformView.clientWidth - 1; i >= 0; i--) {
+    for (let i = this.waveformWidth - 1; i >= 0; i--) {
       const peakValueL =
         this.recordedPeaksValues[0][Math.floor(i * valuesToFind)];
-
+      const logValueL = logScaleTo0to1(peakValueL, 0, 128, 0.2);
       const value =
-        (-peakValueL / 2) * this.waveformView.clientHeight +
-        this.waveformView.clientHeight / 2;
+        (-logValueL / 2) * this.waveformHeight + this.waveformHeight / 2;
 
       if (!isNaN(value)) points.push(i, value);
     }
-    points.push(0, this.waveformView.clientHeight / 2);
+    points.push(0, this.waveformHeight / 2);
 
     this.waveform.points(points);
     this.waveform.stroke(this.color);
@@ -235,26 +238,26 @@ export class RecorderWaveform {
     if (this.audioElement) {
       const playHeadXPosition =
         (this.audioElement.currentTime / this.soundDuration) *
-        this.waveformView.clientWidth;
+        this.waveformWidth;
       this.playHeadMarker.points([
         playHeadXPosition,
         0,
         playHeadXPosition,
-        this.waveformView.clientHeight,
+        this.waveformHeight,
       ]);
     }
   }
 
   public addMarker(color: string) {
     this.markers.push({
-      xPos: this.waveformView.clientWidth - 1,
+      xPos: this.waveformWidth - 1,
       color: color,
       line: new Konva.Line({
         points: [
-          this.waveformView.clientWidth - 1,
+          this.waveformWidth - 1,
           0,
-          this.waveformView.clientWidth - 1,
-          this.waveformView.clientHeight,
+          this.waveformWidth - 1,
+          this.waveformHeight,
         ],
         stroke: color,
         strokeWidth: 2,
@@ -284,7 +287,7 @@ export class RecorderWaveform {
         xPos: x,
         color: 'rgb(40, 134, 189)',
         line: new Konva.Line({
-          points: [x, 0, x, this.waveformView.clientHeight],
+          points: [x, 0, x, this.waveformHeight],
           stroke: 'rgb(40, 134, 189)',
           strokeWidth: 2,
         }),
@@ -315,28 +318,25 @@ export class RecorderWaveform {
     this.deleteAllMarkers();
 
     this.shouldCollectPeakValues = false;
-    this.recordedPeaksValues[0] = new Float32Array(
-      this.peaksValues[0].getData()
-    );
-    this.recordedPeaksValues[1] = new Float32Array(
-      this.peaksValues[1].getData()
-    );
+    this.recordedPeaksValues[0] = new Uint8Array(this.peaksValues[0].getData());
+    this.recordedPeaksValues[1] = new Uint8Array(this.peaksValues[1].getData());
     this.peaksValues[0].clearData();
     this.peaksValues[1].clearData();
   }
 
   public getPeakValues() {
     const peakValues = [
-      new Float32Array(this.recordedPeaksValues[0]),
-      new Float32Array(this.recordedPeaksValues[1]),
+      new Uint8Array(this.recordedPeaksValues[0]),
+      new Uint8Array(this.recordedPeaksValues[1]),
     ];
+    console.log(peakValues);
     return peakValues;
   }
 
-  public setPeakValues(peakValues: Float32Array[]) {
+  public setPeakValues(peakValues: Uint8Array[]) {
     this.recordedPeaksValues = [
-      new Float32Array(peakValues[0]),
-      new Float32Array(peakValues[1]),
+      new Uint8Array(peakValues[0]),
+      new Uint8Array(peakValues[1]),
     ];
 
     console;
@@ -383,36 +383,40 @@ export class RecorderWaveform {
 
   private xToTime(x: number) {
     if (this.waveformToDraw === 'recorded' && this.audioElement)
-      return (x / this.waveformView.clientWidth) * this.soundDuration;
+      return (x / this.waveformWidth) * this.soundDuration;
     else return 0;
   }
 
   private timeToX(time: number) {
     if (this.waveformToDraw === 'recorded')
-      return (time / this.soundDuration) * this.waveformView.clientWidth;
+      return (time / this.soundDuration) * this.waveformWidth;
     else return 0;
   }
 }
 
-export class DynamicFloat32Array {
-  private buffer: Float32Array;
+export class DynamicTypedArray<T extends Float32Array | Uint8Array> {
+  private buffer: T;
 
-  constructor() {
-    this.buffer = new Float32Array(0);
+  constructor(type: { new (length: number): T }) {
+    this.buffer = new type(0);
   }
 
-  addData(data: Float32Array) {
-    const newBuffer = new Float32Array(this.buffer.length + data.length);
+  addData(data: T) {
+    const newBuffer = new (this.buffer.constructor as {
+      new (length: number): T;
+    })(this.buffer.length + data.length);
     newBuffer.set(this.buffer);
     newBuffer.set(data, this.buffer.length);
     this.buffer = newBuffer;
   }
 
-  getData(): Float32Array {
+  getData(): T {
     return this.buffer;
   }
 
   clearData() {
-    this.buffer = new Float32Array(0);
+    this.buffer = new (this.buffer.constructor as { new (length: number): T })(
+      0
+    );
   }
 }

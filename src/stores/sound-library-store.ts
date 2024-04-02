@@ -94,7 +94,7 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
       if (sound.peakDataAsStandardArray) {
         const peakData = sound.peakDataAsStandardArray?.map(
-          (peakData) => new Float32Array(peakData)
+          (peakData) => new Uint8Array(peakData)
         );
         sound.peakData = peakData || [];
         sound.peakDataAsStandardArray = undefined;

@@ -47,7 +47,7 @@ export const useSettingsStore = defineStore('settingsStore', {
       showMarkers: true as boolean,
       showWaveform: true as boolean,
       showRecordedSoundWhenStopped: true as boolean,
-      showRecorderPeakMeter: false as boolean,
+      showRecorderPeakMeter: true as boolean,
     }),
 
   actions: {
