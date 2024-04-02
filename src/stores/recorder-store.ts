@@ -58,28 +58,6 @@ export const useRecorderStore = defineStore('recorderStore', {
     async initRecorder() {
       try {
         await this.recorder.init();
-
-        if (this.recorder.mediaRecorder) {
-          this.recorder.mediaRecorder.onstart = () => {
-            this.waveform?.setWaveformColor('red');
-            this.waveform?.resetWaveform();
-            this.waveform?.startCollectingPeakValues();
-            this.currentSound.createdTimestamp = Date.now();
-            this.recorder.startTime = Date.now();
-            this.recorder.state = RecorderState.RECORDING;
-          };
-          this.recorder.mediaRecorder.onstop = () => {
-            this.currentSound.totalLengthInMs =
-              this.getCurrentRecordingLengthInMS();
-            this.recorder.state = RecorderState.STOPPED;
-
-            if (this.waveform === null) return;
-            this.waveform?.stopCollectingPeakValues();
-            this.currentSound.peakData = this.waveform.getPeakValues();
-            this.soundLibraryStore.addRecordedSoundToLibrary(this.currentSound);
-            //this.waveform.setWaveformColor('orange');
-          };
-        }
       } catch (error) {
         console.error(error);
         Dialog.create({

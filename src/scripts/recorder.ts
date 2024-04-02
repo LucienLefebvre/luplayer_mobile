@@ -10,6 +10,7 @@ import { RecordedSound, RecorderState } from 'src/components/models';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import { dbToGain } from './math-helpers';
+import { useRecorderStore } from 'src/stores/recorder-store';
 
 const RECORDER_TIME_SLICE = 1000;
 const PEAKS_RESOLUTION_MS = 20;
@@ -23,7 +24,21 @@ export class Recorder {
   audioInputDevices?: MediaDeviceInfo[];
   currentAudioInputDevice?: MediaDeviceInfo;
 
-  mediaRecorder?: MediaRecorder | InstanceType<typeof EMediaRecorder>;
+  //mediaRecorder?: MediaRecorder | InstanceType<typeof EMediaRecorder>;
+
+  private _mediaRecorder:
+    | MediaRecorder
+    | InstanceType<typeof EMediaRecorder>
+    | null = null;
+
+  get mediaRecorder(): MediaRecorder | IMediaRecorder | null {
+    return this._mediaRecorder;
+  }
+  set mediaRecorder(
+    value: MediaRecorder | InstanceType<typeof EMediaRecorder>
+  ) {
+    this._mediaRecorder = value;
+  }
   mediaStreamSource?: MediaStreamAudioSourceNode;
 
   private _gainNode: GainNode | null = null;
@@ -97,8 +112,10 @@ export class Recorder {
 
   public async init() {
     try {
+      console.log('Initializing recorder');
       await this.checkMediaDeviceSupport();
       await this.getInputDevices();
+      await register(await connect());
 
       this.currentAudioInputDevice = await this.tryLastUsedInputDeviceOrDefault(
         this.audioInputDevices!
@@ -114,14 +131,11 @@ export class Recorder {
         this.audioContext.createMediaStreamSource(stream);
 
       this.mediaRecorder = await this.createMediaRecorder(
-        this.streamDestinationNode.stream
+        this.settingsStore.fileFormat,
+        stream
       );
 
       this.connectAudioNodes();
-
-      this.mediaRecorder.ondataavailable = async (e: any) => {
-        this.handleDataAvailable(e);
-      };
 
       this.state = RecorderState.READY;
     } catch (error) {
@@ -179,22 +193,71 @@ export class Recorder {
   }
 
   public async createMediaRecorder(
+    fileFormat: 'ogg' | 'wav',
     stream: MediaStream
   ): Promise<IMediaRecorder> {
-    if (this.settingsStore.fileFormat === 'ogg') {
+    let recorder;
+    if (fileFormat === 'ogg') {
       const options = {
         mimeType: 'audio/webm; codecs=opus',
         audioBitsPerSecond: 256000,
       };
-      const recorder = new MediaRecorder(stream, options);
-      return recorder;
+      recorder = new MediaRecorder(stream, options);
     } else {
-      await register(await connect());
-      const recorder = new EMediaRecorder(stream, {
+      recorder = new EMediaRecorder(stream, {
         mimeType: 'audio/wav',
       });
-      return recorder;
     }
+
+    const recorderStore = useRecorderStore();
+    recorder.onstart = () => {
+      recorderStore.waveform?.setWaveformColor('red');
+      recorderStore.waveform?.resetWaveform();
+      recorderStore.waveform?.startCollectingPeakValues();
+      recorderStore.currentSound.createdTimestamp = Date.now();
+      this.startTime = Date.now();
+      this.state = RecorderState.RECORDING;
+    };
+
+    recorder.onstop = () => {
+      recorderStore.currentSound.totalLengthInMs =
+        recorderStore.getCurrentRecordingLengthInMS();
+      this.state = RecorderState.STOPPED;
+
+      if (recorderStore.waveform === null) return;
+      recorderStore.waveform?.stopCollectingPeakValues();
+      recorderStore.currentSound.peakData =
+        recorderStore.waveform.getPeakValues();
+      recorderStore.soundLibraryStore.addRecordedSoundToLibrary(
+        recorderStore.currentSound
+      );
+      //this.waveform.setWaveformColor('orange');
+    };
+
+    recorder.ondataavailable = async (e: any) => {
+      this.handleDataAvailable(e);
+    };
+
+    return recorder;
+  }
+
+  public async changeMediaRecorderFormat(fileFormat: 'ogg' | 'wav') {
+    if (this.state === RecorderState.RECORDING) {
+      return;
+    }
+
+    this.settingsStore.fileFormat = fileFormat;
+    this.settingsStore.saveSettings();
+
+    if (this.state === RecorderState.NOT_INITIALIZED) {
+      this.init();
+      return;
+    }
+
+    console.log('Changing file format');
+    const stream = this.streamDestinationNode.stream;
+    this.mediaRecorder?.stop();
+    this.mediaRecorder = await this.createMediaRecorder(fileFormat, stream);
   }
 
   public async getInputDevices(): Promise<MediaDeviceInfo[]> {

@@ -353,13 +353,11 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       try {
         const path = await this.getSoundsPath();
         const directory = this.getSoundsDirectory();
-        console.log('path', path);
-        console.log('directory', directory);
+
         const files = await Filesystem.readdir({
           path: path,
           directory: directory,
         });
-        console.log('files', files);
 
         const existingFileNames = files.files.map((file) => file.name);
         let newFileName = fileName;
@@ -377,10 +375,6 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
     async addRecordedSoundToLibrary(sound: RecordedSound) {
       const soundToStore = this.createObjectToStore(sound);
-      console.log(
-        '🚀 ~ addRecordedSoundToLibrary ~ soundToStore:',
-        soundToStore
-      );
 
       if (!this.db) await this.openDB();
       await this.db?.add('sounds', soundToStore);

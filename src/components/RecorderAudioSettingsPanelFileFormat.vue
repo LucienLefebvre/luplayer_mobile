@@ -116,13 +116,11 @@ async function deviceItemClicked(device: MediaDeviceInfo) {
   await recorderStore.recorder.changeInputDevice(device.deviceId);
 }
 
-function formatItemClicked(format: 'wav' | 'mp3' | 'ogg') {
-  settingsStore.fileFormat = format;
-  settingsStore.saveSettings();
-  recorderStore.recorder.init();
+async function formatItemClicked(format: 'wav' | 'ogg') {
+  await recorderStore.recorder.changeMediaRecorderFormat(format);
 }
 
-function getFormatItemStyle(format: 'wav' | 'mp3' | 'ogg') {
+function getFormatItemStyle(format: 'wav' | 'ogg') {
   return settingsStore.fileFormat === format
     ? 'background-color: var(--orangeColor); color: white'
     : 'background-color: var(--blueColor); color: white';
