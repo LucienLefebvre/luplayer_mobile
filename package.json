@@ -29,6 +29,7 @@
     "peaks.js": "^3.3.0",
     "pinia": "^2.0.11",
     "quasar": "^2.6.0",
+    "recorder-audio-worklet": "^6.0.24",
     "sortablejs": "^1.15.1",
     "uuid": "^9.0.0",
     "vue": "^3.0.0",

@@ -1754,10 +1754,10 @@ at-least-node@^1.0.0:
   resolved "https://registry.npmjs.org/at-least-node/-/at-least-node-1.0.0.tgz"
   integrity sha512-+q/t7Ekv1EDY2l6Gda6LLiX14rU9TV20Wa3ofeQmwPFZbOMo9DXrLbOjFaaclkXKWidIaopwAObQDqwWtGUjqg==
 
-automation-events@^7.0.2:
-  version "7.0.2"
-  resolved "https://registry.npmjs.org/automation-events/-/automation-events-7.0.2.tgz"
-  integrity sha512-TfzwQUXRKoXCP08W0FGDID18y7gJvvy1KKdH3jPPUbTV8mVHec5KXG85Q9sly0COMu5cY6qYmNzq6blJa2lo2w==
+automation-events@^7.0.3:
+  version "7.0.3"
+  resolved "https://registry.npmjs.org/automation-events/-/automation-events-7.0.3.tgz"
+  integrity sha512-5JhQDPpXvJLGgrDmr3xU9PX0ZxeJLZ1xJVkGmmRXkXNS/J9TSazLn/gu1s02qLI68RR40JpW6Uok9eaKtu4wBQ==
   dependencies:
     "@babel/runtime" "^7.24.1"
     tslib "^2.6.2"
@@ -1872,15 +1872,15 @@ braces@^3.0.2, braces@~3.0.2:
   dependencies:
     fill-range "^7.0.1"
 
-broker-factory@^3.0.95:
-  version "3.0.95"
-  resolved "https://registry.npmjs.org/broker-factory/-/broker-factory-3.0.95.tgz"
-  integrity sha512-fRKfwXrZSlyKPrnMViDCMRLeR7cVdPC+GBs0pH/ogyIbALsd1PCfrlKDJ7dT0e2pO+qz8g9vbvkc21Ye547CUA==
+broker-factory@^3.0.95, broker-factory@^3.0.96:
+  version "3.0.96"
+  resolved "https://registry.npmjs.org/broker-factory/-/broker-factory-3.0.96.tgz"
+  integrity sha512-wztvXRl5EnmsWpU6tWJX9K3oNyAsU2QN3RiK7Gsxz+wmIYRD9VBn+n/hH5alUKtTUROdxgs/KlnMTEGJuHAd4g==
   dependencies:
     "@babel/runtime" "^7.24.1"
-    fast-unique-numbers "^9.0.2"
+    fast-unique-numbers "^9.0.3"
     tslib "^2.6.2"
-    worker-factory "^7.0.22"
+    worker-factory "^7.0.23"
 
 browserslist@^4.22.2, browserslist@^4.22.3, "browserslist@>= 4.21.0":
   version "4.23.0"
@@ -2732,6 +2732,14 @@ fast-unique-numbers@^9.0.2:
   version "9.0.2"
   resolved "https://registry.npmjs.org/fast-unique-numbers/-/fast-unique-numbers-9.0.2.tgz"
   integrity sha512-kU76SKM5a1qiKG2CdWtrvKHjFsYWLHCJy37TNy8Oy3h7Ud761RSd6ywUs6xxk6+tL9qppEf2Q2zoxVa1bhjW8Q==
+  dependencies:
+    "@babel/runtime" "^7.24.1"
+    tslib "^2.6.2"
+
+fast-unique-numbers@^9.0.3:
+  version "9.0.3"
+  resolved "https://registry.npmjs.org/fast-unique-numbers/-/fast-unique-numbers-9.0.3.tgz"
+  integrity sha512-Aq5qOCVsmjsJbrGr4bxA3v3P1yQGBSUV2OobO2mE6jbux8fMPYbJlSgfZyXiLCy+Lo1NaK6UtbN2CTBSBt+AvA==
   dependencies:
     "@babel/runtime" "^7.24.1"
     tslib "^2.6.2"
@@ -4118,27 +4126,27 @@ readdirp@~3.6.0:
   dependencies:
     picomatch "^2.2.1"
 
-recorder-audio-worklet-processor@^5.0.16:
-  version "5.0.16"
-  resolved "https://registry.npmjs.org/recorder-audio-worklet-processor/-/recorder-audio-worklet-processor-5.0.16.tgz"
-  integrity sha512-/vBn+iDsNxUZkKhJQXoIO669Il9WAiEYAWj6Y5+ug3k8m9XL1H72KQ18vc6r0ve0PgOGYiz/h6VQFNjbvE617A==
+recorder-audio-worklet-processor@^5.0.17:
+  version "5.0.17"
+  resolved "https://registry.npmjs.org/recorder-audio-worklet-processor/-/recorder-audio-worklet-processor-5.0.17.tgz"
+  integrity sha512-5mtOpnpwyLcjUCicC88pDEpC+X7Ex/4kVqR0r+cAsmfRrMRbveaDe32mP/1RuZIuRk6bhuBndFC0XX8MatF9MA==
   dependencies:
     "@babel/runtime" "^7.24.1"
     tslib "^2.6.2"
 
-recorder-audio-worklet@^6.0.23:
-  version "6.0.23"
-  resolved "https://registry.npmjs.org/recorder-audio-worklet/-/recorder-audio-worklet-6.0.23.tgz"
-  integrity sha512-LBMFwL/jt8R7kH1ACqzdKLixppGg2sLqMuSdBEPwGaGRiTstJDXfnrzb0ekkmXZRP+g71c7TV/icIZTTL0O7qw==
+recorder-audio-worklet@^6.0.23, recorder-audio-worklet@^6.0.24:
+  version "6.0.24"
+  resolved "https://registry.npmjs.org/recorder-audio-worklet/-/recorder-audio-worklet-6.0.24.tgz"
+  integrity sha512-ViX/TBwggm3YpRLLdR71+vbgOjHc9iEMXgV7ct46B3QexZ8Z+sPeuYiwc1Sxu3oALfPhvhKddrie3HqH8AXwCA==
   dependencies:
     "@babel/runtime" "^7.24.1"
-    broker-factory "^3.0.95"
-    fast-unique-numbers "^9.0.2"
-    recorder-audio-worklet-processor "^5.0.16"
-    standardized-audio-context "^25.3.67"
-    subscribable-things "^2.1.33"
+    broker-factory "^3.0.96"
+    fast-unique-numbers "^9.0.3"
+    recorder-audio-worklet-processor "^5.0.17"
+    standardized-audio-context "^25.3.68"
+    subscribable-things "^2.1.34"
     tslib "^2.6.2"
-    worker-factory "^7.0.22"
+    worker-factory "^7.0.23"
 
 regenerate-unicode-properties@^10.1.0:
   version "10.1.1"
@@ -4530,13 +4538,13 @@ stack-trace@^1.0.0-pre2:
   resolved "https://registry.npmjs.org/stack-trace/-/stack-trace-1.0.0-pre2.tgz"
   integrity sha512-2ztBJRek8IVofG9DBJqdy2N5kulaacX30Nz7xmkYF6ale9WBVmIy6mFBchvGX7Vx/MyjBhx+Rcxqrj+dbOnQ6A==
 
-standardized-audio-context@^25.3.67:
-  version "25.3.67"
-  resolved "https://registry.npmjs.org/standardized-audio-context/-/standardized-audio-context-25.3.67.tgz"
-  integrity sha512-/4Um872ILMJeMpykffUj1gHHhG3ooEiuAzjoyvJGqtTXwq1xMA9n5kxo9fp+y5lBW50atu/NKcWDgU8dO6jOhw==
+standardized-audio-context@^25.3.67, standardized-audio-context@^25.3.68:
+  version "25.3.68"
+  resolved "https://registry.npmjs.org/standardized-audio-context/-/standardized-audio-context-25.3.68.tgz"
+  integrity sha512-XxVOFwlnU3Rq7mfTpxRhuwgDf00HmG4GzpSRQcMwgoXLa+k/9n8HT9dpsLZt0A1YH+hO/kLxaBMOIv5fKV/Gcg==
   dependencies:
     "@babel/runtime" "^7.24.1"
-    automation-events "^7.0.2"
+    automation-events "^7.0.3"
     tslib "^2.6.2"
 
 statuses@2.0.1:
@@ -4635,10 +4643,10 @@ strip-json-comments@^3.1.1:
   resolved "https://registry.npmjs.org/strip-json-comments/-/strip-json-comments-3.1.1.tgz"
   integrity sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==
 
-subscribable-things@^2.1.33:
-  version "2.1.33"
-  resolved "https://registry.npmjs.org/subscribable-things/-/subscribable-things-2.1.33.tgz"
-  integrity sha512-sI90j6Dr5Smct3UDI+nBQQMddzxOtUJ/PjyduKstGDnDrQVknwV0S3/zsYMph0v+elGH7vWdp4QhnLlneO0+aA==
+subscribable-things@^2.1.33, subscribable-things@^2.1.34:
+  version "2.1.34"
+  resolved "https://registry.npmjs.org/subscribable-things/-/subscribable-things-2.1.34.tgz"
+  integrity sha512-lQ+yAXc4XvQT/GyGh/Nlo0lFHXBK5teLW/FTFrbmmKX/DtMqpd7TPlsdNSIvV6EHuqhQoehdhNYMqDoN89WQ8A==
   dependencies:
     "@babel/runtime" "^7.24.1"
     rxjs-interop "^2.0.0"
@@ -5252,13 +5260,13 @@ workbox-window@6.6.0:
     "@types/trusted-types" "^2.0.2"
     workbox-core "6.6.0"
 
-worker-factory@^7.0.22:
-  version "7.0.22"
-  resolved "https://registry.npmjs.org/worker-factory/-/worker-factory-7.0.22.tgz"
-  integrity sha512-hvB7vGcn3PqJ/w8VN7tKrLmeV/QX/rQsZJ6xLZsczQegluGD9DEbAZN4VsevnnZPznIvPlcatKTxS20dOG2XSA==
+worker-factory@^7.0.22, worker-factory@^7.0.23:
+  version "7.0.23"
+  resolved "https://registry.npmjs.org/worker-factory/-/worker-factory-7.0.23.tgz"
+  integrity sha512-MqNAajaUNlfqlnj6S/vjN/eWdKfDodeEYwoi0ZDAmYeqFLVRaGuxIaXaAhtK+7cD4JtK9j6Y5h2nHoOYjSp5tg==
   dependencies:
     "@babel/runtime" "^7.24.1"
-    fast-unique-numbers "^9.0.2"
+    fast-unique-numbers "^9.0.3"
     tslib "^2.6.2"
 
 worker-timers-broker@^6.1.5:

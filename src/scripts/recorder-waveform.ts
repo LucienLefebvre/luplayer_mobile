@@ -147,7 +147,7 @@ export class RecorderWaveform {
 
       const endTime = performance.now();
       //console.log('Time to collect peak values:', endTime - startTime);
-    }, 1000 / 60);
+    }, 1000 / 30);
   }
 
   public setWaveformToDraw(waveformToDraw: 'realtime' | 'recorded') {

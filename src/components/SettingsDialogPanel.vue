@@ -7,15 +7,15 @@
       group="settings-category-group"
     >
       <div class="settings-row">
-        <div class="settings-label">Hpf enabled by default</div>
+        <div class="settings-label">Show Peak Meter</div>
         <q-toggle
-          v-model="settingsStore.recorder.defaultHpfEnabled"
+          v-model="settingsStore.showRecorderPeakMeter"
           color="orange"
         />
       </div>
       <div class="settings-row">
         <div class="settings-label">Show markers</div>
-        <q-toggle v-model="settingsStore.recorder.showMarkers" color="orange" />
+        <q-toggle v-model="settingsStore.showMarkers" color="orange" />
       </div>
     </q-expansion-item>
     <q-expansion-item

@@ -34,7 +34,7 @@
     <div class="file-format-row">
       <div>Audio format (need restart)</div>
       <q-btn-dropdown
-        :label="settingsStore.recorder.fileFormat"
+        :label="settingsStore.fileFormat"
         color="primary"
         :disable="recorderStore.recorder.state === RecorderState.RECORDING"
       >
@@ -117,13 +117,13 @@ async function deviceItemClicked(device: MediaDeviceInfo) {
 }
 
 function formatItemClicked(format: 'wav' | 'mp3' | 'ogg') {
-  settingsStore.recorder.fileFormat = format;
+  settingsStore.fileFormat = format;
   settingsStore.saveSettings();
   recorderStore.recorder.init();
 }
 
 function getFormatItemStyle(format: 'wav' | 'mp3' | 'ogg') {
-  return settingsStore.recorder.fileFormat === format
+  return settingsStore.fileFormat === format
     ? 'background-color: var(--orangeColor); color: white'
     : 'background-color: var(--blueColor); color: white';
 }

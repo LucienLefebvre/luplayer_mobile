@@ -1,5 +1,6 @@
 use wasm_bindgen::prelude::*;
 use web_sys::console;
+use base64::prelude::*;
 
 #[wasm_bindgen]
 pub fn calculate_waveform_chunks(left_channel_data: Vec<f32>, right_channel_data: Vec<f32>,window_size: usize) -> Vec<f32> {
@@ -100,4 +101,12 @@ pub fn calculate_r128_integrated_loudness(
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     Ok(result)
+}
+
+#[wasm_bindgen]
+pub fn array_buffer_to_base64(buffer: &[u8]) -> String {
+    //let base64_string = encode(buffer);
+    let base64_string = BASE64_STANDARD.encode(buffer);
+
+    base64_string
 }

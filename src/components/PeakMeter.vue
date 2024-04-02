@@ -309,10 +309,18 @@ watch(
 defineExpose({
   setAnalyserObject,
 });
+
+const resizeObserver = new ResizeObserver((entries) => {
+  for (let entry of entries) {
+    const { width, height } = entry.contentRect;
+    stage.width(width);
+    stage.height(height);
+  }
+});
+onMounted(() => {
+  if (!peakMeter.value) return;
+  resizeObserver.observe(peakMeter.value!);
+});
 </script>
 
-<style scoped>
-.peak-meter {
-  height: 30px;
-}
-</style>
+<style scoped></style>

@@ -1,6 +1,10 @@
 <template>
   <div>
-    <PeakMeter class="meter-style" ref="peakMeter" />
+    <PeakMeter
+      v-if="settingsStore.showRecorderPeakMeter"
+      class="meter-style"
+      ref="peakMeter"
+    />
     <div class="recorder-panel">
       <div
         class="waveform-view not-initialized-waveform"
@@ -20,7 +24,7 @@
         <RecorderMainPanelAudioControls />
         <RecorderMainPanelControlButtons />
         <RecorderMainPanelSoundName />
-        <RecorderMainPanelMarkers v-if="settingsStore.recorder.showMarkers" />
+        <RecorderMainPanelMarkers v-if="settingsStore.showMarkers" />
 
         <div class="recorded-sounds-panel-label">
           Recorded sounds :
@@ -108,7 +112,9 @@ onMounted(() => {
 
 const waveformViewHeight = computed(() => {
   if (!controlPanel.value) return '0px';
-  const height = window.innerHeight - controlPanelHeight.value - 110;
+  const windowHeight = window.innerHeight;
+  const peakMeterHeight = settingsStore.showRecorderPeakMeter ? 30 : 0;
+  const height = windowHeight - controlPanelHeight.value - 80 - peakMeterHeight;
   return height + 'px';
 });
 

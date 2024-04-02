@@ -11,10 +11,12 @@ import { useSoundLibraryStore } from 'src/stores/sound-library-store';
 import { useSettingsStore } from 'src/stores/settings-store';
 import { dbToGain } from './math-helpers';
 
+const RECORDER_TIME_SLICE = 1000;
+const PEAKS_RESOLUTION_MS = 20;
+
 export class Recorder {
   state = RecorderState.NOT_INITIALIZED;
   _audioContext: AudioContext | null = null;
-  chunks?: Blob[];
 
   recordedSound?: RecordedSound;
 
@@ -95,42 +97,21 @@ export class Recorder {
 
   public async init() {
     try {
-      this.chunks = [];
-
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('MediaDevices or getUserMedia is not supported');
-      }
-
+      await this.checkMediaDeviceSupport();
       await this.getInputDevices();
-      if (this.audioInputDevices?.length === 0 || !this.audioInputDevices) {
-        Dialog.create({
-          title: 'No input device found',
-          style: 'background-color: var(--bkgColor); color: orange',
-        });
-        throw new Error('No input device found');
-      }
 
       this.currentAudioInputDevice = await this.tryLastUsedInputDeviceOrDefault(
-        this.audioInputDevices
+        this.audioInputDevices!
       );
 
       if (!this.currentAudioInputDevice) return;
-      const constraints = {
-        audio: {
-          deviceId: this.currentAudioInputDevice.deviceId,
-          echoCancellation: false,
-          autoGainControl: false,
-          noiseCancellation: false,
-        },
-      };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      const stream = await navigator.mediaDevices.getUserMedia(
+        this.getConstraints(this.currentAudioInputDevice)
+      );
 
       this.mediaStreamSource =
         this.audioContext.createMediaStreamSource(stream);
-
-      await this.audioContext.audioWorklet.addModule(
-        'src/scripts/wav-writer-worklet.ts'
-      );
 
       this.mediaRecorder = await this.createMediaRecorder(
         this.streamDestinationNode.stream
@@ -139,19 +120,35 @@ export class Recorder {
       this.connectAudioNodes();
 
       this.mediaRecorder.ondataavailable = async (e: any) => {
-        this.chunks?.push(e.data);
-        const soundLibraryStore = useSoundLibraryStore();
-        if (this.shouldSaveSound)
-          await soundLibraryStore.saveRecording(
-            this.recordedSound!,
-            this.chunks!
-          );
-        else this.shouldSaveSound = true;
+        this.handleDataAvailable(e);
       };
 
       this.state = RecorderState.READY;
     } catch (error) {
       throw error;
+    }
+  }
+
+  private async handleDataAvailable(e: BlobEvent) {
+    const soundLibraryStore = useSoundLibraryStore();
+    const blobType =
+      this.settingsStore.fileFormat === 'ogg' ? 'audio/ogg' : 'audio/wav';
+    const blob = new Blob([e.data], { type: blobType });
+    await soundLibraryStore.appendDataToFile(this.recordedSound!, blob);
+
+    if (
+      this.mediaRecorder?.state !== 'recording' &&
+      this.settingsStore.showRecordedSoundWhenStopped
+    ) {
+      const recordedSounds = await soundLibraryStore.getRecordedSounds();
+      const lastRecordedSound = recordedSounds[0];
+      soundLibraryStore.setSelectedSound(lastRecordedSound);
+    }
+  }
+
+  private async checkMediaDeviceSupport() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('MediaDevices or getUserMedia is not supported');
     }
   }
 
@@ -169,10 +166,22 @@ export class Recorder {
     }
   }
 
+  private getConstraints(device: MediaDeviceInfo) {
+    const constraints = {
+      audio: {
+        deviceId: device.deviceId,
+        echoCancellation: false,
+        autoGainControl: false,
+        noiseCancellation: false,
+      },
+    };
+    return constraints;
+  }
+
   public async createMediaRecorder(
     stream: MediaStream
   ): Promise<IMediaRecorder> {
-    if (this.settingsStore.recorder.fileFormat === 'ogg') {
+    if (this.settingsStore.fileFormat === 'ogg') {
       const options = {
         mimeType: 'audio/webm; codecs=opus',
         audioBitsPerSecond: 256000,
@@ -194,7 +203,11 @@ export class Recorder {
       (device) => device.kind === 'audioinput'
     );
     if (audioInputDevices.length === 0) {
-      return [];
+      Dialog.create({
+        title: 'No input device found',
+        style: 'background-color: var(--bkgColor); color: orange',
+      });
+      throw new Error('No input device found');
     }
     this.audioInputDevices = inputDevices.filter(
       (device) => device.kind === 'audioinput'
@@ -207,7 +220,7 @@ export class Recorder {
       return;
     }
 
-    this.settingsStore.recorder.inputDeviceId = deviceId;
+    this.settingsStore.inputDeviceId = deviceId;
     this.settingsStore.saveSettings();
 
     if (this.state === RecorderState.NOT_INITIALIZED) {
@@ -239,8 +252,7 @@ export class Recorder {
   ): MediaDeviceInfo | undefined {
     try {
       const lastUsedInputDevice = devices.find(
-        (device) =>
-          device.deviceId === this.settingsStore.recorder.inputDeviceId
+        (device) => device.deviceId === this.settingsStore.inputDeviceId
       );
       const defaultDevice = devices.find(
         (device) => device.deviceId === 'default'
@@ -262,15 +274,25 @@ export class Recorder {
   }
 
   public async startRecording() {
-    this.chunks = [];
-    this.mediaRecorder?.start();
+    const soundLibraryStore = useSoundLibraryStore();
+
+    if (this.recordedSound) {
+      console.log('Creating new sound');
+      this.recordedSound.path = await soundLibraryStore.createFile(
+        this.recordedSound!
+      );
+      if (this.recordedSound.path === '') {
+        return;
+      }
+    }
+
+    this.mediaRecorder?.start(RECORDER_TIME_SLICE);
     this.shouldSaveSound = true;
   }
 
   public stopRecording(save = true) {
     if (this.mediaRecorder) {
       this.mediaRecorder.stop();
-
       if (!save) this.shouldSaveSound = false;
     }
   }

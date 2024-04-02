@@ -34,6 +34,7 @@ export const useRecorderStore = defineStore('recorderStore', {
         isPlaying: false,
         showNameDialog: false,
         createdTimestamp: 0,
+        audioDataAsBase64: '',
       } as RecordedSound,
 
       soundNameVModel: ref(''),
@@ -51,7 +52,7 @@ export const useRecorderStore = defineStore('recorderStore', {
     async init() {
       await this.initRecorder();
       await this.initWaveform();
-      this.peakMeter?.value?.setAnalyserObject(this.recorder.stereoAnalyser);
+      //this.peakMeter?.value?.setAnalyserObject(this.recorder.stereoAnalyser);
     },
 
     async initRecorder() {
@@ -60,6 +61,8 @@ export const useRecorderStore = defineStore('recorderStore', {
 
         if (this.recorder.mediaRecorder) {
           this.recorder.mediaRecorder.onstart = () => {
+            this.waveform?.setWaveformColor('red');
+            this.waveform?.resetWaveform();
             this.waveform?.startCollectingPeakValues();
             this.currentSound.createdTimestamp = Date.now();
             this.recorder.startTime = Date.now();
@@ -71,9 +74,10 @@ export const useRecorderStore = defineStore('recorderStore', {
             this.recorder.state = RecorderState.STOPPED;
 
             if (this.waveform === null) return;
-            this.waveform.stopCollectingPeakValues();
+            this.waveform?.stopCollectingPeakValues();
             this.currentSound.peakData = this.waveform.getPeakValues();
-            this.waveform.setWaveformColor('orange');
+            this.soundLibraryStore.addRecordedSoundToLibrary(this.currentSound);
+            //this.waveform.setWaveformColor('orange');
           };
         }
       } catch (error) {
@@ -102,12 +106,11 @@ export const useRecorderStore = defineStore('recorderStore', {
       this.resetState();
       this.recorder.setRecordedSound(this.currentSound);
       this.recorder.startRecording();
-      this.waveform?.setWaveformColor('red');
-      this.waveform?.resetWaveform();
     },
 
     stopRecording(save = true) {
       this.recorder.stopRecording(save);
+
       if (!save) this.resetState();
     },
 
@@ -159,6 +162,7 @@ export const useRecorderStore = defineStore('recorderStore', {
         isPlaying: false,
         showNameDialog: false,
         createdTimestamp: 0,
+        audioDataAsBase64: '',
       } as RecordedSound;
     },
 
@@ -252,6 +256,8 @@ export const useRecorderStore = defineStore('recorderStore', {
     getButtonsColor() {
       switch (this.recorder.state) {
         case RecorderState.RECORDING:
+          return 'red';
+        case RecorderState.STOPPED:
           return 'red';
         case RecorderState.PLAYING_RECORDED_SOUND:
           return 'green';
