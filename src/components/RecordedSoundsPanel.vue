@@ -242,13 +242,14 @@ function getDateLabel(date: Date) {
   gap: 3px;
 }
 .recorded-sound-name {
-  width: 60%;
+  flex: 0 0 50%;
+
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 .recorded-sound-time {
-  max-width: 10%;
+  flex: 0 0 15%;
   text-align: right;
 }
 .buttons {
@@ -302,7 +303,7 @@ function getDateLabel(date: Date) {
   flex: 0 0 15%;
 }
 .recorded-sound-name-large {
-  flex: 0 0 70% !important;
+  flex: 0 0 65% !important;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

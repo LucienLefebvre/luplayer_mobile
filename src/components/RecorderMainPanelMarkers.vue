@@ -204,7 +204,7 @@ function nameDialogOkButtonClicked(marker: SoundMarker) {
   justify-content: left;
   align-items: center;
   color: orange;
-  width: 75%;
+  width: 65%;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -215,7 +215,7 @@ function nameDialogOkButtonClicked(marker: SoundMarker) {
   margin-right: 5px;
 }
 .markers-table-time {
-  width: 15%;
+  width: 25%;
   text-align: right;
   color: var(--blueColor);
 }

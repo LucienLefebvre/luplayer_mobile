@@ -16,9 +16,9 @@
         round
         @click="recordButtonClicked()"
         :color="recorderStore.getButtonsColor()"
-        :label="recordingLengthLabel"
         class="shadow"
       >
+        <div class="button-text">{{ recordingLengthLabel }}</div>
       </q-btn>
     </div>
     <div class="stop-delete-button">
@@ -182,14 +182,15 @@ function updateTimeLabel() {
   display: flex;
   flex-direction: row;
   justify-content: space-evenly;
-
   width: 100%;
   padding-top: 5px;
 }
 .recording-button {
   padding-top: 5px;
-  font-size: 2.8rem;
   justify-content: center;
+}
+.button-text {
+  font-size: 2.5rem;
 }
 .stop-delete-button {
   padding: 5px;
