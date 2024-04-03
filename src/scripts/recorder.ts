@@ -24,7 +24,11 @@ export class Recorder {
   audioInputDevices?: MediaDeviceInfo[];
   currentAudioInputDevice?: MediaDeviceInfo;
 
-  //mediaRecorder?: MediaRecorder | InstanceType<typeof EMediaRecorder>;
+  recording = false;
+  startTime = 0;
+  shouldSaveSound = true;
+
+  settingsStore = useSettingsStore();
 
   private _mediaRecorder:
     | MediaRecorder
@@ -34,31 +38,23 @@ export class Recorder {
   get mediaRecorder(): MediaRecorder | IMediaRecorder | null {
     return this._mediaRecorder;
   }
+
   set mediaRecorder(
     value: MediaRecorder | InstanceType<typeof EMediaRecorder>
   ) {
     this._mediaRecorder = value;
   }
+
   mediaStreamSource?: MediaStreamAudioSourceNode;
 
   private _gainNode: GainNode | null = null;
   private _hpfNode: BiquadFilterNode | null = null;
   private _streamDestinationNode: MediaStreamAudioDestinationNode | null = null;
-  private _waveformAnalyser: {
+
+  private _recorderAnalyser: {
     splitter: ChannelSplitterNode;
     analysers: AnalyserNode[];
   } | null = null;
-  private _peakMeterAnalyser: {
-    splitter: ChannelSplitterNode;
-    analysers: AnalyserNode[];
-  } | null = null;
-  private _recorderWorker: AudioWorkletNode | null = null;
-
-  recording = false;
-  startTime = 0;
-  shouldSaveSound = true;
-
-  settingsStore = useSettingsStore();
 
   get audioContext(): AudioContext {
     if (!this._audioContext) {
@@ -93,40 +89,22 @@ export class Recorder {
     return this._hpfNode;
   }
 
-  get waveformAnalyser() {
-    if (!this._waveformAnalyser) {
-      console.log('Creating waveform analyser');
-      const splitter = this.audioContext.createChannelSplitter(2);
-      const analysers = [
-        this.audioContext.createAnalyser(),
-        this.audioContext.createAnalyser(),
-      ];
-      this._waveformAnalyser = {
-        splitter: splitter,
-        analysers: analysers,
-      };
-      splitter.connect(analysers[0], 0);
-      splitter.connect(analysers[1], 1);
-    }
-    return this._waveformAnalyser;
-  }
-
-  get peakMeterAnalyser() {
-    if (!this._peakMeterAnalyser) {
+  get recorderAnalyser() {
+    if (!this._recorderAnalyser) {
       console.log('Creating peak meter analyser');
       const splitter = this.audioContext.createChannelSplitter(2);
       const analysers = [
         this.audioContext.createAnalyser(),
         this.audioContext.createAnalyser(),
       ];
-      this._peakMeterAnalyser = {
+      this._recorderAnalyser = {
         splitter: splitter,
         analysers: analysers,
       };
       splitter.connect(analysers[0], 0);
       splitter.connect(analysers[1], 1);
     }
-    return this._peakMeterAnalyser;
+    return this._recorderAnalyser;
   }
 
   public async init() {
@@ -191,8 +169,7 @@ export class Recorder {
     this.mediaStreamSource?.connect(this.gainNode);
     this.gainNode.connect(this.hpfNode);
 
-    this.hpfNode.connect(this.waveformAnalyser.splitter);
-    this.hpfNode.connect(this.peakMeterAnalyser.splitter);
+    this.hpfNode.connect(this.recorderAnalyser.splitter);
     const proxyNode = this.audioContext.createGain();
     this.hpfNode.connect(proxyNode);
     proxyNode.connect(this.streamDestinationNode);

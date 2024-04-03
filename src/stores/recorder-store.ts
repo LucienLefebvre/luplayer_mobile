@@ -73,10 +73,10 @@ export const useRecorderStore = defineStore('recorderStore', {
 
     async initWaveform() {
       if (this.waveformView === null) return;
-      if (this.recorder.waveformAnalyser === undefined) return;
+      if (this.recorder.recorderAnalyser === undefined) return;
       this.waveform = new RecorderWaveform(
         this.waveformView,
-        this.recorder.waveformAnalyser,
+        this.recorder.recorderAnalyser,
         this.recorder.audioContext ?? new AudioContext()
       );
 

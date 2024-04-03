@@ -62,8 +62,13 @@ export const useSettingsStore = defineStore('settingsStore', {
       const storedSttings = JSON.parse(
         localStorage.getItem('settings') || '{}'
       );
-      const settings = { ...this.$state, ...storedSttings };
+      const settings = {
+        ...this.$state,
+        ...storedSttings,
+        numberOfDialogsShown: 0,
+      };
       Object.assign(this.$state, settings);
+      this.numberOfDialogsShown = 0;
     },
 
     getPeakMeterOrangeThreshold() {

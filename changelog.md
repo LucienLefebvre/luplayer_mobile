@@ -9,6 +9,7 @@
 
 ### Changed
 
+- When the back button is pressed, a prompt will appear asking if the user wants to quit the app.
 - Updated the style of the fader in cart mode
 - Added volume indicator to the fader in cart mode
 - Color-coded the fader according to the play state

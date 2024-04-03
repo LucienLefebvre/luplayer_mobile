@@ -9,9 +9,6 @@ import { openDB, IDBPDatabase } from 'idb';
 import { RecordedSound, SoundMarker } from 'src/components/models';
 import { useSettingsStore } from 'src/stores/settings-store';
 
-import init, { array_buffer_to_base64 } from 'src/rust/waveform_process/pkg';
-import { dbToGain } from 'src/scripts/math-helpers';
-
 export const useSoundLibraryStore = defineStore('soundlibrarystore', {
   state: () =>
     reactive({
