@@ -12,7 +12,9 @@
         <div class="orange-text">Thank you for trying LuPlayer Mobile !</div>
         <br />
         <div class="blue-text">
-          This is a beta version.
+          <div style="text-align: center; font-size: large">
+            This is a beta version.
+          </div>
           <br />
           <br />
 
@@ -21,22 +23,30 @@
             on Safari/iOS.
           </div>
           <br />
-
-          If you want to be a beta tester of the Android app, or to report any
-          bugs, please contact me at
-          <a
-            href="mailto:contact@luplayer.org"
-            target="_blank"
-            style="color: inherit"
-            >contact@luplayer.org</a
-          >
+          <br />
+          To report bugs, or for any suggestions, please contact me at :
+          <br />
+          <br />
+          <div style="text-align: center; font-size: large">
+            <a
+              href="mailto:contact@luplayer.org"
+              target="_blank"
+              style="color: orange"
+              >contact@luplayer.org</a
+            >
+          </div>
+          <br />
           or open an issue on
-          <a
-            href="https://github.com/LucienLefebvre/luplayer_mobile"
-            target="_blank"
-            style="color: inherit"
-            >github</a
-          >.
+          <br />
+          <br />
+          <div style="text-align: center; font-size: large">
+            <a
+              href="https://github.com/LucienLefebvre/luplayer_mobile"
+              target="_blank"
+              style="color: orange"
+              >GitHub</a
+            >
+          </div>
         </div>
       </div>
     </q-card-section>
