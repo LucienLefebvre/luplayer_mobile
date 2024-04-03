@@ -12,26 +12,54 @@
       <RecorderMainPanel v-show="soundsStore.appMode === 'recorder'" />
     </q-page-container>
   </q-layout>
-  <q-dialog v-model="soundsStore.showEditWindow" full-width position="bottom">
+  <q-dialog
+    v-model="soundsStore.showEditWindow"
+    full-width
+    position="bottom"
+    @show="useSettingsStore().numberOfDialogsShown++"
+    @hide="useSettingsStore().numberOfDialogsShown--"
+  >
     <sound-details :key="soundDetailsKey" @remount="remountSoundDetails()" />
   </q-dialog>
-  <q-dialog v-model="soundsStore.showReorderWindow" full-width>
+  <q-dialog
+    v-model="soundsStore.showReorderWindow"
+    full-width
+    @show="useSettingsStore().numberOfDialogsShown++"
+    @hide="useSettingsStore().numberOfDialogsShown--"
+  >
     <div class="column fit centered-content">
       <ReorderPanel />
     </div>
   </q-dialog>
-  <q-dialog v-model="soundsStore.showSettingsWindow" full-width>
+  <q-dialog
+    v-model="soundsStore.showSettingsWindow"
+    full-width
+    @show="useSettingsStore().numberOfDialogsShown++"
+    @hide="useSettingsStore().numberOfDialogsShown--"
+  >
     <SettingsDialog />
   </q-dialog>
-  <q-dialog v-model="soundsStore.showDeleteSoundWindow">
+  <q-dialog
+    v-model="soundsStore.showDeleteSoundWindow"
+    @show="useSettingsStore().numberOfDialogsShown++"
+    @hide="useSettingsStore().numberOfDialogsShown--"
+  >
     <div class="column fit centered-content">
       <DeleteSoundDialog :sound="soundsStore.selectedSound" />
     </div>
   </q-dialog>
-  <q-dialog v-model="settingsStore.showWelcomeDialog">
+  <q-dialog
+    v-model="settingsStore.showWelcomeDialog"
+    @show="useSettingsStore().numberOfDialogsShown++"
+    @hide="useSettingsStore().numberOfDialogsShown--"
+  >
     <WelcomeDialog />
   </q-dialog>
-  <q-dialog v-model="soundsStore.showPlaylistLoadSaveWindow">
+  <q-dialog
+    v-model="soundsStore.showPlaylistLoadSaveWindow"
+    @show="useSettingsStore().numberOfDialogsShown++"
+    @hide="useSettingsStore().numberOfDialogsShown--"
+  >
     <div class="column fit centered-content">
       <div style="color: orange; font-size: 1rem">
         {{ soundsStore.playlistLoadSaveWindowText }}
@@ -116,8 +144,7 @@ onMounted(() => {
     script.src = '//static.getclicky.com/js';
     document.body.appendChild(script); */
   } else if (isCapacitor()) {
-    console.log('Capacitor is running');
-    document.addEventListener('back', () => {
+    App.addListener('backButton', () => {
       backButtonPressed();
     });
   }
@@ -125,14 +152,8 @@ onMounted(() => {
 
 function backButtonPressed() {
   console.log('Back button pressed');
-  /*
-  console.log('Back button pressed');
-  if (dialogStore.checkIfDialogIsOpen) {
-    dialogStore.closeAllDialogs();
-  } else {
-    if (quitDialogShown) return;
-    quitDialogShown = true;
-
+  if (settingsStore.numberOfDialogsShown === 0) {
+    settingsStore.numberOfDialogsShown++;
     Dialog.create({
       title: 'Are you sure you want to exit?',
 
@@ -149,10 +170,10 @@ function backButtonPressed() {
       .onOk(() => {
         App.exitApp();
       })
-      .onCancel(() => {
-        quitDialogShown = false;
+      .onDismiss(() => {
+        settingsStore.numberOfDialogsShown = 0;
       });
-  } */
+  }
 }
 
 watch(

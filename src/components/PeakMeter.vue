@@ -10,6 +10,12 @@ import { gainToDb, dbToGain } from 'src/scripts/math-helpers';
 import { MeterBar, StereoAnalyserObject } from './models';
 import { NormalizableRange } from 'src/scripts/normalizable-range';
 import Konva from 'konva';
+
+defineExpose({
+  setAnalyserObject,
+  setIsMono,
+});
+
 const analyser = ref<StereoAnalyserObject | null>(null);
 
 const settingsStore = useSettingsStore();
@@ -127,7 +133,8 @@ onMounted(() => {
   const anim = new Konva.Animation(() => {
     if (!settingsStore.showPeakMeter) return;
     draw();
-  }, meterBarLayer);
+  });
+
   anim.start();
 });
 
@@ -151,26 +158,22 @@ function meterBarRectBuilder(
 
 function draw() {
   if (!peakMeter.value) return;
-
-  drawBackgroundBars();
+  if (analyser.value === null) return;
   drawBar(0);
-  drawBar(1);
-  drawPeakHoldText();
-  drawGraduationLines();
-  drawPeakHoldLine();
-  meterBarLayer.draw();
+  if (!isMono) drawBar(1);
 }
 
 function drawBar(channelToDraw: number) {
-  const data: Float32Array = new Float32Array(
-    analyser.value?.analysers[channelToDraw].frequencyBinCount ?? 0
+  const stageWidth = stage.width();
+  const stageHeight = stage.height();
+  const data = new Uint8Array(
+    analyser.value?.analysers[0].frequencyBinCount ?? 0
   );
-
-  analyser.value?.analysers[channelToDraw].getFloatTimeDomainData(data);
-  const maxValue = Math.max(...data);
+  analyser.value?.analysers[channelToDraw].getByteTimeDomainData(data);
+  const maxValue = Math.max(...data) - 128;
 
   peakValue[channelToDraw] = Math.max(
-    maxValue,
+    maxValue / 128,
     previousPeakValue[channelToDraw] * 0.95
   );
   previousPeakValue = peakValue;
@@ -179,35 +182,27 @@ function drawBar(channelToDraw: number) {
   if (peakValue[channelToDraw] < peakHoldValue) {
     setPeakHoldTimeOut();
   }
-  const meterWidth = stage.width() + 10;
-  const meterHeight = stage.height();
 
-  const barHeight = meterHeight / 2;
-  const barY = (channelToDraw * meterHeight) / 2;
-  const barX =
-    meterWidth * normRange.logScaleTo0to1(gainToDb(peakValue[channelToDraw]));
-  const barOrangeX =
-    meterWidth *
-    Math.min(
-      normRange.logScaleTo0to1(gainToDb(peakValue[channelToDraw])),
-      rangedRedThreshold
-    );
-  const barGreenX =
-    meterWidth *
-    Math.min(
-      normRange.logScaleTo0to1(gainToDb(peakValue[channelToDraw])),
-      rangeOrangeThreshold
-    );
+  const barWidth = stageWidth + 10;
+  const barHeight = isMono ? stageHeight : stageHeight / 2;
+  const barY = (channelToDraw * stageHeight) / 2;
+  const normalizedBarX = normRange.logScaleTo0to1(
+    gainToDb(peakValue[channelToDraw])
+  );
+  const barX = barWidth * normalizedBarX;
+  const barOrangeX = barWidth * Math.min(normalizedBarX, rangedRedThreshold);
+  const barGreenX = barWidth * Math.min(normalizedBarX, rangeOrangeThreshold);
 
-  meterBars[channelToDraw].red.width(barX);
-  meterBars[channelToDraw].orange.width(barOrangeX);
-  meterBars[channelToDraw].green.width(barGreenX);
-  meterBars[channelToDraw].red.y(barY);
-  meterBars[channelToDraw].orange.y(barY);
-  meterBars[channelToDraw].green.y(barY);
-  meterBars[channelToDraw].red.height(barHeight);
-  meterBars[channelToDraw].orange.height(barHeight);
-  meterBars[channelToDraw].green.height(barHeight);
+  const meterBarsChannel = meterBars[channelToDraw];
+  meterBarsChannel.red.width(barX);
+  meterBarsChannel.orange.width(barOrangeX);
+  meterBarsChannel.green.width(barGreenX);
+  meterBarsChannel.red.y(barY);
+  meterBarsChannel.orange.y(barY);
+  meterBarsChannel.green.y(barY);
+  meterBarsChannel.red.height(barHeight);
+  meterBarsChannel.orange.height(barHeight);
+  meterBarsChannel.green.height(barHeight);
 }
 
 function drawBackgroundBars() {
@@ -275,7 +270,7 @@ function setPeakHoldTimeOut() {
 }
 
 function resetPeakHold() {
-  peakHoldValue = peakValue[0]; //TODO change
+  peakHoldValue = Math.max(peakValue[0], peakValue[1]);
   peakHoldTimeOutHasBeenSet = false;
 }
 
@@ -306,21 +301,36 @@ watch(
   }
 );
 
-defineExpose({
-  setAnalyserObject,
-});
-
 const resizeObserver = new ResizeObserver((entries) => {
   for (let entry of entries) {
     const { width, height } = entry.contentRect;
     stage.width(width);
     stage.height(height);
+
+    drawBackgroundBars();
+    drawPeakHoldText();
+    drawGraduationLines();
+    drawPeakHoldLine();
   }
 });
 onMounted(() => {
   if (!peakMeter.value) return;
   resizeObserver.observe(peakMeter.value!);
 });
+
+let isMono = false;
+function setIsMono(b: boolean) {
+  isMono = b;
+  if (isMono) {
+    meterBars[1].red.hide();
+    meterBars[1].orange.hide();
+    meterBars[1].green.hide();
+  } else {
+    meterBars[1].red.show();
+    meterBars[1].orange.show();
+    meterBars[1].green.show();
+  }
+}
 </script>
 
 <style scoped></style>

@@ -69,6 +69,15 @@
         </q-list>
       </q-btn-dropdown>
     </div>
+    <div class="file-format-row">
+      <div>Automatic gain control</div>
+      <q-toggle
+        v-model="settingsStore.agcEnabled"
+        color="orange"
+        :disable="recorderStore.recorder.state === RecorderState.RECORDING"
+        @update:model-value="agcButtonClicked()"
+      />
+    </div>
   </div>
 </template>
 
@@ -125,6 +134,10 @@ function getFormatItemStyle(format: 'wav' | 'ogg') {
     ? 'background-color: var(--orangeColor); color: white'
     : 'background-color: var(--blueColor); color: white';
 }
+
+async function agcButtonClicked() {
+  await recorderStore.recorder.setAgcEnabled(settingsStore.agcEnabled);
+}
 </script>
 
 <style scoped>
@@ -148,7 +161,7 @@ function getFormatItemStyle(format: 'wav' | 'ogg') {
   gap: 3px;
 }
 .file-format-row > div {
-  flex: 0 0 120px;
+  justify-content: right;
 }
 .dropdown-button {
   flex: 1;

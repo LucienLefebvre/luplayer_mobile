@@ -4,6 +4,8 @@ import { reactive } from 'vue';
 export const useSettingsStore = defineStore('settingsStore', {
   state: () =>
     reactive({
+      numberOfDialogsShown: 0 as number,
+
       ///// GENERAL
       showWelcomeDialog: false as boolean,
       shouldShowWelcomeDialogNextTime: true as boolean,
@@ -43,6 +45,7 @@ export const useSettingsStore = defineStore('settingsStore', {
       ///// RECORDER
       inputDeviceId: '' as string,
       fileFormat: 'wav' as 'wav' | 'ogg',
+      agcEnabled: false as boolean,
       defaultHpfEnabled: false as boolean,
       showMarkers: true as boolean,
       showWaveform: true as boolean,

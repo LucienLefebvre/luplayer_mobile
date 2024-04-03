@@ -76,6 +76,7 @@
 import { ref, onMounted, TransitionGroup } from 'vue';
 import { useSoundsStore } from 'src/stores/sounds-store';
 import { Notify, Dialog } from 'quasar';
+import { useSettingsStore } from 'src/stores/settings-store';
 
 const soundsStore = useSoundsStore();
 
@@ -112,6 +113,7 @@ function isSaveButtonEnabled() {
 
 function openButtonClicked(playlist: string) {
   if (soundsStore.checkIfThereAreLoadedSounds()) {
+    useSettingsStore().numberOfDialogsShown++;
     Dialog.create({
       title: 'Open playlist',
       message:
@@ -127,15 +129,20 @@ function openButtonClicked(playlist: string) {
         color: 'red',
         label: 'Cancel',
       },
-    }).onOk(() => {
-      soundsStore.loadPlaylist(playlist, false);
-    });
+    })
+      .onOk(() => {
+        soundsStore.loadPlaylist(playlist, false);
+      })
+      .onDismiss(() => {
+        useSettingsStore().numberOfDialogsShown--;
+      });
   } else {
     soundsStore.loadPlaylist(playlist, false);
   }
 }
 
 function addButtonClicked(playlist: string) {
+  useSettingsStore().numberOfDialogsShown++;
   Dialog.create({
     title: 'Import playlist',
     message: 'Add selected playlist to current playlist?',
@@ -150,12 +157,17 @@ function addButtonClicked(playlist: string) {
       color: 'red',
       label: 'Cancel',
     },
-  }).onOk(() => {
-    soundsStore.loadPlaylist(playlist, true);
-  });
+  })
+    .onOk(() => {
+      soundsStore.loadPlaylist(playlist, true);
+    })
+    .onDismiss(() => {
+      useSettingsStore().numberOfDialogsShown--;
+    });
 }
 
 function deleteButtonClicked(playlist: string) {
+  useSettingsStore().numberOfDialogsShown++;
   Dialog.create({
     title: 'Delete playlist',
     message: `Are you sure you want to delete playlist "${playlist}"?`,
@@ -170,10 +182,14 @@ function deleteButtonClicked(playlist: string) {
       color: 'orange',
       label: 'Cancel',
     },
-  }).onOk(async () => {
-    await soundsStore.deletePlaylist(playlist);
-    savedPlaylists.value = getSavedPlaylists();
-  });
+  })
+    .onOk(async () => {
+      await soundsStore.deletePlaylist(playlist);
+      savedPlaylists.value = getSavedPlaylists();
+    })
+    .onDismiss(() => {
+      useSettingsStore().numberOfDialogsShown--;
+    });
 }
 
 const savedPlaylists = ref('[]');
@@ -192,6 +208,7 @@ function clearSoundsClicked() {
     return;
   }
 
+  useSettingsStore().numberOfDialogsShown++;
   Dialog.create({
     title: 'Clear all sounds ?',
     style: 'background-color: var(--bkgColor); color: orange;',
@@ -205,10 +222,14 @@ function clearSoundsClicked() {
       color: 'orange',
       label: 'Cancel',
     },
-  }).onOk(() => {
-    soundsStore.deleteAllSounds(false);
-    soundsStore.showSettingsWindow = false;
-  });
+  })
+    .onOk(() => {
+      soundsStore.deleteAllSounds(false);
+      soundsStore.showSettingsWindow = false;
+    })
+    .onDismiss(() => {
+      useSettingsStore().numberOfDialogsShown--;
+    });
 }
 </script>
 

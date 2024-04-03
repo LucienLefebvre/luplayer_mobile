@@ -81,6 +81,8 @@
           :cover="false"
           :offset="[0, 20]"
           persistent
+          @show="useSettingsStore().numberOfDialogsShown++"
+          @hide="useSettingsStore().numberOfDialogsShown--"
         >
           <div class="name-dialog">
             <q-card class="name-dialog-panel" style="padding: 10px">
@@ -119,6 +121,7 @@ import { Dialog } from 'quasar';
 import { RecorderState } from 'src/components/models';
 import { useRecorderStore } from 'src/stores/recorder-store';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
+import { useSettingsStore } from 'src/stores/settings-store';
 const recorderStore = useRecorderStore();
 const soundLibraryStore = useSoundLibraryStore();
 
@@ -144,6 +147,7 @@ function handleSoundNameDialogModelUpdate(sound: RecordedSound) {
 }
 
 function deleteButtonClicked(sound: RecordedSound) {
+  useSettingsStore().numberOfDialogsShown++;
   Dialog.create({
     title: `Delete "${sound.name}" ?`,
     style: 'background-color: var(--bkgColor); color: orange;',
@@ -155,9 +159,13 @@ function deleteButtonClicked(sound: RecordedSound) {
       label: 'No',
       color: 'primary',
     },
-  }).onOk(() => {
-    soundLibraryStore.deleteRecordedSoundFromLibrary(sound);
-  });
+  })
+    .onOk(() => {
+      soundLibraryStore.deleteRecordedSoundFromLibrary(sound);
+    })
+    .onDismiss(() => {
+      useSettingsStore().numberOfDialogsShown--;
+    });
 }
 
 function getPlayButtonIcon(sound: RecordedSound) {

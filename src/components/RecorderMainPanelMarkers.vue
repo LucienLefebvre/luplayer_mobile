@@ -1,7 +1,7 @@
 <template>
   <div class="markers-panel">
     <div class="markers-control" key="m">
-      <div class="markers-control-label">Markers</div>
+      <div class="markers-control-label shadow-text">Markers</div>
       <q-btn
         v-if="recorderStore.recorder.state === RecorderState.RECORDING"
         @click="recorderStore.addMarker()"
@@ -33,6 +33,8 @@
               @click="markerClicked(marker)"
             />
             <q-dialog
+              @show="useSettingsStore().numberOfDialogsShown++"
+              @hide="useSettingsStore().numberOfDialogsShown--"
               v-model="marker.showDialog"
               auto-save
               :cover="false"
@@ -101,6 +103,7 @@ import { SoundMarker } from './models';
 import { getMMSSfromS } from 'src/scripts/math-helpers';
 import { useRecorderStore } from 'src/stores/recorder-store';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
+import { useSettingsStore } from 'src/stores/settings-store';
 
 const recorderStore = useRecorderStore();
 const soundLibraryStore = useSoundLibraryStore();

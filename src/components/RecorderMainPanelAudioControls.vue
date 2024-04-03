@@ -6,7 +6,7 @@
       size="md"
       label="settings"
       dense
-      class="audio-settings-button"
+      class="audio-settings-button shadow"
       @click="audioSettingsButtonClicked"
     />
 
@@ -27,7 +27,12 @@
       :label-value="getTrimGainLabel()"
     />
   </div>
-  <q-dialog v-model="showAudioSettingsDialog" position="bottom">
+  <q-dialog
+    v-model="showAudioSettingsDialog"
+    position="bottom"
+    @show="useSettingsStore().numberOfDialogsShown++"
+    @hide="useSettingsStore().numberOfDialogsShown--"
+  >
     <div class="recorded-sounds-dialog-panel-label">
       <q-btn
         color="red"
@@ -49,6 +54,7 @@ import RecorderAudioSettingsPanel from './RecorderAudioSettingsPanel.vue';
 
 import { RecorderState } from 'src/components/models';
 import { useRecorderStore } from 'src/stores/recorder-store';
+import { useSettingsStore } from 'src/stores/settings-store';
 const recorderStore = useRecorderStore();
 
 function getTrimGainLabel() {

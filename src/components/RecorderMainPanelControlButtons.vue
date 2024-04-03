@@ -7,6 +7,7 @@
         :color="recorderStore.getButtonsColor()"
         :icon="getStopButtonIcon()"
         @click="stopButtonClicked()"
+        class="shadow"
       />
     </div>
     <div class="recording-button">
@@ -16,6 +17,7 @@
         @click="recordButtonClicked()"
         :color="recorderStore.getButtonsColor()"
         :label="recordingLengthLabel"
+        class="shadow"
       >
       </q-btn>
     </div>
@@ -26,6 +28,7 @@
         :color="recorderStore.getButtonsColor()"
         icon="delete"
         @click="deleteButtonClicked()"
+        class="shadow"
       />
     </div>
   </div>
@@ -39,6 +42,7 @@ import { getMMSSfromS } from 'src/scripts/math-helpers';
 import { RecorderState } from 'src/components/models';
 import { useRecorderStore } from 'src/stores/recorder-store';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
+import { useSettingsStore } from 'src/stores/settings-store';
 const recorderStore = useRecorderStore();
 const soundLibraryStore = useSoundLibraryStore();
 
@@ -86,6 +90,7 @@ function deleteButtonClicked() {
   )
     return;
 
+  useSettingsStore().numberOfDialogsShown++;
   Dialog.create({
     title: getDeleteDialogLabel(),
     style: 'background-color: var(--bkgColor); color: orange',
@@ -97,33 +102,37 @@ function deleteButtonClicked() {
       label: 'No',
       color: 'primary',
     },
-  }).onOk(() => {
-    switch (recorderStore.recorder.state) {
-      case RecorderState.RECORDING:
-        recorderStore.stopRecording(false);
-        recorderStore.resetState();
-        break;
-      case RecorderState.STOPPED:
-        soundLibraryStore.deleteRecordedSoundFromLibrary(
-          recorderStore.currentSound
-        );
-        recorderStore.resetState();
-        break;
-
-      case RecorderState.PLAYING_RECORDED_SOUND:
-        const sound = soundLibraryStore.selectedSound;
-        if (sound !== null) {
-          soundLibraryStore.stopSelectedSound();
-          soundLibraryStore.deleteRecordedSoundFromLibrary(sound);
+  })
+    .onOk(() => {
+      switch (recorderStore.recorder.state) {
+        case RecorderState.RECORDING:
+          recorderStore.stopRecording(false);
           recorderStore.resetState();
-        }
-        break;
-      default:
-        recorderStore.stopRecording(false);
-        recorderStore.resetState();
-        break;
-    }
-  });
+          break;
+        case RecorderState.STOPPED:
+          soundLibraryStore.deleteRecordedSoundFromLibrary(
+            recorderStore.currentSound
+          );
+          recorderStore.resetState();
+          break;
+
+        case RecorderState.PLAYING_RECORDED_SOUND:
+          const sound = soundLibraryStore.selectedSound;
+          if (sound !== null) {
+            soundLibraryStore.stopSelectedSound();
+            soundLibraryStore.deleteRecordedSoundFromLibrary(sound);
+            recorderStore.resetState();
+          }
+          break;
+        default:
+          recorderStore.stopRecording(false);
+          recorderStore.resetState();
+          break;
+      }
+    })
+    .onDismiss(() => {
+      useSettingsStore().numberOfDialogsShown--;
+    });
 }
 
 function getDeleteDialogLabel() {
@@ -175,10 +184,10 @@ function updateTimeLabel() {
   justify-content: space-evenly;
 
   width: 100%;
-  padding: 5px;
+  padding-top: 5px;
 }
 .recording-button {
-  padding: 5px;
+  padding-top: 5px;
   font-size: 2.8rem;
   justify-content: center;
 }

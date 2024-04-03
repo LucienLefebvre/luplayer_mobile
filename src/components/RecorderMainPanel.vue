@@ -26,7 +26,7 @@
         <RecorderMainPanelSoundName />
         <RecorderMainPanelMarkers v-if="settingsStore.showMarkers" />
 
-        <div class="recorded-sounds-panel-label">
+        <div class="recorded-sounds-panel-label shadow-text">
           Recorded sounds :
           <q-btn
             color="orange"
@@ -39,7 +39,12 @@
         <RecordedSoundsPanel class="recorded-sounds-panel" mode="tiny" />
       </div>
     </div>
-    <q-dialog v-model="showRecordedSoundsDialog" position="bottom">
+    <q-dialog
+      v-model="showRecordedSoundsDialog"
+      position="bottom"
+      @show="useSettingsStore().numberOfDialogsShown++"
+      @hide="useSettingsStore().numberOfDialogsShown--"
+    >
       <div class="recorded-sounds-dialog">
         <div class="recorded-sounds-dialog-panel-label">
           <q-btn
@@ -49,22 +54,21 @@
             dense
             @click="showRecordedSoundsDialog = false"
           />
-          Recorded sounds :
+          <div class="shadow-text">Recorded sounds :</div>
         </div>
         <RecordedSoundsPanel
           mode="large"
-          style
           class="recorded-sounds-dialog-panel"
         />
       </div>
     </q-dialog>
-    <q-dialog v-model="soundLibraryStore.isSaving">
+    <!--     <q-dialog v-model="soundLibraryStore.isSaving">
       <div class="column fit centered-content">
         <div style="color: orange; font-size: 1rem">Saving sound...</div>
         <q-linear-progress indeterminate color="orange" size="18px">
         </q-linear-progress>
       </div>
-    </q-dialog>
+    </q-dialog> -->
   </div>
 </template>
 
@@ -92,6 +96,7 @@ const peakMeter = ref<typeof PeakMeter | null>(null);
 
 onMounted(() => {
   recorderStore.waveformView = waveformView.value;
+  peakMeter.value?.setIsMono(true);
 });
 
 const controlPanel = ref<HTMLDivElement | null>(null);
@@ -114,7 +119,8 @@ const waveformViewHeight = computed(() => {
   if (!controlPanel.value) return '0px';
   const windowHeight = window.innerHeight;
   const peakMeterHeight = settingsStore.showRecorderPeakMeter ? 30 : 0;
-  const height = windowHeight - controlPanelHeight.value - 80 - peakMeterHeight;
+  let height = windowHeight - controlPanelHeight.value - 80 - peakMeterHeight;
+  if (height < 0) height = 20;
   return height + 'px';
 });
 
@@ -152,7 +158,9 @@ watch(
       recorderStore.waveform?.setShouldUpdateWaveform(true);
     }
     if (state === RecorderState.READY) {
-      peakMeter.value?.setAnalyserObject(recorderStore.recorder.stereoAnalyser);
+      peakMeter.value?.setAnalyserObject(
+        recorderStore.recorder.peakMeterAnalyser
+      );
     }
   }
 );
@@ -235,7 +243,6 @@ const isSaving = computed(
   text-align: center;
   justify-content: center;
   gap: 10px;
-  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
   border-radius: 20px;
 }
 .recorded-sounds-dialog-panel {

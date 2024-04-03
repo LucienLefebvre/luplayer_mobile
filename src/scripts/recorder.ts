@@ -43,9 +43,12 @@ export class Recorder {
 
   private _gainNode: GainNode | null = null;
   private _hpfNode: BiquadFilterNode | null = null;
-  private _limiterNode: DynamicsCompressorNode | null = null;
   private _streamDestinationNode: MediaStreamAudioDestinationNode | null = null;
-  private _stereoAnalyser: {
+  private _waveformAnalyser: {
+    splitter: ChannelSplitterNode;
+    analysers: AnalyserNode[];
+  } | null = null;
+  private _peakMeterAnalyser: {
     splitter: ChannelSplitterNode;
     analysers: AnalyserNode[];
   } | null = null;
@@ -72,24 +75,17 @@ export class Recorder {
   }
 
   get streamDestinationNode(): MediaStreamAudioDestinationNode {
+    console.log('Creating stream destination node');
     if (!this._streamDestinationNode) {
-      this._streamDestinationNode = new MediaStreamAudioDestinationNode(
-        this.audioContext
-      );
+      this._streamDestinationNode =
+        this.audioContext.createMediaStreamDestination();
     }
     return this._streamDestinationNode;
   }
 
-  get limiterNode(): DynamicsCompressorNode {
-    if (!this._limiterNode) {
-      this._limiterNode = new DynamicsCompressorNode(this.audioContext);
-    }
-    return this._limiterNode;
-  }
-
   get hpfNode(): BiquadFilterNode {
     if (!this._hpfNode) {
-      this._hpfNode = new BiquadFilterNode(this.audioContext);
+      this._hpfNode = this.audioContext.createBiquadFilter();
       this._hpfNode.type = 'highpass';
       this._hpfNode.frequency.value = 80;
       this._hpfNode.Q.value = 0.7071;
@@ -97,17 +93,40 @@ export class Recorder {
     return this._hpfNode;
   }
 
-  get stereoAnalyser() {
-    if (!this._stereoAnalyser) {
-      this._stereoAnalyser = {
-        splitter: this.audioContext.createChannelSplitter(2),
-        analysers: [
-          this.audioContext.createAnalyser(),
-          this.audioContext.createAnalyser(),
-        ],
+  get waveformAnalyser() {
+    if (!this._waveformAnalyser) {
+      console.log('Creating waveform analyser');
+      const splitter = this.audioContext.createChannelSplitter(2);
+      const analysers = [
+        this.audioContext.createAnalyser(),
+        this.audioContext.createAnalyser(),
+      ];
+      this._waveformAnalyser = {
+        splitter: splitter,
+        analysers: analysers,
       };
+      splitter.connect(analysers[0], 0);
+      splitter.connect(analysers[1], 1);
     }
-    return this._stereoAnalyser;
+    return this._waveformAnalyser;
+  }
+
+  get peakMeterAnalyser() {
+    if (!this._peakMeterAnalyser) {
+      console.log('Creating peak meter analyser');
+      const splitter = this.audioContext.createChannelSplitter(2);
+      const analysers = [
+        this.audioContext.createAnalyser(),
+        this.audioContext.createAnalyser(),
+      ];
+      this._peakMeterAnalyser = {
+        splitter: splitter,
+        analysers: analysers,
+      };
+      splitter.connect(analysers[0], 0);
+      splitter.connect(analysers[1], 1);
+    }
+    return this._peakMeterAnalyser;
   }
 
   public async init() {
@@ -123,19 +142,21 @@ export class Recorder {
 
       if (!this.currentAudioInputDevice) return;
 
+      const inputDevices = await this.getInputDevices();
+      const inputDevice = inputDevices[0];
       const stream = await navigator.mediaDevices.getUserMedia(
-        this.getConstraints(this.currentAudioInputDevice)
+        this.getConstraints(inputDevice, this.settingsStore.agcEnabled)
       );
 
       this.mediaStreamSource =
         this.audioContext.createMediaStreamSource(stream);
 
+      this.connectAudioNodes();
+
       this.mediaRecorder = await this.createMediaRecorder(
         this.settingsStore.fileFormat,
-        stream
+        this.streamDestinationNode.stream
       );
-
-      this.connectAudioNodes();
 
       this.state = RecorderState.READY;
     } catch (error) {
@@ -170,22 +191,19 @@ export class Recorder {
     this.mediaStreamSource?.connect(this.gainNode);
     this.gainNode.connect(this.hpfNode);
 
-    this.hpfNode.connect(this.limiterNode);
-    this.limiterNode.connect(this.stereoAnalyser.splitter);
-    this.limiterNode.connect(this.streamDestinationNode);
-
-    if (this.stereoAnalyser) {
-      this.stereoAnalyser.splitter.connect(this.stereoAnalyser.analysers[0], 0);
-      this.stereoAnalyser.splitter.connect(this.stereoAnalyser.analysers[1], 1);
-    }
+    this.hpfNode.connect(this.waveformAnalyser.splitter);
+    this.hpfNode.connect(this.peakMeterAnalyser.splitter);
+    const proxyNode = this.audioContext.createGain();
+    this.hpfNode.connect(proxyNode);
+    proxyNode.connect(this.streamDestinationNode);
   }
 
-  private getConstraints(device: MediaDeviceInfo) {
+  private getConstraints(device: MediaDeviceInfo, agcEnabled: boolean) {
     const constraints = {
       audio: {
         deviceId: device.deviceId,
         echoCancellation: false,
-        autoGainControl: false,
+        autoGainControl: agcEnabled,
         noiseCancellation: false,
       },
     };
@@ -195,12 +213,11 @@ export class Recorder {
   public async createMediaRecorder(
     fileFormat: 'ogg' | 'wav',
     stream: MediaStream
-  ): Promise<IMediaRecorder> {
+  ): Promise<IMediaRecorder | MediaRecorder> {
     let recorder;
     if (fileFormat === 'ogg') {
       const options = {
         mimeType: 'audio/webm; codecs=opus',
-        audioBitsPerSecond: 256000,
       };
       recorder = new MediaRecorder(stream, options);
     } else {
@@ -266,19 +283,23 @@ export class Recorder {
       (device) => device.kind === 'audioinput'
     );
     if (audioInputDevices.length === 0) {
+      useSettingsStore().numberOfDialogsShown++;
       Dialog.create({
         title: 'No input device found',
         style: 'background-color: var(--bkgColor); color: orange',
+      }).onDismiss(() => {
+        useSettingsStore().numberOfDialogsShown--;
       });
       throw new Error('No input device found');
     }
-    this.audioInputDevices = inputDevices.filter(
-      (device) => device.kind === 'audioinput'
-    );
+    this.audioInputDevices = audioInputDevices;
     return this.audioInputDevices;
   }
 
-  public async changeInputDevice(deviceId: string) {
+  public async changeInputDevice(
+    deviceId: string,
+    agcEnabled = this.settingsStore.agcEnabled
+  ) {
     if (this.state === RecorderState.RECORDING) {
       return;
     }
@@ -295,12 +316,9 @@ export class Recorder {
       (device) => device.deviceId === deviceId
     );
 
-    const constraints = {
-      audio: {
-        deviceId: this.currentAudioInputDevice?.deviceId,
-      },
-    };
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    const stream = await navigator.mediaDevices.getUserMedia(
+      this.getConstraints(this.currentAudioInputDevice!, agcEnabled)
+    );
 
     if (this.mediaStreamSource) {
       this.mediaStreamSource.disconnect();
@@ -372,8 +390,10 @@ export class Recorder {
     if (this.hpfNode) this.hpfNode.frequency.value = enabled ? frequency : 0;
   }
 
-  public setLimiterState(enabled: boolean, threshold: number) {
-    if (this.limiterNode)
-      this.limiterNode.threshold.value = enabled ? threshold : 0;
+  public async setAgcEnabled(enabled: boolean) {
+    await this.changeInputDevice(
+      this.currentAudioInputDevice!.deviceId,
+      enabled
+    );
   }
 }

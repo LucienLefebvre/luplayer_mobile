@@ -23,6 +23,8 @@
             @click="colorClicked()"
           />
           <q-dialog
+            @show="useSettingsStore().numberOfDialogsShown++"
+            @hide="useSettingsStore().numberOfDialogsShown--"
             v-model="showColorDialog"
             auto-save
             :cover="false"
@@ -44,6 +46,8 @@
           >
             {{ sound.name }}
             <q-dialog
+              @show="useSettingsStore().numberOfDialogsShown++"
+              @hide="useSettingsStore().numberOfDialogsShown--"
               v-model="showNameDialog"
               auto-save
               :cover="false"

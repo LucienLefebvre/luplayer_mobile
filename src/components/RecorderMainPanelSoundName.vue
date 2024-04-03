@@ -2,7 +2,12 @@
   <div class="sound-name-row">
     <div class="sound-name" @click="nameClicked()">
       {{ getNameLabel() }}
-      <q-dialog persistent v-model="showNameDialog">
+      <q-dialog
+        persistent
+        v-model="showNameDialog"
+        @show="useSettingsStore().numberOfDialogsShown++"
+        @hide="useSettingsStore().numberOfDialogsShown--"
+      >
         <div class="name-dialog">
           <q-card class="name-dialog-panel q-pa-md" style="padding: 10px">
             <q-input
@@ -56,6 +61,7 @@ import { ref, watch } from 'vue';
 import { RecorderState } from 'src/components/models';
 import { useRecorderStore } from 'src/stores/recorder-store';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
+import { useSettingsStore } from 'src/stores/settings-store';
 const recorderStore = useRecorderStore();
 const soundLibraryStore = useSoundLibraryStore();
 

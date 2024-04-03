@@ -12,6 +12,7 @@ import {
 } from 'src/components/models';
 import { useSoundLibraryStore } from 'src/stores/sound-library-store';
 import PeakMeter from 'src/components/PeakMeter.vue';
+import { useSettingsStore } from './settings-store';
 
 export const useRecorderStore = defineStore('recorderStore', {
   state: () =>
@@ -60,19 +61,22 @@ export const useRecorderStore = defineStore('recorderStore', {
         await this.recorder.init();
       } catch (error) {
         console.error(error);
+        useSettingsStore().numberOfDialogsShown++;
         Dialog.create({
           title: 'Microphone access is not allowed',
           style: 'background-color: var(--bkgColor); color: orange',
+        }).onDismiss(() => {
+          useSettingsStore().numberOfDialogsShown--;
         });
       }
     },
 
     async initWaveform() {
       if (this.waveformView === null) return;
-      if (this.recorder.stereoAnalyser === undefined) return;
+      if (this.recorder.waveformAnalyser === undefined) return;
       this.waveform = new RecorderWaveform(
         this.waveformView,
-        this.recorder.stereoAnalyser,
+        this.recorder.waveformAnalyser,
         this.recorder.audioContext ?? new AudioContext()
       );
 
@@ -219,16 +223,6 @@ export const useRecorderStore = defineStore('recorderStore', {
     setHpfFrequency(frequency: number) {
       this.hpfFrequency = frequency;
       this.recorder.setHpfState(this.hpfEnabled, this.hpfFrequency);
-    },
-
-    toggleLimiter() {
-      this.limiterEnabled = !this.limiterEnabled;
-      this.recorder.setLimiterState(this.limiterEnabled, this.limiterThreshold);
-    },
-
-    setLimiterThreshold(threshold: number) {
-      this.limiterThreshold = threshold;
-      this.recorder.setLimiterState(this.limiterEnabled, this.limiterThreshold);
     },
 
     getButtonsColor() {
