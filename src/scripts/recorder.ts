@@ -1,5 +1,4 @@
 import { Dialog } from 'quasar';
-import { Directory } from '@capacitor/filesystem';
 import {
   MediaRecorder as EMediaRecorder,
   IMediaRecorder,
@@ -71,8 +70,9 @@ export class Recorder {
   }
 
   get streamDestinationNode(): MediaStreamAudioDestinationNode {
-    console.log('Creating stream destination node');
     if (!this._streamDestinationNode) {
+      console.log('Creating stream destination node');
+
       this._streamDestinationNode =
         this.audioContext.createMediaStreamDestination();
     }

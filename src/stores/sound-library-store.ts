@@ -330,7 +330,7 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
         const buffer = await data.arrayBuffer();
         const base64 = this.array_buffer_to_base64(buffer);
         const bufferEnd = performance.now();
-        console.log('buffer', bufferEnd - bufferStart);
+        //console.log('buffer', bufferEnd - bufferStart);
 
         const writeStart = performance.now();
         Filesystem.appendFile({
@@ -339,7 +339,7 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
           directory: this.getSoundsDirectory(),
         }).then(() => {
           const writeEnd = performance.now();
-          console.log('write', writeEnd - writeStart);
+          //console.log('write', writeEnd - writeStart);
         });
       } catch (error) {
         console.error('appendDataToFile', error);
