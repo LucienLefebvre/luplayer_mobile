@@ -34,6 +34,8 @@ export class Waveform {
 
   private playedLine: Konva.Line;
   private remainingLine: Konva.Line;
+  private playedZeroLine: Konva.Line;
+  private remainingZeroLine: Konva.Line;
 
   private verticalZoomFactor: number;
   private horizontalZoomFactor: number;
@@ -174,9 +176,13 @@ export class Waveform {
 
     this.playedLine = new Konva.Line();
     this.playedLine.closed(true);
-
     this.remainingLine = new Konva.Line();
     this.remainingLine.closed(true);
+
+    this.playedZeroLine = new Konva.Line();
+    this.playedZeroLine.closed(true);
+    this.remainingZeroLine = new Konva.Line();
+    this.remainingZeroLine.closed(true);
 
     this.soundDuration = audioElement.duration;
     this.startTime = 0;
@@ -278,6 +284,9 @@ export class Waveform {
     this.anim = new Konva.Animation(() => {
       this.draw();
     }, this.waveformLayer);
+  }
+
+  public async init() {
     init().then(() => {
       this.launchAnimation();
     });
@@ -611,14 +620,20 @@ export class Waveform {
 
     this.playedLine.points(points.playedPoints);
     this.remainingLine.points(points.remainingPoints);
+    this.playedZeroLine.points(points.playedZeroPoints);
+    this.remainingZeroLine.points(points.remainingZeroPoints);
     this.waveformLayer.add(this.playedLine);
     this.waveformLayer.add(this.remainingLine);
+    this.waveformLayer.add(this.playedZeroLine);
+    this.waveformLayer.add(this.remainingZeroLine);
     this.waveformLayerBackground.moveToTop();
   }
 
   private createWaveformPoints(): {
     playedPoints: number[];
     remainingPoints: number[];
+    playedZeroPoints: number[];
+    remainingZeroPoints: number[];
   } {
     //const start = performance.now();
 
@@ -661,7 +676,22 @@ export class Waveform {
       }
     }
 
-    return { playedPoints, remainingPoints };
+    const playedZeroPoints = [0, middleY];
+    playedZeroPoints.push(progressX, middleY);
+    playedZeroPoints.push(progressX, middleY + 1);
+    playedZeroPoints.push(0, middleY + 1);
+
+    const remainingZeroPoints = [progressX, middleY];
+    remainingZeroPoints.push(width, middleY);
+    remainingZeroPoints.push(width, middleY + 1);
+    remainingZeroPoints.push(progressX, middleY + 1);
+
+    return {
+      playedPoints,
+      remainingPoints,
+      playedZeroPoints,
+      remainingZeroPoints,
+    };
   }
 
   private drawOutTime() {
@@ -1102,30 +1132,36 @@ export class Waveform {
 
   setPlayedWaveformFillColor(color: string) {
     this.playedLine.fill(color);
+    this.playedZeroLine.fill(color);
     this.updateWaveform();
   }
 
   setRemainingWaveformFillColor(color: string) {
     this.remainingLine.fill(color);
+    this.remainingZeroLine.fill(color);
     this.updateWaveform();
   }
 
   setPlayedWaveformStrokeColor(color: string) {
+    this.playedZeroLine.stroke(color);
     this.playedLine.stroke(color);
     this.updateWaveform();
   }
 
   setRemainingWaveformStrokeColor(color: string) {
+    this.remainingZeroLine.stroke(color);
     this.remainingLine.stroke(color);
     this.updateWaveform();
   }
 
   setPlayedWaveformOpacity(opacity: number) {
+    this.playedZeroLine.opacity(opacity);
     this.playedLine.opacity(opacity);
     this.updateWaveform();
   }
 
   setRemainingWaveformOpacity(opacity: number) {
+    this.remainingZeroLine.opacity(opacity);
     this.remainingLine.opacity(opacity);
     this.updateWaveform();
   }

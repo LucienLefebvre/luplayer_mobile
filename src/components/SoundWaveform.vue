@@ -41,6 +41,8 @@ onMounted(async () => {
   waveform.addEventListener('click', handleClick);
   waveform.addEventListener('touchHold', handleTouchHold);
 
+  await waveform.init();
+
   if (sound.value.waveformChunks) {
     await waveform.setWaveformChunks(sound.value.waveformChunks);
     initWaveform();
