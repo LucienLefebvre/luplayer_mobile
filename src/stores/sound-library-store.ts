@@ -15,6 +15,8 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
       recordedSounds: [] as RecordedSound[],
       audioContext: null as AudioContext | null,
 
+      soundOnDisk: [] as string[],
+
       selectedSound: null as RecordedSound | null,
 
       isSaving: false,
@@ -59,6 +61,8 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
         path: await this.getSoundsPath(true),
         directory: await this.getSoundsDirectory(),
       });
+
+      this.soundOnDisk = soundsOnDisk.files.map((file) => file.name);
 
       sounds.forEach((sound) => {
         soundsOnDisk.files.forEach((file) => {
@@ -124,6 +128,7 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
 
     async getSoundsPath(createDir = false): Promise<string> {
       if (Capacitor.getPlatform() === 'web') {
+        console.log('web');
         return '';
       } else {
         if (createDir) {
@@ -367,6 +372,8 @@ export const useSoundLibraryStore = defineStore('soundlibrarystore', {
           path: path,
           directory: directory,
         });
+
+        console.log('files', files);
 
         const existingFileNames = files.files.map((file) => file.name);
         let newFileName = fileName;

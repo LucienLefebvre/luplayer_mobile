@@ -243,10 +243,10 @@ function getDateLabel(date: Date) {
 }
 .recorded-sound-name {
   flex: 0 0 50%;
-
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  user-select: none;
 }
 .recorded-sound-time {
   flex: 0 0 15%;

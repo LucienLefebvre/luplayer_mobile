@@ -1,5 +1,11 @@
 # Changelog
 
+## [V0.21]
+
+### Fixed
+
+- Value jump when touching multiple cart fader
+
 ## [V0.20]
 
 ### Added
