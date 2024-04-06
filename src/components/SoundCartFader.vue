@@ -7,8 +7,6 @@
 
 <script setup lang="ts">
 import { ref, PropType, onMounted, watch } from 'vue';
-import type { SwipeDirection } from '@vueuse/core';
-import { useSwipe } from '@vueuse/core';
 import Konva from 'konva';
 
 import * as constants from 'src/scripts/constants';
@@ -19,8 +17,7 @@ import {
   setSoundVolumeDB,
   getRemainingTime,
 } from 'src/scripts/sound-controller';
-import { logScaleTo0to1, scaleTo0to1 } from 'src/scripts/math-helpers';
-import { is } from 'quasar';
+import { scaleTo0to1 } from 'src/scripts/math-helpers';
 
 const settingsStore = useSettingsStore();
 
@@ -105,11 +102,13 @@ function getTouch(e: TouchEvent) {
   return null;
 }
 const touchStart = (e: TouchEvent | MouseEvent) => {
+  let touch;
   if (e instanceof TouchEvent) {
-    const touch = getTouch(e);
-    if (!touch) return;
+    touch = getTouch(e);
   }
-  touchStartY = e instanceof TouchEvent ? e.touches[0].clientY : e.clientY;
+  if (!touch) return;
+
+  touchStartY = e instanceof TouchEvent ? touch.clientY : e.clientY;
   clicked();
   swipeStartGain = sound.value.volumeDb;
   sound.value.shouldShowVolume = true;
@@ -117,6 +116,7 @@ const touchStart = (e: TouchEvent | MouseEvent) => {
 };
 
 const touchMove = (e: TouchEvent | MouseEvent) => {
+  console.log('🚀 ~ touchMove ~ e', e);
   isSwiping.value = true;
   clearTimeout(timeOut);
 
@@ -127,6 +127,8 @@ const touchMove = (e: TouchEvent | MouseEvent) => {
   if (!touch) return;
 
   let lengthY = e instanceof TouchEvent ? touchStartY - touch.clientY : 0;
+  console.log('🚀 ~ touchMove ~ lengthY:', lengthY);
+
   let gain =
     swipeStartGain +
     (lengthY / constants.CART_VOLUME_SWIPE_DIVIDER) *
